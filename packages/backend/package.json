@@ -3,15 +3,28 @@
   "version": "0.0.0",
   "type": "module",
   "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    "./convex/_generated/api": "./convex/_generated/api.js"
+  },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "@wabrix/eslint-config": "workspace:*",
     "@wabrix/typescript-config": "workspace:*",
+    "convex-test": "^0.0.49",
     "eslint": "^9.39.1",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@clerk/backend": "^3.2.13",
+    "convex": "^1.35.1",
+    "svix": "^1.90.0"
   }
 }

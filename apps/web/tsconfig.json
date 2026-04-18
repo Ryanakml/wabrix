@@ -1,6 +1,7 @@
 {
   "extends": "@wabrix/typescript-config/nextjs",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]

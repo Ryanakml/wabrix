@@ -5,7 +5,7 @@ workers_dev = true
 
 [vars]
 ENVIRONMENT = "local"
-CONVEX_HTTP_URL = "https://example.convex.site"
+CONVEX_HTTP_URL = "https://rapid-panther-620.convex.site"
 CONVEX_SHARED_SECRET = "replace-me"
 META_APP_SECRET = "replace-me"
 META_VERIFY_TOKEN = "replace-me"
