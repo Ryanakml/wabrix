@@ -1,0 +1,61 @@
+{
+  "Marketing": {
+    "phaseBadge": "Phase 1 in progress",
+    "eyebrow": "WhatsApp-first SaaS foundation",
+    "headline": "A clean monorepo base for reliable WhatsApp AI operations.",
+    "subheadline": "The repo now ships with a Turbo workspace, a localized Next.js shell, a Cloudflare Worker ingress shell, and shared workspace packages prepared for the later Convex, Clerk, and WhatsApp phases.",
+    "ctaPrimary": "Open dashboard shell",
+    "ctaSecondary": "Read approved docs",
+    "cards": {
+      "foundationTitle": "Turbo workspace",
+      "foundationBody": "Single repo with apps and packages wired for phase-by-phase delivery.",
+      "i18nTitle": "English + Bahasa",
+      "i18nBody": "next-intl is initialized with locale-aware routing from day one.",
+      "ingressTitle": "Worker shell",
+      "ingressBody": "Hono and Wrangler are in place with local, staging, and production placeholders."
+    },
+    "shellBadge": "Foundation snapshot",
+    "shellTitle": "Local surfaces available in phase 1",
+    "shellItems": {
+      "web": "Marketing + dashboard shell",
+      "ingress": "Ingress worker shell",
+      "status": "Implementation state",
+      "statusValue": "Repo foundation"
+    },
+    "shellFootnote": "Later phases will replace placeholders with Clerk auth, Convex persistence, webhook verification, queue orchestration, and production observability."
+  },
+  "Dashboard": {
+    "eyebrow": "Dashboard shell",
+    "headline": "The app foundation is ready for auth, bot studio, and WhatsApp runtime work.",
+    "subheadline": "Phase 1 intentionally stops at shell-level UX and workspace wiring. Auth, tenant state, real data, and message orchestration begin in later phases.",
+    "authStatus": "placeholder-auth",
+    "backToMarketing": "Back to marketing",
+    "modules": {
+      "botStudio": {
+        "title": "Bot Studio",
+        "body": "Prompt, language, model, and safety controls land in phase 3."
+      },
+      "knowledgeBase": {
+        "title": "Knowledge Base",
+        "body": "Markdown-normalized ingestion and embeddings land in phase 4."
+      },
+      "inbox": {
+        "title": "Inbox",
+        "body": "Conversation surfaces, handoff, and service-window UX land in phases 7 to 10."
+      },
+      "ops": {
+        "title": "Ops",
+        "body": "Queue visibility, webhook state, and monitoring expand across phases 6 to 14."
+      }
+    },
+    "checklistLabel": "Phase 1 checklist",
+    "checklist": {
+      "repo": "pnpm workspace and Turbo are configured at the repo root.",
+      "web": "Next.js App Router, Tailwind, and next-intl are initialized in apps/web.",
+      "ingress": "Hono Cloudflare Worker shell and Wrangler environment placeholders exist in apps/ingress.",
+      "shared": "Shared config, UI, TypeScript, ESLint, CI, and local setup docs are wired."
+    },
+    "nextStepsLabel": "Next phase",
+    "nextStepsBody": "Phase 2 will add Clerk auth, organizations, RBAC, protected dashboard routing, and audit-ready tenant scoping."
+  }
+}
