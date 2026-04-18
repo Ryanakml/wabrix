@@ -7,7 +7,7 @@ describe("RBAC Helpers", () => {
       auth: {
         getUserIdentity: async () => null,
       },
-    } as any;
+    } as unknown as import("../convex/_generated/server.js").QueryCtx;
 
     await expect(assertHasRole(mockCtx, "org:admin")).rejects.toThrow("Unauthorized: Unauthenticated call");
   });
@@ -20,7 +20,7 @@ describe("RBAC Helpers", () => {
           // missing org_id
         }),
       },
-    } as any;
+    } as unknown as import("../convex/_generated/server.js").QueryCtx;
 
     await expect(assertHasRole(mockCtx, "org:admin")).rejects.toThrow("Unauthorized: No active organization context");
     await expect(requireOrgContext(mockCtx)).rejects.toThrow("Unauthorized: No active organization context");
@@ -35,7 +35,7 @@ describe("RBAC Helpers", () => {
           org_role: "org:member",
         }),
       },
-    } as any;
+    } as unknown as import("../convex/_generated/server.js").QueryCtx;
 
     await expect(assertHasRole(mockCtx, "org:sys_profile:manage")).rejects.toThrow("Unauthorized: Requires role org:sys_profile:manage, got org:member");
   });
@@ -49,7 +49,7 @@ describe("RBAC Helpers", () => {
           org_role: "org:member",
         }),
       },
-    } as any;
+    } as unknown as import("../convex/_generated/server.js").QueryCtx;
 
     const res = await assertHasRole(mockCtx, "org:member");
     expect(res).toEqual({ orgId: "org_123", orgRole: "org:member", clerkUserId: "user_123" });
@@ -64,7 +64,7 @@ describe("RBAC Helpers", () => {
           org_role: "org:admin",
         }),
       },
-    } as any;
+    } as unknown as import("../convex/_generated/server.js").QueryCtx;
 
     const res = await assertHasRole(mockCtx, "org:editor");
     expect(res).toEqual({ orgId: "org_123", orgRole: "org:admin", clerkUserId: "user_123" });
@@ -79,7 +79,7 @@ describe("RBAC Helpers", () => {
           org_role: "org:member",
         }),
       },
-    } as any;
+    } as unknown as import("../convex/_generated/server.js").QueryCtx;
 
     const res = await requireOrgContext(mockCtx);
     expect(res).toEqual({ orgId: "org_123", clerkUserId: "user_123" });

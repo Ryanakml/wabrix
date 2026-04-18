@@ -18,7 +18,7 @@ export default function DashboardLayout({
           />
         </div>
         <div>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton />
         </div>
       </header>
       <main className="flex-1 overflow-auto bg-muted/20">

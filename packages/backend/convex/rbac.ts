@@ -18,8 +18,8 @@ export async function assertHasRole(ctx: QueryCtx, requiredRole: string) {
   // or that we verify via our synced tables. Since webhooks were skipped, 
   // we assume JWT passing.
   
-  const orgRole = (identity as any).org_role;
-  const orgId = (identity as any).org_id;
+  const orgRole = (identity as Record<string, unknown>).org_role;
+  const orgId = (identity as Record<string, unknown>).org_id;
 
   if (!orgId) {
     throw new Error("Unauthorized: No active organization context");
@@ -42,7 +42,7 @@ export async function requireOrgContext(ctx: QueryCtx) {
     throw new Error("Unauthorized");
   }
 
-  const orgId = (identity as any).org_id;
+  const orgId = (identity as Record<string, unknown>).org_id;
   if (!orgId) {
     throw new Error("Unauthorized: No active organization context");
   }

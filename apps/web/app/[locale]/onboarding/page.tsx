@@ -4,8 +4,6 @@ import React from "react";
 import {
   OrganizationList,
   SignIn,
-  ClerkLoaded,
-  ClerkLoading,
 } from "@clerk/nextjs";
 import { useAuth } from "@clerk/nextjs";
 

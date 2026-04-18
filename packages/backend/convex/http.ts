@@ -12,7 +12,9 @@ http.route({
     const payloadString = await request.text();
     const headerPayload = request.headers;
 
-    let evt: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    type WebhookEvent = { type: string; data: Record<string, any> };
+    let evt: WebhookEvent;
     try {
       if (process.env.CLERK_WEBHOOK_SECRET) {
         const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
@@ -20,7 +22,7 @@ http.route({
           "svix-id": headerPayload.get("svix-id")!,
           "svix-timestamp": headerPayload.get("svix-timestamp")!,
           "svix-signature": headerPayload.get("svix-signature")!,
-        });
+        }) as WebhookEvent;
       } else {
         // Fallback for local development if secret is not set yet
         console.warn("⚠️ Missing CLERK_WEBHOOK_SECRET. Proceeding without verification.");
