@@ -28,8 +28,7 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Generate Convex Types
-        run: pnpm --filter @wabrix/backend exec convex codegen
+
 
       - name: Typecheck
         run: pnpm typecheck

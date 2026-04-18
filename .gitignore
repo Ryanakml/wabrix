@@ -28,7 +28,6 @@ build
 dist
 .wrangler
 .dev.vars
-_generated/
 
 # Agents
 .agents/
