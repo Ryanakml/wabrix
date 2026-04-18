@@ -28,6 +28,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Generate Convex Types
+        run: npx convex codegen
+
       - name: Typecheck
         run: pnpm typecheck
 
