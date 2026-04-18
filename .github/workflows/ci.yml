@@ -10,6 +10,12 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    env:
+      # Dummy values so Next.js build doesn't crash in CI.
+      # Real values are injected at deploy time by Vercel/hosting.
+      NEXT_PUBLIC_CONVEX_URL: "https://placeholder.convex.cloud"
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_placeholder"
+
     steps:
       - uses: actions/checkout@v4
 

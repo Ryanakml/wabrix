@@ -1,0 +1,54 @@
+"use client";
+
+import React from "react";
+import {
+  OrganizationList,
+  SignIn,
+} from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
+
+function OnboardingContent() {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) return null;
+
+  return (
+    <>
+      {!isSignedIn ? (
+        <>
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold">Sign in to Wabrix</h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Join us to start managing your WhatsApp automation.
+            </p>
+          </div>
+          <SignIn routing="hash" />
+        </>
+      ) : (
+        <>
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold">Welcome!</h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please select or create an organization to continue.
+            </p>
+          </div>
+          <OrganizationList
+            hidePersonal={true}
+            afterCreateOrganizationUrl="/dashboard"
+            afterSelectOrganizationUrl="/dashboard"
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-muted/20">
+      <div className="flex flex-col items-center gap-6">
+        <OnboardingContent />
+      </div>
+    </div>
+  );
+}
