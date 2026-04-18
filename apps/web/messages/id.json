@@ -1,0 +1,61 @@
+{
+  "Marketing": {
+    "phaseBadge": "Phase 1 sedang berjalan",
+    "eyebrow": "Fondasi SaaS khusus WhatsApp",
+    "headline": "Monorepo bersih untuk operasi AI WhatsApp yang andal.",
+    "subheadline": "Repo sekarang punya Turbo workspace, shell Next.js yang sudah dilokalkan, shell Cloudflare Worker untuk ingress, dan package bersama yang siap dipakai untuk fase Convex, Clerk, dan WhatsApp berikutnya.",
+    "ctaPrimary": "Buka shell dashboard",
+    "ctaSecondary": "Baca dokumen yang disetujui",
+    "cards": {
+      "foundationTitle": "Turbo workspace",
+      "foundationBody": "Satu repo dengan apps dan packages yang siap untuk delivery per fase.",
+      "i18nTitle": "Inggris + Bahasa",
+      "i18nBody": "next-intl sudah diinisialisasi dengan routing berbasis locale sejak awal.",
+      "ingressTitle": "Shell worker",
+      "ingressBody": "Hono dan Wrangler sudah siap dengan placeholder local, staging, dan production."
+    },
+    "shellBadge": "Snapshot fondasi",
+    "shellTitle": "Surface lokal yang tersedia di phase 1",
+    "shellItems": {
+      "web": "Shell marketing + dashboard",
+      "ingress": "Shell worker ingress",
+      "status": "Status implementasi",
+      "statusValue": "Fondasi repo"
+    },
+    "shellFootnote": "Fase berikutnya akan mengganti placeholder dengan auth Clerk, persistence Convex, verifikasi webhook, orkestrasi queue, dan observability production."
+  },
+  "Dashboard": {
+    "eyebrow": "Shell dashboard",
+    "headline": "Fondasi aplikasi siap untuk auth, bot studio, dan runtime WhatsApp.",
+    "subheadline": "Phase 1 sengaja berhenti di level shell UX dan wiring workspace. Auth, state tenant, data nyata, dan orkestrasi pesan dimulai di fase berikutnya.",
+    "authStatus": "auth-placeholder",
+    "backToMarketing": "Kembali ke marketing",
+    "modules": {
+      "botStudio": {
+        "title": "Bot Studio",
+        "body": "Kontrol prompt, bahasa, model, dan safety masuk di phase 3."
+      },
+      "knowledgeBase": {
+        "title": "Knowledge Base",
+        "body": "Ingestion Markdown dan embeddings masuk di phase 4."
+      },
+      "inbox": {
+        "title": "Inbox",
+        "body": "Surface percakapan, handoff, dan UX service window masuk di phase 7 sampai 10."
+      },
+      "ops": {
+        "title": "Ops",
+        "body": "Visibilitas queue, status webhook, dan monitoring berkembang di phase 6 sampai 14."
+      }
+    },
+    "checklistLabel": "Checklist phase 1",
+    "checklist": {
+      "repo": "pnpm workspace dan Turbo sudah dikonfigurasi di root repo.",
+      "web": "Next.js App Router, Tailwind, dan next-intl sudah diinisialisasi di apps/web.",
+      "ingress": "Shell Hono Cloudflare Worker dan placeholder environment Wrangler ada di apps/ingress.",
+      "shared": "Config bersama, UI, TypeScript, ESLint, CI, dan dokumen setup lokal sudah terhubung."
+    },
+    "nextStepsLabel": "Fase berikutnya",
+    "nextStepsBody": "Phase 2 akan menambahkan Clerk auth, organizations, RBAC, protected dashboard routing, dan tenant scoping yang siap diaudit."
+  }
+}
