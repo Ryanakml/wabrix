@@ -3,12 +3,20 @@ main = "src/index.ts"
 compatibility_date = "2026-04-18"
 workers_dev = true
 
+[[ratelimits]]
+name = "WHATSAPP_WEBHOOK_RATE_LIMITER"
+namespace_id = "2001"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 10
+
 [vars]
 ENVIRONMENT = "local"
 CONVEX_HTTP_URL = "https://rapid-panther-620.convex.site"
-CONVEX_SHARED_SECRET = "replace-me"
-META_APP_SECRET = "replace-me"
-META_VERIFY_TOKEN = "replace-me"
+CONVEX_SHARED_SECRET = "wabrix_secret_123"
+META_APP_SECRET = "bebas_apa_aja_dulu"
+META_VERIFY_TOKEN = "test_verify_token"
 
 [env.staging]
 name = "wabrix-ingress-staging"

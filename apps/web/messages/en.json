@@ -26,8 +26,8 @@
   },
   "Dashboard": {
     "eyebrow": "Tenant workspace",
-    "headline": "Auth, Bot Studio, Knowledge Base, and WhatsApp setup now share one tenant dashboard.",
-    "subheadline": "The repo has moved past shell-only delivery. Tenancy, localized bot configuration, markdown-first knowledge ingestion, and encrypted WhatsApp credential setup are in place before webhook ingress begins.",
+    "headline": "The tenant dashboard now ships with auth, Bot Studio, Knowledge Base, WhatsApp setup, and live webhook ingress.",
+    "subheadline": "The repo has moved past shell-only delivery. Tenancy, localized bot configuration, markdown-first knowledge ingestion, encrypted WhatsApp setup, and signature-safe raw webhook durability are now in place.",
     "authStatus": "tenant-scoped-runtime",
     "backToMarketing": "Back to marketing",
     "openBotStudio": "Open Bot Studio",
@@ -55,11 +55,11 @@
     "checklist": {
       "repo": "pnpm workspace and Turbo remain the repo backbone.",
       "web": "Next.js App Router, Tailwind, and next-intl power the localized dashboard.",
-      "ingress": "Ingress stays minimal while WhatsApp verification and raw persistence wait for later phases.",
+      "ingress": "Ingress now verifies Meta signatures, rate limits by phone number, and durably stores raw webhook events before exiting.",
       "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, and encrypted WhatsApp setup are wired end to end."
     },
     "nextStepsLabel": "Next phase",
-    "nextStepsBody": "Phase 6 adds Meta webhook verification, raw event persistence, and signature-safe ingress handling."
+    "nextStepsBody": "Phase 7 adds inbound normalization, conversation mapping, transcript persistence, and media scheduling."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",

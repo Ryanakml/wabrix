@@ -37,6 +37,32 @@ function getRequiredHeader(headers: Headers, name: string) {
   return value;
 }
 
+function getBearerToken(headers: Headers) {
+  const authorization = headers.get("authorization");
+
+  if (!authorization?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  return authorization.slice("Bearer ".length);
+}
+
+function requireSharedSecret(request: Request) {
+  const expected = process.env.CONVEX_SHARED_SECRET;
+
+  if (!expected) {
+    console.error("CONVEX_SHARED_SECRET is not configured.");
+    return new Response("Webhook configuration error", { status: 500 });
+  }
+
+  const actual = getBearerToken(request.headers);
+  if (!actual || actual !== expected) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
+  return null;
+}
+
 http.route({
   path: "/clerk",
   method: "POST",
@@ -123,6 +149,70 @@ http.route({
       return new Response(null, { status: 200 });
     } catch (error) {
       console.error("Clerk webhook processing failed", error);
+      return new Response("Webhook processing failed", { status: 500 });
+    }
+  }),
+});
+
+http.route({
+  path: "/internal/whatsapp/webhook-events",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authFailure = requireSharedSecret(request);
+    if (authFailure) {
+      return authFailure;
+    }
+
+    try {
+      const payload = (await request.json()) as {
+        receivedAt: number;
+        eventKey: string;
+        eventType: string;
+        rawPayload: string;
+        signatureValid: boolean;
+        phoneNumberId?: string;
+        businessAccountId?: string;
+        providerEventId?: string;
+        mediaDownloadEnqueued: boolean;
+        mediaDownloadPriority: "normal" | "high";
+        mediaDownloadDeadlineAt?: number;
+      };
+
+      const result = await ctx.runMutation(
+        internal.whatsappWebhookEvents.storeRawWhatsappEvent,
+        payload,
+      );
+
+      return Response.json(result, { status: 200 });
+    } catch (error) {
+      console.error("WhatsApp raw event storage failed", error);
+      return new Response("Webhook processing failed", { status: 500 });
+    }
+  }),
+});
+
+http.route({
+  path: "/internal/whatsapp/webhook-verified",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authFailure = requireSharedSecret(request);
+    if (authFailure) {
+      return authFailure;
+    }
+
+    try {
+      const payload = (await request.json()) as {
+        verifyToken: string;
+        verifiedAt: number;
+      };
+      const result = await ctx.runMutation(
+        internal.whatsappWebhookEvents.markWebhookVerified,
+        payload,
+      );
+
+      return Response.json(result, { status: 200 });
+    } catch (error) {
+      console.error("WhatsApp verification tracking failed", error);
       return new Response("Webhook processing failed", { status: 500 });
     }
   }),
