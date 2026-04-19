@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@wabrix/backend/convex/_generated/api";
 import { Button } from "@wabrix/ui/button";
-import { toast } from "sonner";
 
 type BotStudioClientProps = {
   copy: {
@@ -41,10 +40,19 @@ type BotStudioClientProps = {
     emulatorBody: string;
     latestUserMessage: string;
     draftOutput: string;
+    ragStatus: string;
+    ragStatusOn: string;
+    ragStatusOff: string;
+    knowledgeSources: string;
+    knowledgeSourcesEmpty: string;
     validationNameEmpty: string;
     validationPromptEmpty: string;
     validationModelEmpty: string;
     validationEndpointRequired: string;
+    saveFailed: string;
+    previewFailed: string;
+    previewSuccess: string;
+    unknownSaveFailure: string;
   };
 };
 
@@ -87,6 +95,11 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
   const [form, setForm] = useState<FormState>(emptyState);
   const [previewInput, setPreviewInput] = useState(copy.exampleMessage);
   const [previewOutput, setPreviewOutput] = useState("");
+  const [previewMeta, setPreviewMeta] = useState({
+    ragContextUsed: false,
+    ragChunkCount: 0,
+    knowledgeSourceTitles: [] as string[],
+  });
   const [statusMessage, setStatusMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -139,22 +152,22 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
     if (saveDisabled) return;
 
     if (form.name.trim().length === 0) {
-      toast.error(copy.validationNameEmpty);
+      setStatusMessage(copy.validationNameEmpty);
       return;
     }
 
     if (form.systemPrompt.trim().length === 0) {
-      toast.error(copy.validationPromptEmpty);
+      setStatusMessage(copy.validationPromptEmpty);
       return;
     }
 
     if (form.modelId.trim().length === 0) {
-      toast.error(copy.validationModelEmpty);
+      setStatusMessage(copy.validationModelEmpty);
       return;
     }
 
     if (form.providerType === "digitalocean_reference" && form.endpointUrl.trim().length === 0) {
-      toast.error(copy.validationEndpointRequired);
+      setStatusMessage(copy.validationEndpointRequired);
       return;
     }
 
@@ -179,7 +192,6 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
         emulatorHistory: [],
       });
 
-      toast.success(`${copy.saveSuccess} (${String(result.botId).slice(0, 8)})`);
       setStatusMessage(
         `${copy.saveSuccess} (${String(result.botId).slice(0, 8)})`,
       );
@@ -188,8 +200,10 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
         apiKey: "",
       }));
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message.replace(/Uncaught Error: /gi, '').split('\n')[0] : "Failed to save configuration";
-      toast.error(`Save Failed: ${errorMsg}`);
+      const errorMsg = error instanceof Error
+        ? error.message.replace(/Uncaught Error: /gi, "").split("\n")[0]
+        : copy.unknownSaveFailure;
+      setStatusMessage(`${copy.saveFailed}: ${errorMsg}`);
     } finally {
       setIsSaving(false);
     }
@@ -204,11 +218,23 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
         history: [],
       });
       setPreviewOutput(preview.content);
-      toast.success("Draft Generated!");
+      setPreviewMeta({
+        ragContextUsed: preview.ragContextUsed,
+        ragChunkCount: preview.ragChunkCount,
+        knowledgeSourceTitles: preview.knowledgeSourceTitles,
+      });
+      setStatusMessage(copy.previewSuccess);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message.replace(/Uncaught Error: /gi, '').split('\n')[0] : copy.missingRuntime;
+      const errorMsg = error instanceof Error
+        ? error.message.replace(/Uncaught Error: /gi, "").split("\n")[0]
+        : copy.missingRuntime;
       setPreviewOutput(`Error: ${errorMsg}`);
-      toast.error(`Preview Failed: ${errorMsg}`);
+      setPreviewMeta({
+        ragContextUsed: false,
+        ragChunkCount: 0,
+        knowledgeSourceTitles: [],
+      });
+      setStatusMessage(`${copy.previewFailed}: ${errorMsg}`);
     } finally {
       setIsPreviewing(false);
     }
@@ -449,6 +475,26 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
           <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-stone-100">
             {previewOutput || copy.missingRuntime}
           </p>
+          <div className="mt-5 grid gap-3 text-sm text-stone-300">
+            <p>
+              <span className="font-medium text-stone-100">{copy.ragStatus}: </span>
+              {previewMeta.ragContextUsed
+                ? `${copy.ragStatusOn} (${previewMeta.ragChunkCount})`
+                : copy.ragStatusOff}
+            </p>
+            <div>
+              <p className="font-medium text-stone-100">{copy.knowledgeSources}</p>
+              {previewMeta.knowledgeSourceTitles.length === 0 ? (
+                <p className="mt-1">{copy.knowledgeSourcesEmpty}</p>
+              ) : (
+                <ul className="mt-2 space-y-1">
+                  {previewMeta.knowledgeSourceTitles.map((title) => (
+                    <li key={title}>{title}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       </aside>
     </div>

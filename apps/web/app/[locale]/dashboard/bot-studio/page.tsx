@@ -74,10 +74,19 @@ export default async function BotStudioPage({ params }: BotStudioPageProps) {
               emulatorBody: t("emulatorBody"),
               latestUserMessage: t("latestUserMessage"),
               draftOutput: t("draftOutput"),
+              ragStatus: t("ragStatus"),
+              ragStatusOn: t("ragStatusOn"),
+              ragStatusOff: t("ragStatusOff"),
+              knowledgeSources: t("knowledgeSources"),
+              knowledgeSourcesEmpty: t("knowledgeSourcesEmpty"),
               validationNameEmpty: t("validationNameEmpty"),
               validationPromptEmpty: t("validationPromptEmpty"),
               validationModelEmpty: t("validationModelEmpty"),
               validationEndpointRequired: t("validationEndpointRequired"),
+              saveFailed: t("saveFailed"),
+              previewFailed: t("previewFailed"),
+              previewSuccess: t("previewSuccess"),
+              unknownSaveFailure: t("unknownSaveFailure"),
             }}
           />
         )}

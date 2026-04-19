@@ -41,6 +41,9 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
               <Link href={`/${locale}/dashboard/bot-studio`}>
                 <Button>{t("openBotStudio")}</Button>
               </Link>
+              <Link href={`/${locale}/dashboard/knowledge-base`}>
+                <Button>{t("openKnowledgeBase")}</Button>
+              </Link>
               <Link href={`/${locale}`}>
                 <Button variant="secondary">{t("backToMarketing")}</Button>
               </Link>

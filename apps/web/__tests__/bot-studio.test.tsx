@@ -4,7 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 import { BotStudioClient } from "../app/[locale]/dashboard/bot-studio/bot-studio-client";
 
 const saveBotStudioState = vi.fn(async () => ({ botId: "bot_123" }));
-const previewBotReply = vi.fn(async () => ({ content: "Preview response" }));
+const previewBotReply = vi.fn(async () => ({
+  content: "Preview response",
+  ragContextUsed: true,
+  ragChunkCount: 2,
+  knowledgeSourceTitles: ["Shipping FAQ"],
+}));
 const botStudioState = {
   canManage: true,
   state: {
@@ -85,10 +90,19 @@ describe("Bot Studio", () => {
             "Preview the current prompt, language policy, and model settings without creating transport messages.",
           latestUserMessage: "Latest user message",
           draftOutput: "Draft output",
+          ragStatus: "Knowledge retrieval",
+          ragStatusOn: "Knowledge matched",
+          ragStatusOff: "No knowledge matched",
+          knowledgeSources: "Knowledge sources used",
+          knowledgeSourcesEmpty: "No knowledge sources were used for this draft.",
           validationNameEmpty: "Bot name cannot be empty.",
           validationPromptEmpty: "System prompt cannot be empty.",
           validationModelEmpty: "Model ID cannot be empty.",
-          validationEndpointRequired: "Endpoint URL is required specifically for the DigitalOcean provider."
+          validationEndpointRequired: "Endpoint URL is required specifically for the DigitalOcean provider.",
+          saveFailed: "Save failed",
+          previewFailed: "Preview failed",
+          previewSuccess: "Draft generated",
+          unknownSaveFailure: "Failed to save configuration",
         }}
       />,
     );
@@ -117,5 +131,6 @@ describe("Bot Studio", () => {
     });
 
     expect(await screen.findByText("Preview response")).toBeDefined();
+    expect(await screen.findByText("Shipping FAQ")).toBeDefined();
   });
 });

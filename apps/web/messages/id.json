@@ -25,20 +25,21 @@
     "shellFootnote": "Fase berikutnya akan mengganti placeholder dengan auth Clerk, persistence Convex, verifikasi webhook, orkestrasi queue, dan observability production."
   },
   "Dashboard": {
-    "eyebrow": "Shell dashboard",
-    "headline": "Fondasi aplikasi siap untuk auth, bot studio, dan runtime WhatsApp.",
-    "subheadline": "Phase 1 sengaja berhenti di level shell UX dan wiring workspace. Auth, state tenant, data nyata, dan orkestrasi pesan dimulai di fase berikutnya.",
-    "authStatus": "auth-placeholder",
+    "eyebrow": "Workspace tenant",
+    "headline": "Auth, Bot Studio, dan Knowledge Base sekarang aktif di dashboard.",
+    "subheadline": "Repo sudah melewati tahap shell-only. Tenancy, konfigurasi bot terlokalisasi, dan ingestion knowledge berbasis markdown sudah siap sebelum fase transport WhatsApp dimulai.",
+    "authStatus": "runtime-tenant-scope",
     "backToMarketing": "Kembali ke marketing",
     "openBotStudio": "Buka Bot Studio",
+    "openKnowledgeBase": "Buka Knowledge Base",
     "modules": {
       "botStudio": {
         "title": "Bot Studio",
-        "body": "Kontrol prompt, bahasa, model, dan safety masuk di phase 3."
+        "body": "Kontrol prompt, bahasa, model, safety, dan preview sudah aktif."
       },
       "knowledgeBase": {
         "title": "Knowledge Base",
-        "body": "Ingestion Markdown dan embeddings masuk di phase 4."
+        "body": "Knowledge inline dan website sekarang di-ingest menjadi markdown chunks dan embeddings."
       },
       "inbox": {
         "title": "Inbox",
@@ -49,15 +50,15 @@
         "body": "Visibilitas queue, status webhook, dan monitoring berkembang di phase 6 sampai 14."
       }
     },
-    "checklistLabel": "Checklist phase 1",
+    "checklistLabel": "Fondasi saat ini",
     "checklist": {
-      "repo": "pnpm workspace dan Turbo sudah dikonfigurasi di root repo.",
-      "web": "Next.js App Router, Tailwind, dan next-intl sudah diinisialisasi di apps/web.",
-      "ingress": "Shell Hono Cloudflare Worker dan placeholder environment Wrangler ada di apps/ingress.",
-      "shared": "Config bersama, UI, TypeScript, ESLint, CI, dan dokumen setup lokal sudah terhubung."
+      "repo": "pnpm workspace dan Turbo tetap jadi tulang punggung repo.",
+      "web": "Next.js App Router, Tailwind, dan next-intl menjalankan dashboard yang sudah dilokalkan.",
+      "ingress": "Ingress tetap minimal sementara verifikasi WhatsApp dan persistence raw event menunggu fase berikutnya.",
+      "shared": "Convex auth, RBAC, Bot Studio, dan Knowledge Base sudah terhubung end to end."
     },
     "nextStepsLabel": "Fase berikutnya",
-    "nextStepsBody": "Phase 2 akan menambahkan Clerk auth, organizations, RBAC, protected dashboard routing, dan tenant scoping yang siap diaudit."
+    "nextStepsBody": "Phase 5 menambahkan kredensial integrasi WhatsApp, setup state terenkripsi, dan manajemen koneksi yang siap diaudit."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -98,9 +99,52 @@
     "emulatorBody": "Preview prompt saat ini, kebijakan bahasa, dan pengaturan model tanpa membuat transport message.",
     "latestUserMessage": "Pesan pengguna terbaru",
     "draftOutput": "Output draft",
+    "ragStatus": "Retrieval knowledge",
+    "ragStatusOn": "Knowledge cocok ditemukan",
+    "ragStatusOff": "Tidak ada knowledge yang cocok",
+    "knowledgeSources": "Sumber knowledge yang dipakai",
+    "knowledgeSourcesEmpty": "Tidak ada sumber knowledge yang dipakai untuk draft ini.",
     "validationNameEmpty": "Nama bot tidak boleh kosong.",
     "validationPromptEmpty": "System prompt tidak boleh kosong.",
     "validationModelEmpty": "Model ID tidak boleh kosong.",
-    "validationEndpointRequired": "Endpoint URL butuh diisi khusus untuk provider DigitalOcean."
+    "validationEndpointRequired": "Endpoint URL butuh diisi khusus untuk provider DigitalOcean.",
+    "saveFailed": "Gagal menyimpan",
+    "previewFailed": "Preview gagal",
+    "previewSuccess": "Draft berhasil dibuat",
+    "unknownSaveFailure": "Gagal menyimpan konfigurasi"
+  },
+  "KnowledgeBase": {
+    "eyebrow": "Phase 4",
+    "headline": "Knowledge Base",
+    "subheadline": "Simpan knowledge bisnis berbasis markdown, lakukan chunking, embedding, dan masukkan retrieval terisolasi tenant ke emulator.",
+    "back": "Kembali ke dashboard",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL belum dikonfigurasi. Knowledge Base memerlukan deployment Convex sebelum source bisa di-query atau di-ingest.",
+    "loading": "Memuat knowledge base…",
+    "save": "Simpan source",
+    "savePending": "Menyimpan…",
+    "delete": "Hapus source",
+    "deletePending": "Menghapus…",
+    "saveSuccess": "Knowledge source tersimpan",
+    "sourceType": "Tipe source",
+    "inline": "Catatan inline",
+    "website": "Website",
+    "pdf": "PDF",
+    "title": "Judul",
+    "titlePlaceholder": "Override judul opsional",
+    "websiteUrl": "URL website",
+    "websiteUrlPlaceholder": "https://example.com/faq",
+    "inlineContent": "Konten inline",
+    "inlineContentPlaceholder": "Tempel knowledge bisnis dalam Markdown atau plain text.",
+    "pdfDeferred": "PDF ingestion sengaja ditunda di phase 4. Kontrol ini tetap terlihat agar roadmap-nya tetap jelas.",
+    "configureBotFirst": "Konfigurasikan Bot Studio dulu. Knowledge disimpan terhadap profil bot tenant yang aktif.",
+    "emptyState": "Belum ada knowledge source. Tambahkan catatan inline atau source website untuk memulai retrieval.",
+    "sourceListTitle": "Source tersimpan",
+    "previewTitle": "Preview markdown",
+    "recentUsageTitle": "Penggunaan retrieval terbaru",
+    "noPreview": "Pilih source untuk melihat preview markdown yang sudah dinormalisasi.",
+    "chunkCount": "Chunk",
+    "usageEmpty": "Belum ada retrieval run yang tercatat.",
+    "deleteSuccess": "Knowledge source dihapus",
+    "blockedPrivateOrInternalUrl": "URL ini mengarah ke alamat private atau internal dan diblokir untuk alasan keamanan."
   }
 }

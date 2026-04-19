@@ -127,4 +127,71 @@ export default defineSchema({
   })
     .index("by_org_created_at", ["organizationId", "createdAt"])
     .index("by_bot", ["botId"]),
+
+  knowledgeSources: defineTable({
+    organizationId: v.id("organizations"),
+    botId: v.id("botProfiles"),
+    title: v.string(),
+    sourceType: v.union(
+      v.literal("inline"),
+      v.literal("website"),
+      v.literal("pdf"),
+    ),
+    status: v.union(
+      v.literal("ready"),
+      v.literal("processing"),
+      v.literal("failed"),
+      v.literal("deferred"),
+    ),
+    sourceUrl: v.optional(v.string()),
+    sourceVendor: v.union(
+      v.literal("inline"),
+      v.literal("jina_reader"),
+      v.literal("firecrawl"),
+      v.literal("cheerio"),
+      v.literal("pdf_deferred"),
+    ),
+    originalFormat: v.union(
+      v.literal("markdown"),
+      v.literal("html"),
+      v.literal("plain_text"),
+      v.literal("pdf"),
+    ),
+    markdownContent: v.string(),
+    chunkCount: v.number(),
+    embeddingModel: v.optional(v.string()),
+    lastIngestedAt: v.number(),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org_created_at", ["organizationId", "createdAt"])
+    .index("by_bot", ["botId"]),
+
+  knowledgeChunks: defineTable({
+    organizationId: v.id("organizations"),
+    botId: v.id("botProfiles"),
+    sourceId: v.id("knowledgeSources"),
+    chunkIndex: v.number(),
+    text: v.string(),
+    embedding: v.array(v.number()),
+    tokenEstimate: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_source", ["sourceId"])
+    .index("by_bot", ["botId"])
+    .index("by_org", ["organizationId"]),
+
+  knowledgeUsageLogs: defineTable({
+    organizationId: v.id("organizations"),
+    botId: v.id("botProfiles"),
+    sourceIds: v.array(v.id("knowledgeSources")),
+    query: v.string(),
+    queryLanguage: v.string(),
+    matchedChunkCount: v.number(),
+    retrievalStrategy: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_org_created_at", ["organizationId", "createdAt"])
+    .index("by_bot_created_at", ["botId", "createdAt"]),
 });
