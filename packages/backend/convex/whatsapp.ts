@@ -209,15 +209,16 @@ export const saveWhatsAppIntegration = mutation({
           organizationId: access.organizationId,
           botId: botProfile._id,
           phoneNumberId: payload.phoneNumberId,
-          businessAccountId: payload.businessAccountId,
-          accessTokenEncrypted: payload.accessTokenEncrypted,
-          appSecretEncrypted: payload.appSecretEncrypted,
-          verifyTokenHash: payload.verifyTokenHash,
-          enabled: payload.enabled,
-          connectionStatus: payload.connectionStatus,
-          createdAt: now,
-          updatedAt: now,
-        });
+        businessAccountId: payload.businessAccountId,
+        accessTokenEncrypted: payload.accessTokenEncrypted,
+        appSecretEncrypted: payload.appSecretEncrypted,
+        verifyTokenHash: payload.verifyTokenHash,
+        enabled: payload.enabled,
+        connectionStatus: payload.connectionStatus,
+        webhookStatus: "pending",
+        createdAt: now,
+        updatedAt: now,
+      });
 
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -229,6 +230,7 @@ export const saveWhatsAppIntegration = mutation({
         verifyTokenHash: payload.verifyTokenHash,
         enabled: payload.enabled,
         connectionStatus: payload.connectionStatus,
+        webhookStatus: "pending",
         updatedAt: now,
       });
     }

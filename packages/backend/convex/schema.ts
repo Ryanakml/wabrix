@@ -209,9 +209,51 @@ export default defineSchema({
       v.literal("configured"),
       v.literal("disabled"),
     ),
+    webhookStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("verified"),
+        v.literal("receiving"),
+      ),
+    ),
+    lastWebhookVerifiedAt: v.optional(v.number()),
+    lastWebhookEventAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_org", ["organizationId"])
-    .index("by_bot", ["botId"]),
+    .index("by_bot", ["botId"])
+    .index("by_phone_number_id", ["phoneNumberId"])
+    .index("by_verify_token_hash", ["verifyTokenHash"]),
+
+  whatsappWebhookEvents: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    integrationId: v.optional(v.id("whatsappIntegrations")),
+    botId: v.optional(v.id("botProfiles")),
+    phoneNumberId: v.optional(v.string()),
+    businessAccountId: v.optional(v.string()),
+    eventKey: v.string(),
+    eventType: v.string(),
+    providerEventId: v.optional(v.string()),
+    signatureValid: v.boolean(),
+    processingStatus: v.union(
+      v.literal("received"),
+      v.literal("media_download_queued"),
+    ),
+    attemptCount: v.number(),
+    mediaDownloadStatus: v.union(
+      v.literal("not_applicable"),
+      v.literal("queued"),
+    ),
+    mediaDownloadPriority: v.union(v.literal("normal"), v.literal("high")),
+    mediaDownloadDeadlineAt: v.optional(v.number()),
+    rawPayload: v.string(),
+    receivedAt: v.number(),
+    lastReceivedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_event_key", ["eventKey"])
+    .index("by_org_received_at", ["organizationId", "receivedAt"])
+    .index("by_phone_number_id_received_at", ["phoneNumberId", "receivedAt"]),
 });

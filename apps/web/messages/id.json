@@ -26,8 +26,8 @@
   },
   "Dashboard": {
     "eyebrow": "Workspace tenant",
-    "headline": "Auth, Bot Studio, Knowledge Base, dan setup WhatsApp sekarang aktif di satu dashboard tenant.",
-    "subheadline": "Repo sudah melewati tahap shell-only. Tenancy, konfigurasi bot terlokalisasi, ingestion knowledge berbasis markdown, dan setup kredensial WhatsApp terenkripsi sudah siap sebelum fase webhook ingress dimulai.",
+    "headline": "Dashboard tenant sekarang sudah punya auth, Bot Studio, Knowledge Base, setup WhatsApp, dan webhook ingress yang aktif.",
+    "subheadline": "Repo sudah melewati tahap shell-only. Tenancy, konfigurasi bot terlokalisasi, ingestion knowledge berbasis markdown, setup WhatsApp terenkripsi, dan durability webhook mentah yang aman untuk validasi signature sekarang sudah siap.",
     "authStatus": "runtime-tenant-scope",
     "backToMarketing": "Kembali ke marketing",
     "openBotStudio": "Buka Bot Studio",
@@ -55,11 +55,11 @@
     "checklist": {
       "repo": "pnpm workspace dan Turbo tetap jadi tulang punggung repo.",
       "web": "Next.js App Router, Tailwind, dan next-intl menjalankan dashboard yang sudah dilokalkan.",
-      "ingress": "Ingress tetap minimal sementara verifikasi WhatsApp dan persistence raw event menunggu fase berikutnya.",
+      "ingress": "Ingress sekarang memverifikasi signature Meta, menerapkan rate limit per phone number, dan menyimpan raw webhook event secara durable sebelum keluar.",
       "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, dan setup WhatsApp terenkripsi sudah terhubung end to end."
     },
     "nextStepsLabel": "Fase berikutnya",
-    "nextStepsBody": "Phase 6 menambahkan verifikasi webhook Meta, persistence raw event, dan ingress yang aman untuk validasi signature."
+    "nextStepsBody": "Phase 7 menambahkan normalisasi inbound, pemetaan conversation, persistence transcript, dan scheduling media."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",

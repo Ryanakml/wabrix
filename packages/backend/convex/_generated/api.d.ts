@@ -21,6 +21,7 @@ import type * as lib_observability from "../lib/observability.js";
 import type * as rbac from "../rbac.js";
 import type * as users from "../users.js";
 import type * as whatsapp from "../whatsapp.js";
+import type * as whatsappWebhookEvents from "../whatsappWebhookEvents.js";
 
 import type {
   ApiFromModules,
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   rbac: typeof rbac;
   users: typeof users;
   whatsapp: typeof whatsapp;
+  whatsappWebhookEvents: typeof whatsappWebhookEvents;
 }>;
 
 /**
