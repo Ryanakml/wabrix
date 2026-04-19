@@ -4,6 +4,7 @@ import { lookup } from "node:dns/promises";
 import { GoogleGenAI } from "@google/genai";
 import * as cheerio from "cheerio";
 import TurndownService from "turndown";
+import ipaddr from "ipaddr.js";
 
 export const KNOWLEDGE_EMBEDDING_MODEL = "gemini-embedding-001";
 
@@ -127,7 +128,11 @@ export function chunkMarkdown(
       continue;
     }
 
-    for (let index = 0; index < paragraph.length; index += maxLength - overlap) {
+    for (
+      let index = 0;
+      index < paragraph.length;
+      index += maxLength - overlap
+    ) {
       chunks.push(paragraph.slice(index, index + maxLength));
     }
   }
@@ -138,7 +143,10 @@ export function chunkMarkdown(
 
   return chunks
     .map((chunk) => normalizeMarkdown(chunk))
-    .filter((chunk, index, allChunks) => chunk.length > 0 && allChunks.indexOf(chunk) === index);
+    .filter(
+      (chunk, index, allChunks) =>
+        chunk.length > 0 && allChunks.indexOf(chunk) === index,
+    );
 }
 
 export function convertHtmlToMarkdown(html: string): string {
@@ -159,38 +167,46 @@ export function convertHtmlToMarkdown(html: string): string {
 }
 
 export function isPrivateIpAddress(address: string): boolean {
-  if (address === "::1") {
-    return true;
-  }
+  try {
+    const addr = ipaddr.parse(address);
 
-  if (/^(fc|fd|fe80):/i.test(address)) {
-    return true;
-  }
+    // Check for IPv4-mapped IPv6 and get the IPv4 address
+    const ipv4Addr =
+      addr.kind() === "ipv6" && (addr as ipaddr.IPv6).isIPv4MappedAddress()
+        ? (addr as ipaddr.IPv6).toIPv4Address()
+        : addr;
 
-  const parts = address.split(".").map((part) => Number(part));
-  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+    const range = ipv4Addr.range();
+
+    const privateRanges = [
+      "unspecified",
+      "broadcast",
+      "linkLocal",
+      "loopback",
+      "private",
+      "reserved",
+      "multicast",
+      "uniqueLocal", // IPv6
+      "carrierGradeNat", // 100.64.0.0/10
+    ];
+
+    if (privateRanges.includes(range)) {
+      return true;
+    }
+
+    // Additional manual checks for ranges ipaddr.js might categorize differently or missing
+    if (ipv4Addr.kind() === "ipv4") {
+      const octets = ipv4Addr.toByteArray();
+      // 0.0.0.0/8 (Already covered by 'unspecified' usually, but safe to be explicit)
+      if (octets[0] === 0) return true;
+    }
+
+    return false;
+  } catch {
+    // If it's not a valid IP, it might be a hostname.
+    // In this context, we only return true if we're CERTAIN it's a private IP.
     return false;
   }
-
-  const [first = NaN, second = NaN] = parts;
-
-  if (first === 10 || first === 127 || first === 0) {
-    return true;
-  }
-
-  if (first === 169 && second === 254) {
-    return true;
-  }
-
-  if (first === 172 && second >= 16 && second <= 31) {
-    return true;
-  }
-
-  if (first === 192 && second === 168) {
-    return true;
-  }
-
-  return false;
 }
 
 async function defaultLookup(hostname: string): Promise<string[]> {
@@ -202,12 +218,18 @@ async function defaultLookup(hostname: string): Promise<string[]> {
   return addresses.map((entry) => entry.address);
 }
 
+export type ValidatedWebsiteResult = {
+  url: string;
+  ips: string[];
+};
+
 export async function assertPublicWebsiteUrl(
   url: string,
   lookupFn: WebsiteLookup = defaultLookup,
-): Promise<string> {
+): Promise<ValidatedWebsiteResult> {
   let parsed: URL;
   try {
+    // Handle non-dotted IPv4 or other weird encodings by letting new URL/DNS handle it
     parsed = new URL(url);
   } catch {
     throw new Error("Validation Error: website URL must be a valid URL.");
@@ -218,7 +240,9 @@ export async function assertPublicWebsiteUrl(
   }
 
   if (parsed.username || parsed.password) {
-    throw new Error("Validation Error: website URL cannot include credentials.");
+    throw new Error(
+      "Validation Error: website URL cannot include credentials.",
+    );
   }
 
   const hostname = parsed.hostname.toLowerCase();
@@ -230,16 +254,24 @@ export async function assertPublicWebsiteUrl(
     throw new Error("Validation Error: private or internal URLs are blocked.");
   }
 
+  // Pre-check if hostname itself is a private IP
   if (isPrivateIpAddress(hostname)) {
     throw new Error("Validation Error: private or internal URLs are blocked.");
   }
 
   const resolvedAddresses = await lookupFn(hostname);
+  if (resolvedAddresses.length === 0) {
+    throw new Error(`Validation Error: could not resolve hostname ${hostname}`);
+  }
+
   if (resolvedAddresses.some((address) => isPrivateIpAddress(address))) {
     throw new Error("Validation Error: private or internal URLs are blocked.");
   }
 
-  return parsed.toString();
+  return {
+    url: parsed.toString(),
+    ips: resolvedAddresses,
+  };
 }
 
 function extractFirecrawlMarkdown(payload: unknown): string | null {
@@ -266,7 +298,7 @@ function extractFirecrawlMarkdown(payload: unknown): string | null {
 export async function fetchWebsiteMarkdown({
   url,
   firecrawlApiKey,
-  fetchImpl = fetch,
+  fetchImpl,
   lookupFn,
 }: {
   url: string;
@@ -274,10 +306,20 @@ export async function fetchWebsiteMarkdown({
   fetchImpl?: WebsiteFetch;
   lookupFn?: WebsiteLookup;
 }): Promise<WebsiteMarkdownResult> {
-  const normalizedUrl = await assertPublicWebsiteUrl(url, lookupFn);
+  const { url: normalizedUrl } = await assertPublicWebsiteUrl(url, lookupFn);
+
+  const safeFetch: WebsiteFetch =
+    fetchImpl ??
+    ((input, init) =>
+      fetch(input, {
+        ...init,
+        redirect: "manual",
+      }));
 
   try {
-    const readerResponse = await fetchImpl(`https://r.jina.ai/${normalizedUrl}`);
+    const readerResponse = await safeFetch(
+      `https://r.jina.ai/${normalizedUrl}`,
+    );
     if (readerResponse.ok) {
       const markdown = normalizeMarkdown(await readerResponse.text());
       if (markdown.length > 0) {
@@ -294,22 +336,27 @@ export async function fetchWebsiteMarkdown({
 
   if (firecrawlApiKey) {
     try {
-      const firecrawlResponse = await fetchImpl("https://api.firecrawl.dev/v2/scrape", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${firecrawlApiKey}`,
+      const firecrawlResponse = await safeFetch(
+        "https://api.firecrawl.dev/v2/scrape",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${firecrawlApiKey}`,
+          },
+          body: JSON.stringify({
+            url: normalizedUrl,
+            formats: ["markdown"],
+            onlyMainContent: true,
+          }),
         },
-        body: JSON.stringify({
-          url: normalizedUrl,
-          formats: ["markdown"],
-          onlyMainContent: true,
-        }),
-      });
+      );
 
       if (firecrawlResponse.ok) {
         const payload = (await firecrawlResponse.json()) as unknown;
-        const markdown = normalizeMarkdown(extractFirecrawlMarkdown(payload) ?? "");
+        const markdown = normalizeMarkdown(
+          extractFirecrawlMarkdown(payload) ?? "",
+        );
         if (markdown.length > 0) {
           return {
             markdown,
@@ -323,15 +370,22 @@ export async function fetchWebsiteMarkdown({
     }
   }
 
-  const htmlResponse = await fetchImpl(normalizedUrl);
+  const htmlResponse = await safeFetch(normalizedUrl);
   if (!htmlResponse.ok) {
+    if (htmlResponse.status >= 300 && htmlResponse.status < 400) {
+      throw new Error(
+        `Website fetch failed: redirects are disabled for security. Please provide the final URL.`,
+      );
+    }
     throw new Error(`Website fetch failed with status ${htmlResponse.status}`);
   }
 
   const html = await htmlResponse.text();
   const markdown = convertHtmlToMarkdown(html);
   if (!markdown) {
-    throw new Error("Website fetch produced empty content after HTML normalization.");
+    throw new Error(
+      "Website fetch produced empty content after HTML normalization.",
+    );
   }
 
   return {
@@ -378,7 +432,10 @@ export async function embedTexts({
   const embeddings =
     response.embeddings?.map((embedding) => embedding.values ?? []) ?? [];
 
-  if (embeddings.length !== texts.length || embeddings.some((values) => values.length === 0)) {
+  if (
+    embeddings.length !== texts.length ||
+    embeddings.some((values) => values.length === 0)
+  ) {
     throw new Error("Embedding generation returned an invalid response.");
   }
 
@@ -468,12 +525,15 @@ export async function prepareKnowledgeSourceDraft({
   let markdownContent = "";
   let sourceUrl: string | undefined;
   let sourceVendor: PreparedKnowledgeSourceDraft["sourceVendor"] = "inline";
-  let originalFormat: PreparedKnowledgeSourceDraft["originalFormat"] = "plain_text";
+  let originalFormat: PreparedKnowledgeSourceDraft["originalFormat"] =
+    "plain_text";
 
   if (sourceType === "inline") {
     const inlineContent = normalizeMarkdown(content ?? "");
     if (!inlineContent) {
-      throw new Error("Validation Error: inline knowledge content is required.");
+      throw new Error(
+        "Validation Error: inline knowledge content is required.",
+      );
     }
 
     markdownContent = inlineContent;
@@ -491,7 +551,8 @@ export async function prepareKnowledgeSourceDraft({
       lookupFn,
     });
     markdownContent = websiteResult.markdown;
-    sourceUrl = await assertPublicWebsiteUrl(url, lookupFn);
+    const validated = await assertPublicWebsiteUrl(url, lookupFn);
+    sourceUrl = validated.url;
     sourceVendor = websiteResult.sourceVendor;
     originalFormat = websiteResult.originalFormat;
   }
@@ -504,7 +565,9 @@ export async function prepareKnowledgeSourceDraft({
 
   const chunks = chunkMarkdown(markdownContent);
   if (chunks.length === 0) {
-    throw new Error("Knowledge ingestion produced no chunks after normalization.");
+    throw new Error(
+      "Knowledge ingestion produced no chunks after normalization.",
+    );
   }
 
   const embeddings = await embedTexts({

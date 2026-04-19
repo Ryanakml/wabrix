@@ -194,4 +194,24 @@ export default defineSchema({
   })
     .index("by_org_created_at", ["organizationId", "createdAt"])
     .index("by_bot_created_at", ["botId", "createdAt"]),
+
+  whatsappIntegrations: defineTable({
+    organizationId: v.id("organizations"),
+    botId: v.id("botProfiles"),
+    phoneNumberId: v.string(),
+    businessAccountId: v.string(),
+    accessTokenEncrypted: v.optional(v.string()),
+    appSecretEncrypted: v.optional(v.string()),
+    verifyTokenHash: v.optional(v.string()),
+    enabled: v.boolean(),
+    connectionStatus: v.union(
+      v.literal("not_connected"),
+      v.literal("configured"),
+      v.literal("disabled"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org", ["organizationId"])
+    .index("by_bot", ["botId"]),
 });

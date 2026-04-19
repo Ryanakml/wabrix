@@ -98,6 +98,16 @@ export async function decryptSecret(payload?: string | null) {
   return textDecoder.decode(decrypted);
 }
 
+export async function hashSecret(value: string) {
+  const secret = getSecret();
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    textEncoder.encode(`${SALT}:${secret}:${value}`),
+  );
+
+  return bytesToBase64(new Uint8Array(digest));
+}
+
 export function redactSecret(value?: string | null) {
   if (!value) {
     return null;

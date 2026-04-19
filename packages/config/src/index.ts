@@ -9,7 +9,7 @@ export type SupportedLocale = (typeof supportedLocales)[number];
 
 export const defaultLocale: SupportedLocale = "en";
 
-export const phaseLabel = "phase-4";
+export const phaseLabel = "phase-5";
 
 export const defaultBotName = "Customer Assistant";
 
