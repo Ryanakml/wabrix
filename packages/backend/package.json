@@ -23,7 +23,9 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@ai-sdk/google": "^2.0.0",
     "@clerk/backend": "^3.2.13",
+    "ai": "^5.0.0",
     "convex": "^1.35.1",
     "svix": "^1.90.0"
   }

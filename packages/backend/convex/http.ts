@@ -1,94 +1,128 @@
 import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server.js";
-import { internal } from "./_generated/api.js";
 import { Webhook } from "svix";
+import { internal } from "./_generated/api.js";
+import { httpAction } from "./_generated/server.js";
 
 const http = httpRouter();
+
+type ClerkWebhookEvent = {
+  type: string;
+  data: {
+    id?: string | null;
+    name?: string | null;
+    slug?: string | null;
+    image_url?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    role?: string | null;
+    email_addresses?: Array<{
+      email_address?: string | null;
+    }> | null;
+    public_user_data?: {
+      user_id?: string | null;
+    } | null;
+    organization?: {
+      id?: string | null;
+    } | null;
+  };
+};
+
+function getRequiredHeader(headers: Headers, name: string) {
+  const value = headers.get(name);
+
+  if (!value) {
+    throw new Error(`Missing Clerk webhook header: ${name}`);
+  }
+
+  return value;
+}
 
 http.route({
   path: "/clerk",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const payloadString = await request.text();
-    const headerPayload = request.headers;
+    const secret = process.env.CLERK_WEBHOOK_SECRET;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    type WebhookEvent = { type: string; data: Record<string, any> };
-    let evt: WebhookEvent;
+    if (!secret) {
+      console.error("CLERK_WEBHOOK_SECRET is not configured.");
+      return new Response("Webhook configuration error", { status: 500 });
+    }
+
+    const payload = await request.text();
+
+    let event: ClerkWebhookEvent;
     try {
-      if (process.env.CLERK_WEBHOOK_SECRET) {
-        const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
-        evt = wh.verify(payloadString, {
-          "svix-id": headerPayload.get("svix-id")!,
-          "svix-timestamp": headerPayload.get("svix-timestamp")!,
-          "svix-signature": headerPayload.get("svix-signature")!,
-        }) as WebhookEvent;
-      } else {
-        // Fallback for local development if secret is not set yet
-        console.warn("⚠️ Missing CLERK_WEBHOOK_SECRET. Proceeding without verification.");
-        evt = JSON.parse(payloadString);
-      }
-    } catch (err) {
-      console.error("Webhook signature verification failed", err);
+      const webhook = new Webhook(secret);
+      event = webhook.verify(payload, {
+        "svix-id": getRequiredHeader(request.headers, "svix-id"),
+        "svix-timestamp": getRequiredHeader(request.headers, "svix-timestamp"),
+        "svix-signature": getRequiredHeader(request.headers, "svix-signature"),
+      }) as ClerkWebhookEvent;
+    } catch (error) {
+      console.error("Clerk webhook signature verification failed", error);
       return new Response("Webhook Error", { status: 400 });
     }
 
     try {
-      const eventType = evt.type;
-
-      if (eventType === "user.created" || eventType === "user.updated") {
-        await ctx.runMutation(internal.users.syncUser, {
-          clerkId: evt.data.id,
-          email: evt.data.email_addresses?.[0]?.email_address || "",
-          firstName: evt.data.first_name || undefined,
-          lastName: evt.data.last_name || undefined,
-          imageUrl: evt.data.image_url,
-        });
-      }
-
-      if (eventType === "user.deleted" && evt.data.id) {
-        await ctx.runMutation(internal.users.deleteUser, {
-          clerkId: evt.data.id,
-        });
-      }
-
-      if (eventType === "organization.created" || eventType === "organization.updated") {
-        await ctx.runMutation(internal.users.syncOrganization, {
-          clerkOrgId: evt.data.id,
-          name: evt.data.name,
-          slug: evt.data.slug || undefined,
-          imageUrl: evt.data.image_url,
-        });
-      }
-
-      if (eventType === "organization.deleted" && evt.data.id) {
-        await ctx.runMutation(internal.users.deleteOrganization, {
-          clerkOrgId: evt.data.id,
-        });
-      }
-
-      if (eventType === "organizationMembership.created" || eventType === "organizationMembership.updated") {
-        if (evt.data.public_user_data?.user_id) {
-          await ctx.runMutation(internal.users.syncOrgMembership, {
-            clerkUserId: evt.data.public_user_data.user_id,
-            clerkOrgId: evt.data.organization.id,
-            role: evt.data.role,
+      switch (event.type) {
+        case "user.created":
+        case "user.updated":
+          await ctx.runMutation(internal.users.syncUser, {
+            clerkId: String(event.data.id),
+            email: event.data.email_addresses?.[0]?.email_address ?? "",
+            firstName: event.data.first_name ?? undefined,
+            lastName: event.data.last_name ?? undefined,
+            imageUrl: event.data.image_url ?? undefined,
           });
-        }
-      }
-
-      if (eventType === "organizationMembership.deleted") {
-        if (evt.data.public_user_data?.user_id) {
-          await ctx.runMutation(internal.users.removeOrgMembership, {
-            clerkUserId: evt.data.public_user_data.user_id,
-            clerkOrgId: evt.data.organization.id,
+          break;
+        case "user.deleted":
+          if (event.data.id) {
+            await ctx.runMutation(internal.users.deleteUser, {
+              clerkId: String(event.data.id),
+            });
+          }
+          break;
+        case "organization.created":
+        case "organization.updated":
+          await ctx.runMutation(internal.users.syncOrganization, {
+            clerkOrgId: String(event.data.id),
+            name: String(event.data.name ?? ""),
+            slug: event.data.slug ?? undefined,
+            imageUrl: event.data.image_url ?? undefined,
           });
-        }
+          break;
+        case "organization.deleted":
+          if (event.data.id) {
+            await ctx.runMutation(internal.users.deleteOrganization, {
+              clerkOrgId: String(event.data.id),
+            });
+          }
+          break;
+        case "organizationMembership.created":
+        case "organizationMembership.updated":
+          if (event.data.public_user_data?.user_id && event.data.organization?.id) {
+            await ctx.runMutation(internal.users.syncOrgMembership, {
+              clerkUserId: String(event.data.public_user_data.user_id),
+              clerkOrgId: String(event.data.organization.id),
+              role: String(event.data.role ?? "org:member"),
+            });
+          }
+          break;
+        case "organizationMembership.deleted":
+          if (event.data.public_user_data?.user_id && event.data.organization?.id) {
+            await ctx.runMutation(internal.users.removeOrgMembership, {
+              clerkUserId: String(event.data.public_user_data.user_id),
+              clerkOrgId: String(event.data.organization.id),
+            });
+          }
+          break;
+        default:
+          break;
       }
 
       return new Response(null, { status: 200 });
-    } catch (err) {
-      console.error("Webhook processing failed", err);
+    } catch (error) {
+      console.error("Clerk webhook processing failed", error);
       return new Response("Webhook processing failed", { status: 500 });
     }
   }),

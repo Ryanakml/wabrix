@@ -1,51 +1,66 @@
-import { QueryCtx } from "./_generated/server.js";
+import type { Id } from "./_generated/dataModel.js";
+import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 
-/**
- * Validates whether the currently authenticated user possesses a specific role 
- * for their currently active organization, derived via Clerk JWT claims.
- */
-export async function assertHasRole(ctx: QueryCtx, requiredRole: string) {
+type AuthDbContext = Pick<QueryCtx, "auth" | "db"> | Pick<MutationCtx, "auth" | "db">;
+
+export type OrgAccessContext = {
+  organizationId: Id<"organizations">;
+  clerkOrgId: string;
+  clerkUserId: string;
+  role: string;
+  userId: Id<"users">;
+};
+
+async function getMembershipContext(ctx: AuthDbContext): Promise<OrgAccessContext> {
   const identity = await ctx.auth.getUserIdentity();
-  
+
   if (!identity) {
     throw new Error("Unauthorized: Unauthenticated call");
   }
 
-  // Next.js Clerk integration normally passes the active Organization in JWT
-  // But strictly, we check custom claims or the 'org_role' if provided by a template.
-  
-  // NOTE: This assumes the Clerk JWT Template includes standard org_id and org_role, 
-  // or that we verify via our synced tables. Since webhooks were skipped, 
-  // we assume JWT passing.
-  
-  const orgRole = (identity as Record<string, unknown>).org_role;
-  const orgId = (identity as Record<string, unknown>).org_id;
+  const clerkOrgId = (identity as Record<string, unknown>).org_id;
 
-  if (!orgId) {
+  if (typeof clerkOrgId !== "string" || clerkOrgId.length === 0) {
     throw new Error("Unauthorized: No active organization context");
   }
 
-  if (orgRole !== requiredRole && orgRole !== "org:admin") {
-    throw new Error(`Unauthorized: Requires role ${requiredRole}, got ${orgRole || 'none'}`);
+  const membership = await ctx.db
+    .query("orgMembers")
+    .withIndex("by_clerk_user_and_org", (q) =>
+      q.eq("clerkUserId", identity.subject).eq("clerkOrgId", clerkOrgId),
+    )
+    .first();
+
+  if (!membership) {
+    throw new Error("Unauthorized: Membership not found for active organization");
   }
 
-  return { orgId, orgRole, clerkUserId: identity.subject };
+  return {
+    organizationId: membership.orgId,
+    clerkOrgId: membership.clerkOrgId,
+    clerkUserId: membership.clerkUserId,
+    role: membership.role,
+    userId: membership.userId,
+  };
 }
 
-/**
- * Retrieves the current organization context, throwing if none.
- */
-export async function requireOrgContext(ctx: QueryCtx) {
-  const identity = await ctx.auth.getUserIdentity();
-  
-  if (!identity) {
-    throw new Error("Unauthorized");
+export async function assertHasRole(
+  ctx: AuthDbContext,
+  requiredRole: string,
+): Promise<OrgAccessContext> {
+  const access = await getMembershipContext(ctx);
+
+  if (access.role !== requiredRole && access.role !== "org:admin") {
+    throw new Error(
+      `Unauthorized: Requires role ${requiredRole}, got ${access.role || "none"}`,
+    );
   }
 
-  const orgId = (identity as Record<string, unknown>).org_id;
-  if (!orgId) {
-    throw new Error("Unauthorized: No active organization context");
-  }
+  return access;
+}
 
-  return { orgId, clerkUserId: identity.subject };
+export async function requireOrgContext(
+  ctx: AuthDbContext,
+): Promise<OrgAccessContext> {
+  return getMembershipContext(ctx);
 }

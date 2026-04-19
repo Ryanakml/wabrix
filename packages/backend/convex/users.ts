@@ -1,7 +1,36 @@
-import { internalMutation } from "./_generated/server.js";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel.js";
+import { internalMutation, type MutationCtx } from "./_generated/server.js";
 
-// Sync a user profile from Clerk webhook
+async function writeAuditLog(
+  ctx: MutationCtx,
+  {
+    orgId,
+    clerkOrgId,
+    userId,
+    clerkUserId,
+    action,
+    details,
+  }: {
+    orgId?: Id<"organizations">;
+    clerkOrgId?: string;
+    userId?: Id<"users">;
+    clerkUserId?: string;
+    action: string;
+    details: Record<string, unknown>;
+  },
+) {
+  await ctx.db.insert("auditLogs", {
+    orgId,
+    clerkOrgId,
+    userId,
+    clerkUserId,
+    action,
+    details,
+    createdAt: Date.now(),
+  });
+}
+
 export const syncUser = internalMutation({
   args: {
     clerkId: v.string(),
@@ -11,6 +40,7 @@ export const syncUser = internalMutation({
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const now = Date.now();
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -22,16 +52,20 @@ export const syncUser = internalMutation({
         firstName: args.firstName,
         lastName: args.lastName,
         imageUrl: args.imageUrl,
+        updatedAt: now,
       });
-    } else {
-      await ctx.db.insert("users", {
-        clerkId: args.clerkId,
-        email: args.email,
-        firstName: args.firstName,
-        lastName: args.lastName,
-        imageUrl: args.imageUrl,
-      });
+      return existing._id;
     }
+
+    return ctx.db.insert("users", {
+      clerkId: args.clerkId,
+      email: args.email,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      imageUrl: args.imageUrl,
+      createdAt: now,
+      updatedAt: now,
+    });
   },
 });
 
@@ -42,9 +76,33 @@ export const deleteUser = internalMutation({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .first();
-    if (existing) {
-      await ctx.db.delete(existing._id);
+
+    if (!existing) {
+      return;
     }
+
+    const memberships = await ctx.db
+      .query("orgMembers")
+      .withIndex("by_user", (q) => q.eq("userId", existing._id))
+      .collect();
+
+    for (const membership of memberships) {
+      await writeAuditLog(ctx, {
+        orgId: membership.orgId,
+        clerkOrgId: membership.clerkOrgId,
+        userId: existing._id,
+        clerkUserId: args.clerkId,
+        action: "org_membership_removed",
+        details: {
+          source: "clerk_webhook",
+          reason: "user_deleted",
+          role: membership.role,
+        },
+      });
+      await ctx.db.delete(membership._id);
+    }
+
+    await ctx.db.delete(existing._id);
   },
 });
 
@@ -56,6 +114,7 @@ export const syncOrganization = internalMutation({
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const now = Date.now();
     const existing = await ctx.db
       .query("organizations")
       .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
@@ -66,27 +125,34 @@ export const syncOrganization = internalMutation({
         name: args.name,
         slug: args.slug,
         imageUrl: args.imageUrl,
+        updatedAt: now,
       });
-      await ctx.db.insert("auditLogs", {
+      await writeAuditLog(ctx, {
         orgId: existing._id,
         clerkOrgId: args.clerkOrgId,
         action: "org_updated",
-        details: "Organization updated via Webhook",
+        details: { source: "clerk_webhook" },
       });
-    } else {
-      const orgId = await ctx.db.insert("organizations", {
-        clerkOrgId: args.clerkOrgId,
-        name: args.name,
-        slug: args.slug,
-        imageUrl: args.imageUrl,
-      });
-      await ctx.db.insert("auditLogs", {
-        orgId,
-        clerkOrgId: args.clerkOrgId,
-        action: "org_created",
-        details: "Organization created via Webhook",
-      });
+      return existing._id;
     }
+
+    const orgId = await ctx.db.insert("organizations", {
+      clerkOrgId: args.clerkOrgId,
+      name: args.name,
+      slug: args.slug,
+      imageUrl: args.imageUrl,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await writeAuditLog(ctx, {
+      orgId,
+      clerkOrgId: args.clerkOrgId,
+      action: "org_created",
+      details: { source: "clerk_webhook" },
+    });
+
+    return orgId;
   },
 });
 
@@ -97,15 +163,28 @@ export const deleteOrganization = internalMutation({
       .query("organizations")
       .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
       .first();
-    if (existing) {
-      await ctx.db.insert("auditLogs", {
-        orgId: existing._id,
-        clerkOrgId: args.clerkOrgId,
-        action: "org_deleted",
-        details: "Organization deleted via Webhook",
-      });
-      await ctx.db.delete(existing._id);
+
+    if (!existing) {
+      return;
     }
+
+    const memberships = await ctx.db
+      .query("orgMembers")
+      .withIndex("by_org", (q) => q.eq("orgId", existing._id))
+      .collect();
+
+    for (const membership of memberships) {
+      await ctx.db.delete(membership._id);
+    }
+
+    await writeAuditLog(ctx, {
+      orgId: existing._id,
+      clerkOrgId: args.clerkOrgId,
+      action: "org_deleted",
+      details: { source: "clerk_webhook" },
+    });
+
+    await ctx.db.delete(existing._id);
   },
 });
 
@@ -116,32 +195,72 @@ export const syncOrgMembership = internalMutation({
     role: v.string(),
   },
   handler: async (ctx, args) => {
-    const existingRole = await ctx.db
+    const now = Date.now();
+    const existingMembership = await ctx.db
       .query("orgMembers")
       .withIndex("by_clerk_user_and_org", (q) =>
-        q.eq("clerkUserId", args.clerkUserId).eq("clerkOrgId", args.clerkOrgId)
+        q.eq("clerkUserId", args.clerkUserId).eq("clerkOrgId", args.clerkOrgId),
       )
       .first();
 
-    if (existingRole) {
-      await ctx.db.patch(existingRole._id, {
-        role: args.role,
-      });
-    } else {
-      // Find internal ids
-      const user = await ctx.db.query("users").withIndex("by_clerk_id", q => q.eq("clerkId", args.clerkUserId)).first();
-      const org = await ctx.db.query("organizations").withIndex("by_clerk_org_id", q => q.eq("clerkOrgId", args.clerkOrgId)).first();
-      
-      if (user && org) {
-        await ctx.db.insert("orgMembers", {
-          userId: user._id,
-          clerkUserId: args.clerkUserId,
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkUserId))
+      .first();
+    const org = await ctx.db
+      .query("organizations")
+      .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId))
+      .first();
+
+    if (!user || !org) {
+      throw new Error("Webhook processing error: user or organization not synced yet");
+    }
+
+    if (existingMembership) {
+      if (existingMembership.role !== args.role) {
+        await ctx.db.patch(existingMembership._id, {
+          role: args.role,
+          updatedAt: now,
+        });
+        await writeAuditLog(ctx, {
           orgId: org._id,
           clerkOrgId: args.clerkOrgId,
-          role: args.role,
+          userId: user._id,
+          clerkUserId: args.clerkUserId,
+          action: "org_membership_role_updated",
+          details: {
+            source: "clerk_webhook",
+            previousRole: existingMembership.role,
+            nextRole: args.role,
+          },
         });
       }
+      return existingMembership._id;
     }
+
+    const membershipId = await ctx.db.insert("orgMembers", {
+      userId: user._id,
+      clerkUserId: args.clerkUserId,
+      orgId: org._id,
+      clerkOrgId: args.clerkOrgId,
+      role: args.role,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await writeAuditLog(ctx, {
+      orgId: org._id,
+      clerkOrgId: args.clerkOrgId,
+      userId: user._id,
+      clerkUserId: args.clerkUserId,
+      action: "org_membership_created",
+      details: {
+        source: "clerk_webhook",
+        role: args.role,
+      },
+    });
+
+    return membershipId;
   },
 });
 
@@ -151,12 +270,26 @@ export const removeOrgMembership = internalMutation({
     const existing = await ctx.db
       .query("orgMembers")
       .withIndex("by_clerk_user_and_org", (q) =>
-        q.eq("clerkUserId", args.clerkUserId).eq("clerkOrgId", args.clerkOrgId)
+        q.eq("clerkUserId", args.clerkUserId).eq("clerkOrgId", args.clerkOrgId),
       )
       .first();
 
-    if (existing) {
-      await ctx.db.delete(existing._id);
+    if (!existing) {
+      return;
     }
+
+    await writeAuditLog(ctx, {
+      orgId: existing.orgId,
+      clerkOrgId: existing.clerkOrgId,
+      userId: existing.userId,
+      clerkUserId: existing.clerkUserId,
+      action: "org_membership_removed",
+      details: {
+        source: "clerk_webhook",
+        role: existing.role,
+      },
+    });
+
+    await ctx.db.delete(existing._id);
   },
 });
