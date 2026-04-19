@@ -11,6 +11,10 @@ vi.mock("@clerk/nextjs", () => {
   };
 });
 
+vi.mock("next/navigation", () => ({
+  useParams: () => ({ locale: "en" }),
+}));
+
 describe("Onboarding Flow", () => {
   it("renders the onboarding page correctly", () => {
     render(<OnboardingPage />);

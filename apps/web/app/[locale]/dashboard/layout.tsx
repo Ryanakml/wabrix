@@ -2,9 +2,28 @@ import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 
 export default function DashboardLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const localePromise = params;
+
+  return (
+    // Server components can suspend on params in App Router.
+    <DashboardLayoutInner localePromise={localePromise}>{children}</DashboardLayoutInner>
+  );
+}
+
+async function DashboardLayoutInner({
+  children,
+  localePromise,
+}: {
+  children: React.ReactNode;
+  localePromise: Promise<{ locale: string }>;
+}) {
+  const { locale } = await localePromise;
+
   return (
     <div className="flex h-screen flex-col">
       <header className="flex h-14 items-center justify-between border-b px-6">
@@ -12,9 +31,9 @@ export default function DashboardLayout({
           <span className="font-semibold">Dashboard</span>
           <OrganizationSwitcher 
             hidePersonal={true} 
-            afterCreateOrganizationUrl="/dashboard"
-            afterLeaveOrganizationUrl="/dashboard"
-            afterSelectOrganizationUrl="/dashboard" 
+            afterCreateOrganizationUrl={`/${locale}/dashboard`}
+            afterLeaveOrganizationUrl={`/${locale}/onboarding`}
+            afterSelectOrganizationUrl={`/${locale}/dashboard`} 
           />
         </div>
         <div>

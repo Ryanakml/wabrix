@@ -38,6 +38,9 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
 
             <div className="flex flex-wrap items-center gap-3">
               <Code>{t("authStatus")}</Code>
+              <Link href={`/${locale}/dashboard/bot-studio`}>
+                <Button>{t("openBotStudio")}</Button>
+              </Link>
               <Link href={`/${locale}`}>
                 <Button variant="secondary">{t("backToMarketing")}</Button>
               </Link>

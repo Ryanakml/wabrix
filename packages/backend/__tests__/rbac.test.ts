@@ -1,87 +1,127 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { assertHasRole, requireOrgContext } from "../convex/rbac";
 
-describe("RBAC Helpers", () => {
-  it("throws Unauthenticated if no identity is present", async () => {
-    const mockCtx = {
-      auth: {
-        getUserIdentity: async () => null,
-      },
-    } as unknown as import("../convex/_generated/server.js").QueryCtx;
+function createMockCtx({
+  identity,
+  membership,
+}: {
+  identity: Record<string, unknown> | null;
+  membership?: Record<string, unknown> | null;
+}): Parameters<typeof requireOrgContext>[0] {
+  return {
+    auth: {
+      getUserIdentity: async () => identity,
+    },
+    db: {
+      query: () => ({
+        withIndex: () => ({
+          first: async () => membership ?? null,
+        }),
+      }),
+    },
+  } as Parameters<typeof requireOrgContext>[0];
+}
 
-    await expect(assertHasRole(mockCtx, "org:admin")).rejects.toThrow("Unauthorized: Unauthenticated call");
+describe("RBAC helpers", () => {
+  it("throws when no identity is present", async () => {
+    const ctx = createMockCtx({ identity: null });
+
+    await expect(assertHasRole(ctx, "org:admin")).rejects.toThrow(
+      "Unauthorized: Unauthenticated call",
+    );
   });
 
-  it("throws No active organization context if org_id is missing", async () => {
-    const mockCtx = {
-      auth: {
-        getUserIdentity: async () => ({
-          subject: "user_123",
-          // missing org_id
-        }),
+  it("throws when there is no active organization claim", async () => {
+    const ctx = createMockCtx({
+      identity: {
+        subject: "user_123",
       },
-    } as unknown as import("../convex/_generated/server.js").QueryCtx;
+    });
 
-    await expect(assertHasRole(mockCtx, "org:admin")).rejects.toThrow("Unauthorized: No active organization context");
-    await expect(requireOrgContext(mockCtx)).rejects.toThrow("Unauthorized: No active organization context");
+    await expect(requireOrgContext(ctx)).rejects.toThrow(
+      "Unauthorized: No active organization context",
+    );
   });
 
-  it("throws if orgRole does not match", async () => {
-    const mockCtx = {
-      auth: {
-        getUserIdentity: async () => ({
-          subject: "user_123",
-          org_id: "org_123",
-          org_role: "org:member",
-        }),
+  it("throws when synced membership is missing", async () => {
+    const ctx = createMockCtx({
+      identity: {
+        subject: "user_123",
+        org_id: "org_clerk_123",
       },
-    } as unknown as import("../convex/_generated/server.js").QueryCtx;
+      membership: null,
+    });
 
-    await expect(assertHasRole(mockCtx, "org:sys_profile:manage")).rejects.toThrow("Unauthorized: Requires role org:sys_profile:manage, got org:member");
+    await expect(requireOrgContext(ctx)).rejects.toThrow(
+      "Unauthorized: Membership not found for active organization",
+    );
   });
 
-  it("passes if orgRole matches exactly", async () => {
-    const mockCtx = {
-      auth: {
-        getUserIdentity: async () => ({
-          subject: "user_123",
-          org_id: "org_123",
-          org_role: "org:member",
-        }),
+  it("returns the internal org context from synced membership", async () => {
+    const ctx = createMockCtx({
+      identity: {
+        subject: "user_123",
+        org_id: "org_clerk_123",
       },
-    } as unknown as import("../convex/_generated/server.js").QueryCtx;
+      membership: {
+        orgId: "org_doc_123",
+        clerkOrgId: "org_clerk_123",
+        clerkUserId: "user_123",
+        role: "org:member",
+        userId: "user_doc_123",
+      },
+    });
 
-    const res = await assertHasRole(mockCtx, "org:member");
-    expect(res).toEqual({ orgId: "org_123", orgRole: "org:member", clerkUserId: "user_123" });
+    await expect(requireOrgContext(ctx)).resolves.toEqual({
+      organizationId: "org_doc_123",
+      clerkOrgId: "org_clerk_123",
+      clerkUserId: "user_123",
+      role: "org:member",
+      userId: "user_doc_123",
+    });
   });
 
-  it("passes for org:admin even if a different role was required", async () => {
-    const mockCtx = {
-      auth: {
-        getUserIdentity: async () => ({
-          subject: "user_123",
-          org_id: "org_123",
-          org_role: "org:admin",
-        }),
+  it("allows admin to satisfy stricter role requirements", async () => {
+    const ctx = createMockCtx({
+      identity: {
+        subject: "user_123",
+        org_id: "org_clerk_123",
       },
-    } as unknown as import("../convex/_generated/server.js").QueryCtx;
+      membership: {
+        orgId: "org_doc_123",
+        clerkOrgId: "org_clerk_123",
+        clerkUserId: "user_123",
+        role: "org:admin",
+        userId: "user_doc_123",
+      },
+    });
 
-    const res = await assertHasRole(mockCtx, "org:editor");
-    expect(res).toEqual({ orgId: "org_123", orgRole: "org:admin", clerkUserId: "user_123" });
+    await expect(assertHasRole(ctx, "org:manager")).resolves.toEqual({
+      organizationId: "org_doc_123",
+      clerkOrgId: "org_clerk_123",
+      clerkUserId: "user_123",
+      role: "org:admin",
+      userId: "user_doc_123",
+    });
   });
 
-  it("requireOrgContext returns orgId and clerkUserId without role check", async () => {
-    const mockCtx = {
-      auth: {
-        getUserIdentity: async () => ({
-          subject: "user_123",
-          org_id: "org_123",
-          org_role: "org:member",
-        }),
+  it("rejects when the synced role is insufficient", async () => {
+    const ctx = createMockCtx({
+      identity: {
+        subject: "user_123",
+        org_id: "org_clerk_123",
       },
-    } as unknown as import("../convex/_generated/server.js").QueryCtx;
+      membership: {
+        orgId: "org_doc_123",
+        clerkOrgId: "org_clerk_123",
+        clerkUserId: "user_123",
+        role: "org:member",
+        userId: "user_doc_123",
+      },
+    });
 
-    const res = await requireOrgContext(mockCtx);
-    expect(res).toEqual({ orgId: "org_123", clerkUserId: "user_123" });
+    await expect(assertHasRole(ctx, "org:admin")).rejects.toThrow(
+      "Unauthorized: Requires role org:admin, got org:member",
+    );
   });
 });
