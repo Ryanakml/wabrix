@@ -9,11 +9,15 @@ import {
 
 describe("knowledge helpers", () => {
   it("normalizes markdown and chunks long content", () => {
-    const normalized = normalizeMarkdown("## FAQ\r\n\r\nHello   \r\n\r\n\r\nWorld");
+    const normalized = normalizeMarkdown(
+      "## FAQ\r\n\r\nHello   \r\n\r\n\r\nWorld",
+    );
     expect(normalized).toBe("## FAQ\n\nHello\n\nWorld");
 
     const chunks = chunkMarkdown(
-      Array.from({ length: 12 }, (_, index) => `Paragraph ${index}`).join("\n\n"),
+      Array.from({ length: 12 }, (_, index) => `Paragraph ${index}`).join(
+        "\n\n",
+      ),
       {
         maxLength: 80,
         overlap: 10,
@@ -24,12 +28,49 @@ describe("knowledge helpers", () => {
 
   it("blocks private or internal website URLs", async () => {
     await expect(
-      assertPublicWebsiteUrl("http://127.0.0.1/admin", async () => ["127.0.0.1"]),
-    ).rejects.toThrow("Validation Error: private or internal URLs are blocked.");
+      assertPublicWebsiteUrl("http://127.0.0.1/admin", async () => [
+        "127.0.0.1",
+      ]),
+    ).rejects.toThrow(
+      "Validation Error: private or internal URLs are blocked.",
+    );
 
     await expect(
-      assertPublicWebsiteUrl("https://example.com", async () => ["10.10.10.10"]),
-    ).rejects.toThrow("Validation Error: private or internal URLs are blocked.");
+      assertPublicWebsiteUrl("https://example.com", async () => [
+        "10.10.10.10",
+      ]),
+    ).rejects.toThrow(
+      "Validation Error: private or internal URLs are blocked.",
+    );
+
+    await expect(
+      assertPublicWebsiteUrl("https://example.com", async () => [
+        "::ffff:127.0.0.1",
+      ]),
+    ).rejects.toThrow(
+      "Validation Error: private or internal URLs are blocked.",
+    );
+
+    await expect(
+      assertPublicWebsiteUrl("http://0177.0.0.1", async () => ["127.0.0.1"]),
+    ).rejects.toThrow(
+      "Validation Error: private or internal URLs are blocked.",
+    );
+
+    await expect(
+      assertPublicWebsiteUrl("http://2130706433", async () => ["127.0.0.1"]),
+    ).rejects.toThrow(
+      "Validation Error: private or internal URLs are blocked.",
+    );
+  });
+
+  it("returns pinned IPs and normalized URL", async () => {
+    const result = await assertPublicWebsiteUrl(
+      "https://EXAMPLE.com/path",
+      async () => ["93.184.216.34"],
+    );
+    expect(result.url).toBe("https://example.com/path");
+    expect(result.ips).toEqual(["93.184.216.34"]);
   });
 
   it("converts HTML fallback output into markdown", () => {

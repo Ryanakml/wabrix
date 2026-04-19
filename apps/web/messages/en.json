@@ -26,12 +26,13 @@
   },
   "Dashboard": {
     "eyebrow": "Tenant workspace",
-    "headline": "Auth, Bot Studio, and Knowledge Base are now live inside the dashboard.",
-    "subheadline": "The repo has moved past shell-only delivery. Tenancy, localized bot configuration, and markdown-first knowledge ingestion are in place before WhatsApp transport phases begin.",
+    "headline": "Auth, Bot Studio, Knowledge Base, and WhatsApp setup now share one tenant dashboard.",
+    "subheadline": "The repo has moved past shell-only delivery. Tenancy, localized bot configuration, markdown-first knowledge ingestion, and encrypted WhatsApp credential setup are in place before webhook ingress begins.",
     "authStatus": "tenant-scoped-runtime",
     "backToMarketing": "Back to marketing",
     "openBotStudio": "Open Bot Studio",
     "openKnowledgeBase": "Open Knowledge Base",
+    "openWhatsAppSetup": "Open WhatsApp Setup",
     "modules": {
       "botStudio": {
         "title": "Bot Studio",
@@ -55,10 +56,10 @@
       "repo": "pnpm workspace and Turbo remain the repo backbone.",
       "web": "Next.js App Router, Tailwind, and next-intl power the localized dashboard.",
       "ingress": "Ingress stays minimal while WhatsApp verification and raw persistence wait for later phases.",
-      "shared": "Convex auth, RBAC, Bot Studio, and Knowledge Base surfaces are wired end to end."
+      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, and encrypted WhatsApp setup are wired end to end."
     },
     "nextStepsLabel": "Next phase",
-    "nextStepsBody": "Phase 5 adds WhatsApp integration credentials, encrypted setup state, and audit-ready connection management."
+    "nextStepsBody": "Phase 6 adds Meta webhook verification, raw event persistence, and signature-safe ingress handling."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -146,5 +147,36 @@
     "usageEmpty": "No retrieval runs have been logged yet.",
     "deleteSuccess": "Knowledge source deleted",
     "blockedPrivateOrInternalUrl": "This URL points to a private or internal address and is blocked for security reasons."
+  },
+  "WhatsAppSetup": {
+    "eyebrow": "Phase 5",
+    "headline": "WhatsApp Integration Setup",
+    "subheadline": "Store the active tenant WhatsApp identifiers and credentials safely, keep raw secrets off the frontend, and expose the exact webhook target needed for Meta setup.",
+    "back": "Back to dashboard",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL is not configured. WhatsApp setup needs a Convex deployment before the integration state can load or save.",
+    "loading": "Loading WhatsApp integration…",
+    "save": "Save integration",
+    "savePending": "Saving…",
+    "saveSuccess": "WhatsApp integration saved",
+    "configureBotFirst": "Configure Bot Studio first. WhatsApp integration is linked to the active tenant bot profile.",
+    "phoneNumberId": "Phone number ID",
+    "businessAccountId": "Business account ID",
+    "accessToken": "Access token",
+    "accessTokenPlaceholder": "Leave blank to keep the current encrypted access token",
+    "appSecret": "App secret",
+    "appSecretPlaceholder": "Leave blank to keep the current encrypted app secret",
+    "verifyToken": "Verify token",
+    "verifyTokenPlaceholder": "Leave blank to keep the current hashed verify token",
+    "enabled": "Enable WhatsApp integration",
+    "webhookUrl": "Webhook URL",
+    "connectionStatus": "Connection status",
+    "linkedBot": "Linked bot",
+    "notConfigured": "Not configured",
+    "configured": "Configured",
+    "keepSecretHint": "Secret fields stay blank after save. Leaving them empty keeps the current encrypted or hashed values in storage.",
+    "secretStatuses": "Credential status",
+    "accessTokenStatus": "Access token",
+    "appSecretStatus": "App secret",
+    "verifyTokenStatus": "Verify token"
   }
 }

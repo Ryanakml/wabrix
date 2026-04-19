@@ -26,12 +26,13 @@
   },
   "Dashboard": {
     "eyebrow": "Workspace tenant",
-    "headline": "Auth, Bot Studio, dan Knowledge Base sekarang aktif di dashboard.",
-    "subheadline": "Repo sudah melewati tahap shell-only. Tenancy, konfigurasi bot terlokalisasi, dan ingestion knowledge berbasis markdown sudah siap sebelum fase transport WhatsApp dimulai.",
+    "headline": "Auth, Bot Studio, Knowledge Base, dan setup WhatsApp sekarang aktif di satu dashboard tenant.",
+    "subheadline": "Repo sudah melewati tahap shell-only. Tenancy, konfigurasi bot terlokalisasi, ingestion knowledge berbasis markdown, dan setup kredensial WhatsApp terenkripsi sudah siap sebelum fase webhook ingress dimulai.",
     "authStatus": "runtime-tenant-scope",
     "backToMarketing": "Kembali ke marketing",
     "openBotStudio": "Buka Bot Studio",
     "openKnowledgeBase": "Buka Knowledge Base",
+    "openWhatsAppSetup": "Buka Setup WhatsApp",
     "modules": {
       "botStudio": {
         "title": "Bot Studio",
@@ -55,10 +56,10 @@
       "repo": "pnpm workspace dan Turbo tetap jadi tulang punggung repo.",
       "web": "Next.js App Router, Tailwind, dan next-intl menjalankan dashboard yang sudah dilokalkan.",
       "ingress": "Ingress tetap minimal sementara verifikasi WhatsApp dan persistence raw event menunggu fase berikutnya.",
-      "shared": "Convex auth, RBAC, Bot Studio, dan Knowledge Base sudah terhubung end to end."
+      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, dan setup WhatsApp terenkripsi sudah terhubung end to end."
     },
     "nextStepsLabel": "Fase berikutnya",
-    "nextStepsBody": "Phase 5 menambahkan kredensial integrasi WhatsApp, setup state terenkripsi, dan manajemen koneksi yang siap diaudit."
+    "nextStepsBody": "Phase 6 menambahkan verifikasi webhook Meta, persistence raw event, dan ingress yang aman untuk validasi signature."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -146,5 +147,36 @@
     "usageEmpty": "Belum ada retrieval run yang tercatat.",
     "deleteSuccess": "Knowledge source dihapus",
     "blockedPrivateOrInternalUrl": "URL ini mengarah ke alamat private atau internal dan diblokir untuk alasan keamanan."
+  },
+  "WhatsAppSetup": {
+    "eyebrow": "Phase 5",
+    "headline": "Setup Integrasi WhatsApp",
+    "subheadline": "Simpan identifier dan kredensial WhatsApp tenant aktif dengan aman, cegah secret mentah muncul di frontend, dan tampilkan URL webhook yang harus dipakai saat setup Meta.",
+    "back": "Kembali ke dashboard",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL belum dikonfigurasi. Setup WhatsApp memerlukan deployment Convex sebelum state integrasi bisa dimuat atau disimpan.",
+    "loading": "Memuat integrasi WhatsApp…",
+    "save": "Simpan integrasi",
+    "savePending": "Menyimpan…",
+    "saveSuccess": "Integrasi WhatsApp tersimpan",
+    "configureBotFirst": "Konfigurasikan Bot Studio dulu. Integrasi WhatsApp ditautkan ke profil bot tenant yang aktif.",
+    "phoneNumberId": "Phone number ID",
+    "businessAccountId": "Business account ID",
+    "accessToken": "Access token",
+    "accessTokenPlaceholder": "Biarkan kosong untuk mempertahankan access token terenkripsi saat ini",
+    "appSecret": "App secret",
+    "appSecretPlaceholder": "Biarkan kosong untuk mempertahankan app secret terenkripsi saat ini",
+    "verifyToken": "Verify token",
+    "verifyTokenPlaceholder": "Biarkan kosong untuk mempertahankan verify token yang sudah di-hash",
+    "enabled": "Aktifkan integrasi WhatsApp",
+    "webhookUrl": "URL webhook",
+    "connectionStatus": "Status koneksi",
+    "linkedBot": "Bot tertaut",
+    "notConfigured": "Belum dikonfigurasi",
+    "configured": "Terkonfigurasi",
+    "keepSecretHint": "Field secret akan kosong lagi setelah disimpan. Membiarkannya kosong akan mempertahankan nilai terenkripsi atau hash yang sudah ada di storage.",
+    "secretStatuses": "Status kredensial",
+    "accessTokenStatus": "Access token",
+    "appSecretStatus": "App secret",
+    "verifyTokenStatus": "Verify token"
   }
 }
