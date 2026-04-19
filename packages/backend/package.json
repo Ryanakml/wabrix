@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
+    "@types/turndown": "^5.0.5",
     "@wabrix/eslint-config": "workspace:*",
     "@wabrix/typescript-config": "workspace:*",
     "convex-test": "^0.0.49",
@@ -25,8 +26,11 @@
   "dependencies": {
     "@ai-sdk/google": "^2.0.0",
     "@clerk/backend": "^3.2.13",
+    "@google/genai": "^1.30.0",
     "ai": "^5.0.0",
+    "cheerio": "^1.1.2",
     "convex": "^1.35.1",
-    "svix": "^1.90.0"
+    "svix": "^1.90.0",
+    "turndown": "^7.2.1"
   }
 }

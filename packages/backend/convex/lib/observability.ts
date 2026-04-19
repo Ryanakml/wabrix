@@ -43,10 +43,10 @@ export async function emitObservabilityEvent(event: ObservabilityEvent) {
           body: JSON.stringify([payload]),
         },
       );
-      console.info("Berhasil nembak ke Axiom!");
+      console.info("Successfully sent event to Axiom!");
       return { delivered: true, payload };
     } catch (error) {
-      console.error("Gagal ngirim log ke Axiom:", error);
+      console.error("Failed to send log to Axiom:", error);
       return { delivered: false, payload };
     }
   }

@@ -36,4 +36,7 @@ pnpm build
   - `CLERK_ISSUER_URL`
   - `ENCRYPTION_SECRET`
 - Phase 3 uses `GOOGLE_GENERATIVE_AI_API_KEY` as the default AI runtime fallback when an org-specific encrypted key has not been saved yet.
+- Phase 4 uses that same Google key for knowledge embeddings through `gemini-embedding-001`.
+- Website ingestion uses Jina Reader first by default.
+- `FIRECRAWL_API_KEY` is optional and enables a hosted secondary ingestion path before the local HTML fallback.
 - Observability env vars for Helicone or Axiom are optional in local development.

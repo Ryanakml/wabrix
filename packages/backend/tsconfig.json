@@ -4,6 +4,6 @@
     "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["src", "convex"],
+  "include": ["src", "convex", "*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

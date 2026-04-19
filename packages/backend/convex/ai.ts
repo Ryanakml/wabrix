@@ -12,6 +12,10 @@ import {
   detectLanguage,
 } from "./lib/guardrails.js";
 import {
+  embedTexts,
+  selectRelevantKnowledgeChunks,
+} from "./lib/knowledge.js";
+import {
   buildObservabilityPayload,
   emitObservabilityEvent,
 } from "./lib/observability.js";
@@ -57,6 +61,8 @@ type PreviewBotReplyResult = {
   outputLanguage: OutputLanguage;
   promptVersionId: string;
   ragContextUsed: boolean;
+  ragChunkCount: number;
+  knowledgeSourceTitles: string[];
   usage: {
     promptTokens?: number;
     completionTokens?: number;
@@ -207,6 +213,52 @@ async function previewBotReplyHandler(
 
   const guardrail = applyPromptInjectionGuard(args.latestUserMessage);
   const sanitizedLatestMessage = guardrail.sanitizedText;
+  const knowledgeCorpus = await ctx.runQuery(
+    internal.knowledge.getKnowledgeRetrievalCorpus,
+    {},
+  );
+  let knowledgeMatches: ReturnType<typeof selectRelevantKnowledgeChunks> = [];
+
+  if (knowledgeCorpus.chunks.length > 0) {
+    const queryEmbeddings = await embedTexts({
+      texts: [sanitizedLatestMessage],
+      apiKey: decryptedApiKey,
+    });
+    const queryEmbedding = queryEmbeddings[0];
+    if (!queryEmbedding) {
+      throw new Error("Knowledge retrieval could not generate a query embedding.");
+    }
+    knowledgeMatches = selectRelevantKnowledgeChunks(
+      queryEmbedding,
+      knowledgeCorpus.chunks,
+      {
+        topK: 4,
+        minimumScore: 0.2,
+      },
+    );
+  }
+
+  const ragContext = knowledgeMatches.map(
+    (match) => `Source: ${match.title}\n${match.text}`,
+  );
+  const matchedSourceIds = [
+    ...new Set(
+      knowledgeMatches.map((match) => match.sourceId as Id<"knowledgeSources">),
+    ),
+  ];
+  const knowledgeSourceTitles = [
+    ...new Set(knowledgeMatches.map((match) => match.title)),
+  ];
+
+  await ctx.runMutation(internal.knowledge.logKnowledgeUsage, {
+    organizationId: runtimeState.organizationId,
+    botId: runtimeState.profile._id,
+    sourceIds: matchedSourceIds,
+    query: sanitizedLatestMessage,
+    queryLanguage: outputLanguage,
+    matchedChunkCount: knowledgeMatches.length,
+    retrievalStrategy: "cosine_similarity_gemini_embedding_001",
+  });
 
   const draft = await generateWithPrimaryModel({
     organizationId: runtimeState.organizationId,
@@ -220,7 +272,7 @@ async function previewBotReplyHandler(
     systemPrompt:
       runtimeState.profile.localizedPromptTemplates[outputLanguage] ??
       runtimeState.profile.systemPrompt,
-    ragContext: [],
+    ragContext,
     timeoutMs: 8_000,
     temperature: runtimeState.provider.temperature,
     maxTokens: runtimeState.provider.maxTokens,
@@ -240,8 +292,8 @@ async function previewBotReplyHandler(
         latencyMs: draft.latencyMs,
       },
     ],
-    ragContextUsed: false,
-    ragChunkCount: 0,
+    ragContextUsed: knowledgeMatches.length > 0,
+    ragChunkCount: knowledgeMatches.length,
     promptTokens: draft.usage?.promptTokens,
     completionTokens: draft.usage?.completionTokens,
     totalTokens: draft.usage?.totalTokens,
@@ -256,7 +308,7 @@ async function previewBotReplyHandler(
     model: draft.selectedModel,
     promptVersionId: runtimeState.promptVersionId,
     guardrailTriggered: guardrail.flagged,
-    ragChunkCount: 0,
+    ragChunkCount: knowledgeMatches.length,
     promptPreview: sanitizedLatestMessage,
     responsePreview: draft.content,
   });
@@ -266,7 +318,7 @@ async function previewBotReplyHandler(
     model: draft.selectedModel,
     promptVersionId: runtimeState.promptVersionId,
     guardrailTriggered: guardrail.flagged,
-    ragChunkCount: 0,
+    ragChunkCount: knowledgeMatches.length,
     promptPreview: sanitizedLatestMessage,
     responsePreview: draft.content,
   });
@@ -277,7 +329,9 @@ async function previewBotReplyHandler(
     modelId: draft.selectedModel,
     outputLanguage,
     promptVersionId: runtimeState.promptVersionId,
-    ragContextUsed: false,
+    ragContextUsed: knowledgeMatches.length > 0,
+    ragChunkCount: knowledgeMatches.length,
+    knowledgeSourceTitles,
     usage: draft.usage,
     guardrail: {
       flagged: guardrail.flagged,

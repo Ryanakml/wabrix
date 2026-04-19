@@ -25,20 +25,21 @@
     "shellFootnote": "Later phases will replace placeholders with Clerk auth, Convex persistence, webhook verification, queue orchestration, and production observability."
   },
   "Dashboard": {
-    "eyebrow": "Dashboard shell",
-    "headline": "The app foundation is ready for auth, bot studio, and WhatsApp runtime work.",
-    "subheadline": "Phase 1 intentionally stops at shell-level UX and workspace wiring. Auth, tenant state, real data, and message orchestration begin in later phases.",
-    "authStatus": "placeholder-auth",
+    "eyebrow": "Tenant workspace",
+    "headline": "Auth, Bot Studio, and Knowledge Base are now live inside the dashboard.",
+    "subheadline": "The repo has moved past shell-only delivery. Tenancy, localized bot configuration, and markdown-first knowledge ingestion are in place before WhatsApp transport phases begin.",
+    "authStatus": "tenant-scoped-runtime",
     "backToMarketing": "Back to marketing",
     "openBotStudio": "Open Bot Studio",
+    "openKnowledgeBase": "Open Knowledge Base",
     "modules": {
       "botStudio": {
         "title": "Bot Studio",
-        "body": "Prompt, language, model, and safety controls land in phase 3."
+        "body": "Prompt, language, model, safety, and preview controls are active."
       },
       "knowledgeBase": {
         "title": "Knowledge Base",
-        "body": "Markdown-normalized ingestion and embeddings land in phase 4."
+        "body": "Inline and website knowledge now ingest into markdown chunks and embeddings."
       },
       "inbox": {
         "title": "Inbox",
@@ -49,15 +50,15 @@
         "body": "Queue visibility, webhook state, and monitoring expand across phases 6 to 14."
       }
     },
-    "checklistLabel": "Phase 1 checklist",
+    "checklistLabel": "Current foundation",
     "checklist": {
-      "repo": "pnpm workspace and Turbo are configured at the repo root.",
-      "web": "Next.js App Router, Tailwind, and next-intl are initialized in apps/web.",
-      "ingress": "Hono Cloudflare Worker shell and Wrangler environment placeholders exist in apps/ingress.",
-      "shared": "Shared config, UI, TypeScript, ESLint, CI, and local setup docs are wired."
+      "repo": "pnpm workspace and Turbo remain the repo backbone.",
+      "web": "Next.js App Router, Tailwind, and next-intl power the localized dashboard.",
+      "ingress": "Ingress stays minimal while WhatsApp verification and raw persistence wait for later phases.",
+      "shared": "Convex auth, RBAC, Bot Studio, and Knowledge Base surfaces are wired end to end."
     },
     "nextStepsLabel": "Next phase",
-    "nextStepsBody": "Phase 2 will add Clerk auth, organizations, RBAC, protected dashboard routing, and audit-ready tenant scoping."
+    "nextStepsBody": "Phase 5 adds WhatsApp integration credentials, encrypted setup state, and audit-ready connection management."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -98,9 +99,52 @@
     "emulatorBody": "Preview the current prompt, language policy, and model settings without creating transport messages.",
     "latestUserMessage": "Latest user message",
     "draftOutput": "Draft output",
+    "ragStatus": "Knowledge retrieval",
+    "ragStatusOn": "Knowledge matched",
+    "ragStatusOff": "No knowledge matched",
+    "knowledgeSources": "Knowledge sources used",
+    "knowledgeSourcesEmpty": "No knowledge sources were used for this draft.",
     "validationNameEmpty": "Bot name cannot be empty.",
     "validationPromptEmpty": "System prompt cannot be empty.",
     "validationModelEmpty": "Model ID cannot be empty.",
-    "validationEndpointRequired": "Endpoint URL is required specifically for the DigitalOcean provider."
+    "validationEndpointRequired": "Endpoint URL is required specifically for the DigitalOcean provider.",
+    "saveFailed": "Save failed",
+    "previewFailed": "Preview failed",
+    "previewSuccess": "Draft generated",
+    "unknownSaveFailure": "Failed to save configuration"
+  },
+  "KnowledgeBase": {
+    "eyebrow": "Phase 4",
+    "headline": "Knowledge Base",
+    "subheadline": "Store markdown-first business knowledge, chunk it, embed it, and feed the emulator with tenant-scoped retrieval.",
+    "back": "Back to dashboard",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL is not configured. Knowledge Base needs a Convex deployment before sources can be queried or ingested.",
+    "loading": "Loading knowledge base…",
+    "save": "Save source",
+    "savePending": "Saving…",
+    "delete": "Delete source",
+    "deletePending": "Deleting…",
+    "saveSuccess": "Knowledge source saved",
+    "sourceType": "Source type",
+    "inline": "Inline note",
+    "website": "Website",
+    "pdf": "PDF",
+    "title": "Title",
+    "titlePlaceholder": "Optional title override",
+    "websiteUrl": "Website URL",
+    "websiteUrlPlaceholder": "https://example.com/faq",
+    "inlineContent": "Inline content",
+    "inlineContentPlaceholder": "Paste business knowledge in Markdown or plain text.",
+    "pdfDeferred": "PDF ingestion is intentionally deferred in phase 4. The control stays visible so the roadmap remains explicit.",
+    "configureBotFirst": "Configure Bot Studio first. Knowledge is stored against the active tenant bot profile.",
+    "emptyState": "No knowledge sources yet. Add inline notes or a website source to start retrieval.",
+    "sourceListTitle": "Saved sources",
+    "previewTitle": "Markdown preview",
+    "recentUsageTitle": "Recent retrieval usage",
+    "noPreview": "Select a source to preview the normalized markdown.",
+    "chunkCount": "Chunks",
+    "usageEmpty": "No retrieval runs have been logged yet.",
+    "deleteSuccess": "Knowledge source deleted",
+    "blockedPrivateOrInternalUrl": "This URL points to a private or internal address and is blocked for security reasons."
   }
 }
