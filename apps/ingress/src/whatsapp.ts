@@ -173,17 +173,22 @@ export function extractBusinessAccountId(payload: WhatsAppWebhookPayload) {
   return payload.entry?.find((entry) => entry.id)?.id;
 }
 
-export function extractProviderEventId(payload: WhatsAppWebhookPayload) {
+export function extractProviderEventId(
+  payload: WhatsAppWebhookPayload,
+  payloadHash?: string,
+) {
   for (const entry of payload.entry ?? []) {
     for (const change of entry.changes ?? []) {
-      const messageId = change.value?.messages?.find((message) => message.id)?.id;
+      const messageId = change.value?.messages?.find(
+        (message) => message.id,
+      )?.id;
       if (messageId) {
-        return messageId;
+        return payloadHash ? `${messageId}:${payloadHash}` : messageId;
       }
 
       const statusId = change.value?.statuses?.find((status) => status.id)?.id;
       if (statusId) {
-        return statusId;
+        return payloadHash ? `${statusId}:${payloadHash}` : statusId;
       }
     }
   }
@@ -211,7 +216,10 @@ export function deriveEventType(payload: WhatsAppWebhookPayload) {
   return payload.object ?? "unknown";
 }
 
-export function deriveMediaWork(payload: WhatsAppWebhookPayload, receivedAt: number) {
+export function deriveMediaWork(
+  payload: WhatsAppWebhookPayload,
+  receivedAt: number,
+) {
   const messages =
     payload.entry?.flatMap((entry) =>
       (entry.changes ?? []).flatMap((change) => change.value?.messages ?? []),
@@ -249,7 +257,7 @@ export async function buildWebhookEventKey(
     payload.object ?? "unknown",
     extractPhoneNumberId(payload) ?? "unknown",
     deriveEventType(payload),
-    extractProviderEventId(payload) ?? rawPayloadHash,
+    extractProviderEventId(payload, rawPayloadHash) ?? rawPayloadHash,
   ].join(":");
 }
 
@@ -257,7 +265,10 @@ function getRequiredEnv(
   env: IngressBindings,
   key: keyof Pick<
     IngressBindings,
-    "CONVEX_HTTP_URL" | "CONVEX_SHARED_SECRET" | "META_APP_SECRET" | "META_VERIFY_TOKEN"
+    | "CONVEX_HTTP_URL"
+    | "CONVEX_SHARED_SECRET"
+    | "META_APP_SECRET"
+    | "META_VERIFY_TOKEN"
   >,
 ) {
   const value = env[key];
@@ -289,7 +300,9 @@ export async function persistWebhookEventViaConvex(
   );
 
   if (!response.ok) {
-    throw new Error(`Convex raw event write failed with status ${response.status}`);
+    throw new Error(
+      `Convex raw event write failed with status ${response.status}`,
+    );
   }
 
   return (await response.json()) as PersistedWebhookResult;

@@ -145,18 +145,18 @@ export function createIngressApp(deps: CreateIngressAppDependencies = {}) {
       deps.persistWebhookEvent ?? persistWebhookEventViaConvex;
     const receivedAt = Date.now();
     const mediaWork = deriveMediaWork(payload, receivedAt);
+    const eventKey = await buildWebhookEventKey(payload, rawBody);
 
     try {
       const result = await persistWebhookEvent(c.env, {
         receivedAt,
-        eventKey: await buildWebhookEventKey(payload, rawBody),
+        eventKey,
         eventType: deriveEventType(payload),
         rawPayload: rawBody,
         signatureValid: true,
-        phoneNumberId:
-          phoneNumberId === "unknown" ? undefined : phoneNumberId,
+        phoneNumberId: phoneNumberId === "unknown" ? undefined : phoneNumberId,
         businessAccountId: extractBusinessAccountId(payload),
-        providerEventId: extractProviderEventId(payload),
+        providerEventId: eventKey.split(":").pop(),
         mediaDownloadEnqueued: mediaWork.mediaDownloadEnqueued,
         mediaDownloadPriority: mediaWork.mediaDownloadPriority,
         mediaDownloadDeadlineAt: mediaWork.mediaDownloadDeadlineAt,
