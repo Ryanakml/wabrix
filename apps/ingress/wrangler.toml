@@ -1,0 +1,31 @@
+name = "wabrix-ingress"
+main = "src/index.ts"
+compatibility_date = "2026-04-18"
+workers_dev = true
+
+[vars]
+ENVIRONMENT = "local"
+CONVEX_HTTP_URL = "https://example.convex.site"
+CONVEX_SHARED_SECRET = "replace-me"
+META_APP_SECRET = "replace-me"
+META_VERIFY_TOKEN = "replace-me"
+
+[env.staging]
+name = "wabrix-ingress-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+CONVEX_HTTP_URL = "https://staging.convex.site"
+CONVEX_SHARED_SECRET = "replace-me"
+META_APP_SECRET = "replace-me"
+META_VERIFY_TOKEN = "replace-me"
+
+[env.production]
+name = "wabrix-ingress-production"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+CONVEX_HTTP_URL = "https://production.convex.site"
+CONVEX_SHARED_SECRET = "replace-me"
+META_APP_SECRET = "replace-me"
+META_VERIFY_TOKEN = "replace-me"

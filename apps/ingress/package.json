@@ -1,0 +1,23 @@
+{
+  "name": "@wabrix/ingress",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "HOME=/tmp/wabrix-wrangler-home wrangler deploy --dry-run --env='' --outdir dist",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@wabrix/config": "workspace:*",
+    "hono": "^4.12.14"
+  },
+  "devDependencies": {
+    "@wabrix/eslint-config": "workspace:*",
+    "@wabrix/typescript-config": "workspace:*",
+    "eslint": "^9.39.1",
+    "wrangler": "^4.4.0"
+  }
+}
