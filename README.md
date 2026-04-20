@@ -32,6 +32,7 @@ Core commands:
 - [Phase 4 Summary](./docs/phase-4/README.md)
 - [Phase 5 Summary](./docs/phase-5/README.md)
 - [Phase 6 Summary](./docs/phase-6/README.md)
+- [Environment And Deployment Guide](./docs/environment-and-deployment-guide.md)
 - [Local Setup](./docs/local-setup.md)
 - [Contributing](./CONTRIBUTING.md)
 
