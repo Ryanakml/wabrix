@@ -45,7 +45,7 @@
       },
       "inbox": {
         "title": "Inbox",
-        "body": "Inbound conversations and transcript persistence are now visible in a read-only inbox surface."
+        "body": "Inbound conversations now drive bot orchestration state, outbound queue visibility, and failure surfacing."
       },
       "ops": {
         "title": "Ops",
@@ -60,7 +60,7 @@
       "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, WhatsApp setup, and inbound transcript persistence are wired end to end."
     },
     "nextStepsLabel": "Next phase",
-    "nextStepsBody": "Phase 8 adds bot orchestration, debounce, service-window guards, and the first durable outbound queue."
+    "nextStepsBody": "Phase 9 adds outbound sending through Meta, retry handling, and status reconciliation."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -181,9 +181,9 @@
     "verifyTokenStatus": "Verify token"
   },
   "Inbox": {
-    "eyebrow": "Phase 7",
+    "eyebrow": "Phase 8",
     "headline": "Inbox",
-    "subheadline": "Review inbound WhatsApp conversations, transcript rows, service-window timing, and media processing jobs before bot auto-replies are enabled.",
+    "subheadline": "Review inbound WhatsApp conversations, bot orchestration state, outbound queue jobs, service-window timing, and media processing from one tenant-scoped inbox surface.",
     "back": "Back to dashboard",
     "missingRuntime": "NEXT_PUBLIC_CONVEX_URL is not configured. Inbox data needs a Convex deployment before conversations can load.",
     "loading": "Loading inbox…",
@@ -194,8 +194,21 @@
     "noMessages": "No transcript messages yet.",
     "serviceWindow": "Service window expires",
     "lastInbound": "Last inbound",
+    "botReplyState": "Bot reply state",
+    "botReplyError": "Bot reply error",
+    "expiringSoon": "Service window is close to expiry. Prepare a template fallback if needed.",
     "noMedia": "No media records have been queued yet.",
+    "queueOps": "Outbound queue",
+    "noQueue": "No outbound queue jobs yet.",
+    "notifications": "Notifications",
+    "noNotifications": "No dashboard notifications yet.",
     "openStatus": "Open",
-    "closedStatus": "Closed"
+    "closedStatus": "Closed",
+    "stateIdle": "Idle",
+    "statePending": "Pending",
+    "stateGenerating": "Generating",
+    "stateQueued": "Queued",
+    "stateBlocked": "Blocked",
+    "stateFailed": "Failed"
   }
 }

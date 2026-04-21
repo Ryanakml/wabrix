@@ -13,11 +13,46 @@ type InboxClientProps = {
     noMessages: string;
     serviceWindow: string;
     lastInbound: string;
+    botReplyState: string;
+    botReplyError: string;
+    expiringSoon: string;
     noMedia: string;
+    queueOps: string;
+    noQueue: string;
+    notifications: string;
+    noNotifications: string;
     openStatus: string;
     closedStatus: string;
+    stateIdle: string;
+    statePending: string;
+    stateGenerating: string;
+    stateQueued: string;
+    stateBlocked: string;
+    stateFailed: string;
   };
 };
+
+function formatBotReplyState(
+  state: string,
+  copy: InboxClientProps["copy"],
+) {
+  switch (state) {
+    case "idle":
+      return copy.stateIdle;
+    case "pending":
+      return copy.statePending;
+    case "generating":
+      return copy.stateGenerating;
+    case "queued":
+      return copy.stateQueued;
+    case "blocked":
+      return copy.stateBlocked;
+    case "failed":
+      return copy.stateFailed;
+    default:
+      return state;
+  }
+}
 
 function formatDate(value: number | null) {
   if (!value) {
@@ -38,7 +73,7 @@ export function InboxClient({ copy }: InboxClientProps) {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+    <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
       <section className="rounded-[1.75rem] border border-stone-300/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(24,37,31,0.08)]">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-2xl font-semibold text-stone-950">
@@ -87,6 +122,23 @@ export function InboxClient({ copy }: InboxClientProps) {
                     </span>
                     {formatDate(conversation.lastInboundAt)}
                   </p>
+                  <p>
+                    <span className="font-medium text-stone-950">
+                      {copy.botReplyState}:{" "}
+                    </span>
+                    {formatBotReplyState(conversation.botReplyState, copy)}
+                  </p>
+                  {conversation.botReplyError ? (
+                    <p className="text-rose-700">
+                      <span className="font-medium text-rose-900">
+                        {copy.botReplyError}:{" "}
+                      </span>
+                      {conversation.botReplyError}
+                    </p>
+                  ) : null}
+                  {conversation.serviceWindowExpiringSoon ? (
+                    <p className="text-amber-700">{copy.expiringSoon}</p>
+                  ) : null}
                   <p className="rounded-2xl bg-white px-4 py-3 text-stone-800">
                     {conversation.lastMessagePreview ?? copy.noMessages}
                   </p>
@@ -121,35 +173,104 @@ export function InboxClient({ copy }: InboxClientProps) {
       </section>
 
       <section className="rounded-[1.75rem] border border-stone-300/70 bg-[#111827] p-6 text-white shadow-[0_24px_70px_rgba(16,24,22,0.2)]">
-        <h2 className="text-2xl font-semibold text-white">{copy.mediaOps}</h2>
-        {inboxState.mediaRecords.length === 0 ? (
-          <p className="mt-5 text-sm leading-7 text-stone-300">{copy.noMedia}</p>
-        ) : (
-          <div className="mt-5 grid gap-3">
-            {inboxState.mediaRecords.map((record) => (
-              <div
-                key={record.id}
-                className="rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-stone-100"
-              >
-                <p className="font-semibold uppercase tracking-[0.2em] text-cyan-300">
-                  {record.mediaType}
-                </p>
-                <p className="mt-2 break-all">{record.providerMediaId}</p>
-                <p className="mt-2 text-stone-300">
-                  download: {record.downloadStatus}
-                </p>
-                <p className="text-stone-300">
-                  transcript: {record.transcriptStatus}
-                </p>
-                <p className="text-stone-300">summary: {record.summaryStatus}</p>
-                <p className="text-stone-300">storage: {record.storageStatus}</p>
-                <p className="mt-2 text-xs text-stone-400">
-                  deadline: {formatDate(record.downloadDeadlineAt)}
-                </p>
+        <div className="grid gap-8">
+          <div>
+            <h2 className="text-2xl font-semibold text-white">{copy.queueOps}</h2>
+            {inboxState.outboundQueue.length === 0 ? (
+              <p className="mt-5 text-sm leading-7 text-stone-300">
+                {copy.noQueue}
+              </p>
+            ) : (
+              <div className="mt-5 grid gap-3">
+                {inboxState.outboundQueue.map((job) => (
+                  <div
+                    key={job.id}
+                    className="rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-stone-100"
+                  >
+                    <p className="font-semibold uppercase tracking-[0.2em] text-emerald-300">
+                      {job.status}
+                    </p>
+                    <p className="mt-2 break-all text-stone-300">
+                      message: {job.messageId}
+                    </p>
+                    <p className="text-stone-300">attempts: {job.attemptCount}</p>
+                    <p className="text-stone-300">
+                      next attempt: {formatDate(job.nextAttemptAt)}
+                    </p>
+                    {job.failureMessage ? (
+                      <p className="mt-2 text-rose-300">{job.failureMessage}</p>
+                    ) : null}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
+
+          <div>
+            <h2 className="text-2xl font-semibold text-white">
+              {copy.notifications}
+            </h2>
+            {inboxState.notifications.length === 0 ? (
+              <p className="mt-5 text-sm leading-7 text-stone-300">
+                {copy.noNotifications}
+              </p>
+            ) : (
+              <div className="mt-5 grid gap-3">
+                {inboxState.notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-stone-100"
+                  >
+                    <p className="font-semibold uppercase tracking-[0.2em] text-amber-300">
+                      {notification.type}
+                    </p>
+                    <p className="mt-2 font-medium">{notification.title}</p>
+                    <p className="mt-2 text-stone-300">{notification.body}</p>
+                    {notification.recommendation ? (
+                      <p className="mt-2 text-stone-300">
+                        {notification.recommendation}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-semibold text-white">{copy.mediaOps}</h2>
+            {inboxState.mediaRecords.length === 0 ? (
+              <p className="mt-5 text-sm leading-7 text-stone-300">
+                {copy.noMedia}
+              </p>
+            ) : (
+              <div className="mt-5 grid gap-3">
+                {inboxState.mediaRecords.map((record) => (
+                  <div
+                    key={record.id}
+                    className="rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-stone-100"
+                  >
+                    <p className="font-semibold uppercase tracking-[0.2em] text-cyan-300">
+                      {record.mediaType}
+                    </p>
+                    <p className="mt-2 break-all">{record.providerMediaId}</p>
+                    <p className="mt-2 text-stone-300">
+                      download: {record.downloadStatus}
+                    </p>
+                    <p className="text-stone-300">
+                      transcript: {record.transcriptStatus}
+                    </p>
+                    <p className="text-stone-300">summary: {record.summaryStatus}</p>
+                    <p className="text-stone-300">storage: {record.storageStatus}</p>
+                    <p className="mt-2 text-xs text-stone-400">
+                      deadline: {formatDate(record.downloadDeadlineAt)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );

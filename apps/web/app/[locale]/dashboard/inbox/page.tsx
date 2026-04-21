@@ -49,9 +49,22 @@ export default async function InboxPage({ params }: InboxPageProps) {
               noMessages: t("noMessages"),
               serviceWindow: t("serviceWindow"),
               lastInbound: t("lastInbound"),
+              botReplyState: t("botReplyState"),
+              botReplyError: t("botReplyError"),
+              expiringSoon: t("expiringSoon"),
               noMedia: t("noMedia"),
+              queueOps: t("queueOps"),
+              noQueue: t("noQueue"),
+              notifications: t("notifications"),
+              noNotifications: t("noNotifications"),
               openStatus: t("openStatus"),
               closedStatus: t("closedStatus"),
+              stateIdle: t("stateIdle"),
+              statePending: t("statePending"),
+              stateGenerating: t("stateGenerating"),
+              stateQueued: t("stateQueued"),
+              stateBlocked: t("stateBlocked"),
+              stateFailed: t("stateFailed"),
             }}
           />
         )}
