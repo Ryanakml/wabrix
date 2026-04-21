@@ -156,7 +156,7 @@ export function createIngressApp(deps: CreateIngressAppDependencies = {}) {
         signatureValid: true,
         phoneNumberId: phoneNumberId === "unknown" ? undefined : phoneNumberId,
         businessAccountId: extractBusinessAccountId(payload),
-        providerEventId: eventKey.split(":").pop(),
+        providerEventId: extractProviderEventId(payload),
         mediaDownloadEnqueued: mediaWork.mediaDownloadEnqueued,
         mediaDownloadPriority: mediaWork.mediaDownloadPriority,
         mediaDownloadDeadlineAt: mediaWork.mediaDownloadDeadlineAt,

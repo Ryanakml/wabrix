@@ -239,6 +239,9 @@ export default defineSchema({
     processingStatus: v.union(
       v.literal("received"),
       v.literal("media_download_queued"),
+      v.literal("normalized"),
+      v.literal("normalized_media_queued"),
+      v.literal("ignored"),
     ),
     attemptCount: v.number(),
     mediaDownloadStatus: v.union(
@@ -250,10 +253,131 @@ export default defineSchema({
     rawPayload: v.string(),
     receivedAt: v.number(),
     lastReceivedAt: v.number(),
+    normalizedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_event_key", ["eventKey"])
     .index("by_org_received_at", ["organizationId", "receivedAt"])
     .index("by_phone_number_id_received_at", ["phoneNumberId", "receivedAt"]),
+
+  whatsappContacts: defineTable({
+    organizationId: v.id("organizations"),
+    integrationId: v.id("whatsappIntegrations"),
+    botId: v.id("botProfiles"),
+    waId: v.string(),
+    profileName: v.optional(v.string()),
+    activeConversationId: v.optional(v.id("conversations")),
+    optOut: v.boolean(),
+    lastInboundAt: v.number(),
+    serviceWindowExpiresAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org_wa_id", ["organizationId", "waId"])
+    .index("by_active_conversation", ["activeConversationId"]),
+
+  conversations: defineTable({
+    organizationId: v.id("organizations"),
+    channel: v.union(v.literal("whatsapp")),
+    contactId: v.optional(v.id("whatsappContacts")),
+    status: v.union(v.literal("open"), v.literal("closed")),
+    handoffRequested: v.boolean(),
+    botPaused: v.boolean(),
+    serviceWindowExpiresAt: v.optional(v.number()),
+    serviceWindowExpiringSoon: v.boolean(),
+    lastMessageAt: v.number(),
+    lastInboundAt: v.number(),
+    lastMessagePreview: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org_last_message_at", ["organizationId", "lastMessageAt"])
+    .index("by_contact", ["contactId"]),
+
+  messages: defineTable({
+    organizationId: v.id("organizations"),
+    conversationId: v.id("conversations"),
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("agent"),
+      v.literal("system"),
+    ),
+    source: v.string(),
+    content: v.string(),
+    contentType: v.union(
+      v.literal("text"),
+      v.literal("audio"),
+      v.literal("image"),
+      v.literal("document"),
+      v.literal("unsupported"),
+    ),
+    transportMessageId: v.optional(v.id("whatsappMessages")),
+    deliveryState: v.union(
+      v.literal("received"),
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("failed"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_conversation_created_at", ["conversationId", "createdAt"])
+    .index("by_org_created_at", ["organizationId", "createdAt"]),
+
+  whatsappMessages: defineTable({
+    organizationId: v.id("organizations"),
+    integrationId: v.id("whatsappIntegrations"),
+    conversationId: v.id("conversations"),
+    contactId: v.id("whatsappContacts"),
+    transcriptMessageId: v.id("messages"),
+    providerMessageId: v.string(),
+    waId: v.string(),
+    direction: v.union(v.literal("inbound"), v.literal("outbound")),
+    messageType: v.union(
+      v.literal("text"),
+      v.literal("audio"),
+      v.literal("image"),
+      v.literal("document"),
+      v.literal("unsupported"),
+    ),
+    transportStatus: v.union(
+      v.literal("received"),
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("failed"),
+    ),
+    rawSummary: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_provider_message_id", ["providerMessageId"])
+    .index("by_conversation_created_at", ["conversationId", "createdAt"])
+    .index("by_contact", ["contactId"]),
+
+  whatsappMedia: defineTable({
+    organizationId: v.id("organizations"),
+    integrationId: v.id("whatsappIntegrations"),
+    conversationId: v.id("conversations"),
+    contactId: v.id("whatsappContacts"),
+    whatsappMessageId: v.id("whatsappMessages"),
+    transcriptMessageId: v.id("messages"),
+    providerMessageId: v.string(),
+    providerMediaId: v.string(),
+    mediaType: v.union(
+      v.literal("audio"),
+      v.literal("image"),
+      v.literal("document"),
+    ),
+    downloadStatus: v.union(v.literal("queued"), v.literal("not_required")),
+    transcriptStatus: v.union(v.literal("queued"), v.literal("not_applicable")),
+    summaryStatus: v.union(v.literal("queued"), v.literal("not_applicable")),
+    storageStatus: v.union(v.literal("queued"), v.literal("not_applicable")),
+    downloadDeadlineAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_whatsapp_message", ["whatsappMessageId"])
+    .index("by_org_created_at", ["organizationId", "createdAt"]),
 });
