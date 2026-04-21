@@ -2,19 +2,13 @@
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import { action, type ActionCtx } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import { decryptSecret } from "./lib/crypto.js";
-import {
-  applyPromptInjectionGuard,
-  detectLanguage,
-} from "./lib/guardrails.js";
-import {
-  embedTexts,
-  selectRelevantKnowledgeChunks,
-} from "./lib/knowledge.js";
+import { applyPromptInjectionGuard, detectLanguage } from "./lib/guardrails.js";
+import { embedTexts, selectRelevantKnowledgeChunks } from "./lib/knowledge.js";
 import {
   buildObservabilityPayload,
   emitObservabilityEvent,
@@ -110,7 +104,10 @@ function buildPrompt(
   outputLanguage: string,
 ) {
   const historyText = history
-    .map((entry) => `${entry.role === "user" ? "User" : "Assistant"}: ${entry.content}`)
+    .map(
+      (entry) =>
+        `${entry.role === "user" ? "User" : "Assistant"}: ${entry.content}`,
+    )
     .join("\n");
 
   const ragBlock =
@@ -226,7 +223,9 @@ async function previewBotReplyHandler(
     });
     const queryEmbedding = queryEmbeddings[0];
     if (!queryEmbedding) {
-      throw new Error("Knowledge retrieval could not generate a query embedding.");
+      throw new Error(
+        "Knowledge retrieval could not generate a query embedding.",
+      );
     }
     knowledgeMatches = selectRelevantKnowledgeChunks(
       queryEmbedding,
@@ -354,5 +353,11 @@ export const previewBotReply = action({
       ),
     ),
   },
-  handler: previewBotReplyHandler,
+  handler: async (ctx, args) => {
+    try {
+      return await previewBotReplyHandler(ctx, args);
+    } catch (e) {
+      throw new ConvexError(e instanceof Error ? e.message : String(e));
+    }
+  },
 });
