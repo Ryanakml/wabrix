@@ -220,6 +220,17 @@ async function runBotReplyOrchestratorHandler(
       },
     )) as ClaimBotReplyWorkResult;
 
+  if (claim.status === "debounced") {
+    // The scheduler fired slightly before the debounce window elapsed.
+    // Re-enqueue with a short buffer so the window is respected.
+    await ctx.scheduler.runAfter(
+      1_000,
+      internal.orchestratorAction.runBotReplyOrchestrator,
+      { conversationId: args.conversationId },
+    );
+    return claim;
+  }
+
   if (claim.status !== "ready") {
     return claim;
   }
