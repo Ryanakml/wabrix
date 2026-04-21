@@ -23,7 +23,7 @@ name = "wabrix-ingress-staging"
 
 [env.staging.vars]
 ENVIRONMENT = "staging"
-CONVEX_HTTP_URL = "https://combative-hamster-688.convex.cloud"
+CONVEX_HTTP_URL = "https://combative-hamster-688.convex.site"
 CONVEX_SHARED_SECRET = "replace-me"
 META_APP_SECRET = "replace-me"
 META_VERIFY_TOKEN = "replace-me"
