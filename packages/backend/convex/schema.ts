@@ -284,6 +284,21 @@ export default defineSchema({
     status: v.union(v.literal("open"), v.literal("closed")),
     handoffRequested: v.boolean(),
     botPaused: v.boolean(),
+    botReplyState: v.union(
+      v.literal("idle"),
+      v.literal("pending"),
+      v.literal("generating"),
+      v.literal("queued"),
+      v.literal("blocked"),
+      v.literal("failed"),
+    ),
+    botReplyError: v.optional(v.string()),
+    botReplyDebounceUntilAt: v.optional(v.number()),
+    replyGenerationToken: v.optional(v.string()),
+    replyGenerationStartedAt: v.optional(v.number()),
+    lastAutoReplyAt: v.optional(v.number()),
+    lastAutoReplyMessageId: v.optional(v.id("messages")),
+    lastAutoReplyInboundAt: v.optional(v.number()),
     serviceWindowExpiresAt: v.optional(v.number()),
     serviceWindowExpiringSoon: v.boolean(),
     lastMessageAt: v.number(),
@@ -380,4 +395,58 @@ export default defineSchema({
   })
     .index("by_whatsapp_message", ["whatsappMessageId"])
     .index("by_org_created_at", ["organizationId", "createdAt"]),
+
+  outboundQueue: defineTable({
+    organizationId: v.id("organizations"),
+    integrationId: v.id("whatsappIntegrations"),
+    conversationId: v.id("conversations"),
+    contactId: v.id("whatsappContacts"),
+    channel: v.union(v.literal("whatsapp")),
+    messageId: v.id("messages"),
+    whatsappMessageId: v.id("whatsappMessages"),
+    idempotencyKey: v.string(),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("processing"),
+      v.literal("sent"),
+      v.literal("failed"),
+      v.literal("cancelled"),
+    ),
+    attemptCount: v.number(),
+    maxAttempts: v.number(),
+    nextAttemptAt: v.number(),
+    failureCode: v.optional(v.string()),
+    failureMessage: v.optional(v.string()),
+    providerMessageId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_message_id", ["messageId"])
+    .index("by_idempotency_key", ["idempotencyKey"])
+    .index("by_status_next_attempt_at", ["status", "nextAttemptAt"])
+    .index("by_org_created_at", ["organizationId", "createdAt"]),
+
+  dashboardNotifications: defineTable({
+    organizationId: v.id("organizations"),
+    conversationId: v.optional(v.id("conversations")),
+    type: v.union(
+      v.literal("service_window_expiring"),
+      v.literal("bot_reply_failed"),
+    ),
+    severity: v.union(
+      v.literal("info"),
+      v.literal("warning"),
+      v.literal("error"),
+    ),
+    title: v.string(),
+    body: v.string(),
+    recommendation: v.optional(v.string()),
+    dedupeKey: v.string(),
+    status: v.union(v.literal("open"), v.literal("resolved")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org_created_at", ["organizationId", "createdAt"])
+    .index("by_dedupe_key", ["dedupeKey"])
+    .index("by_conversation", ["conversationId"]),
 });

@@ -154,6 +154,47 @@ export const getBotStudioRuntimeState = internalQuery({
   },
 });
 
+export const getBotStudioRuntimeStateForOrganization = internalQuery({
+  args: {
+    organizationId: v.id("organizations"),
+    botId: v.id("botProfiles"),
+  },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.botId);
+
+    if (!profile || profile.organizationId !== args.organizationId) {
+      return null;
+    }
+
+    const provider = await ctx.db
+      .query("modelProviderSettings")
+      .withIndex("by_org", (q) => q.eq("organizationId", args.organizationId))
+      .first();
+
+    if (!provider) {
+      return null;
+    }
+
+    const promptVersions = await ctx.db
+      .query("promptVersions")
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", args.organizationId),
+      )
+      .order("desc")
+      .take(1);
+
+    return {
+      organizationId: args.organizationId,
+      clerkOrgId: "",
+      profile,
+      provider,
+      promptVersionId: String(
+        promptVersions[0]?._id ?? `unsaved-${profile._id.toString()}`,
+      ),
+    };
+  },
+});
+
 export const saveBotStudioState = mutation({
   args: {
     name: v.string(),

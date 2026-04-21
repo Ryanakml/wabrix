@@ -310,6 +310,62 @@ export const getKnowledgeRetrievalCorpus = internalQuery({
   },
 });
 
+export const getKnowledgeRetrievalCorpusForOrganization = internalQuery({
+  args: {
+    organizationId: v.id("organizations"),
+    botId: v.id("botProfiles"),
+  },
+  handler: async (ctx, args) => {
+    const botProfile = await ctx.db.get(args.botId);
+
+    if (!botProfile || botProfile.organizationId !== args.organizationId) {
+      return {
+        botId: null,
+        chunks: [],
+      };
+    }
+
+    const chunks = await ctx.db
+      .query("knowledgeChunks")
+      .withIndex("by_bot", (q) => q.eq("botId", args.botId))
+      .collect();
+    const sourcesById = new Map<
+      Id<"knowledgeSources">,
+      Doc<"knowledgeSources"> | null
+    >();
+
+    for (const chunk of chunks) {
+      if (!sourcesById.has(chunk.sourceId)) {
+        const source = await ctx.db.get(chunk.sourceId);
+        sourcesById.set(chunk.sourceId, source);
+      }
+    }
+
+    return {
+      botId: args.botId,
+      chunks: chunks.flatMap((chunk) => {
+        const source = sourcesById.get(chunk.sourceId);
+        if (
+          !source ||
+          source.organizationId !== args.organizationId ||
+          source.status !== "ready"
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            sourceId: chunk.sourceId,
+            title: source.title,
+            text: chunk.text,
+            embedding: chunk.embedding,
+          },
+        ];
+      }),
+    };
+  },
+});
+
 export const logKnowledgeUsage = internalMutation({
   args: {
     organizationId: v.id("organizations"),

@@ -45,7 +45,7 @@
       },
       "inbox": {
         "title": "Inbox",
-        "body": "Percakapan inbound dan transcript persistence sekarang sudah terlihat di surface inbox read-only."
+        "body": "Percakapan inbound sekarang mendorong state orkestrasi bot, visibilitas outbound queue, dan surface kegagalan."
       },
       "ops": {
         "title": "Ops",
@@ -60,7 +60,7 @@
       "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, setup WhatsApp, dan persistence transcript inbound sudah terhubung end to end."
     },
     "nextStepsLabel": "Fase berikutnya",
-    "nextStepsBody": "Phase 8 menambahkan orkestrasi bot, debounce, guard service window, dan outbound queue durable pertama."
+    "nextStepsBody": "Phase 9 menambahkan pengiriman outbound lewat Meta, retry handling, dan rekonsiliasi status."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -181,9 +181,9 @@
     "verifyTokenStatus": "Verify token"
   },
   "Inbox": {
-    "eyebrow": "Phase 7",
+    "eyebrow": "Phase 8",
     "headline": "Inbox",
-    "subheadline": "Review percakapan WhatsApp inbound, baris transcript, timing service window, dan job pemrosesan media sebelum bot auto-reply diaktifkan.",
+    "subheadline": "Review percakapan WhatsApp inbound, state orkestrasi bot, job outbound queue, timing service window, dan pemrosesan media dari satu surface inbox yang tenant-scoped.",
     "back": "Kembali ke dashboard",
     "missingRuntime": "NEXT_PUBLIC_CONVEX_URL belum dikonfigurasi. Data inbox memerlukan deployment Convex sebelum conversation bisa dimuat.",
     "loading": "Memuat inbox…",
@@ -194,8 +194,21 @@
     "noMessages": "Belum ada pesan transcript.",
     "serviceWindow": "Service window berakhir",
     "lastInbound": "Inbound terakhir",
+    "botReplyState": "State balasan bot",
+    "botReplyError": "Error balasan bot",
+    "expiringSoon": "Service window hampir habis. Siapkan fallback template kalau perlu.",
     "noMedia": "Belum ada record media yang di-queue.",
+    "queueOps": "Outbound queue",
+    "noQueue": "Belum ada job outbound queue.",
+    "notifications": "Notifikasi",
+    "noNotifications": "Belum ada notifikasi dashboard.",
     "openStatus": "Terbuka",
-    "closedStatus": "Tutup"
+    "closedStatus": "Tutup",
+    "stateIdle": "Idle",
+    "statePending": "Pending",
+    "stateGenerating": "Generating",
+    "stateQueued": "Queued",
+    "stateBlocked": "Blocked",
+    "stateFailed": "Failed"
   }
 }

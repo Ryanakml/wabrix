@@ -42,7 +42,8 @@ pnpm build
 - Phase 5 uses `NEXT_PUBLIC_INGRESS_URL` to display the exact webhook URL that must be configured in Meta while keeping raw credentials off the frontend.
 - Phase 6 uses `META_APP_SECRET`, `META_VERIFY_TOKEN`, and `CONVEX_SHARED_SECRET` in the worker for signature verification, GET challenge validation, and trusted raw-event writes back to Convex.
 - Phase 6 also expects the `WHATSAPP_WEBHOOK_RATE_LIMITER` binding configured in [apps/ingress/wrangler.toml](/Users/ryanakmalpasya/Documents/BS/Freelance/PROJECTS/SKEM PROJECT/SAAS/wabrix/apps/ingress/wrangler.toml). Replace the placeholder `namespace_id` before staging or production rollout.
-- Phase 7 adds a read-only inbox surface and requires phase-6 raw event durability to already be healthy; the inbox itself does not introduce new external credentials.
+- Phase 7 adds a read-only inbox surface and requires phase-6 raw event durability to already be healthy.
+- Phase 8 adds bot orchestration plus the first durable outbound queue. It reuses the existing `GOOGLE_GENERATIVE_AI_API_KEY` fallback or the org-level encrypted key already saved through Bot Studio; no new external credential is introduced in this phase.
 - Website ingestion uses Jina Reader first by default.
 - `FIRECRAWL_API_KEY` is optional and enables a hosted secondary ingestion path before the local HTML fallback.
 - Observability env vars for Helicone or Axiom are optional in local development.

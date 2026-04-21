@@ -5,6 +5,7 @@ import {
   query,
   type MutationCtx,
 } from "./_generated/server.js";
+import { markConversationPendingBotReply } from "./orchestrator.js";
 import { requireOrgContext } from "./rbac.js";
 
 const SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -326,6 +327,14 @@ export async function findOrCreateActiveConversation(
 
       return {
         ...existingConversation,
+        botReplyState: existingConversation.botReplyState,
+        botReplyError: existingConversation.botReplyError,
+        botReplyDebounceUntilAt: existingConversation.botReplyDebounceUntilAt,
+        replyGenerationToken: existingConversation.replyGenerationToken,
+        replyGenerationStartedAt: existingConversation.replyGenerationStartedAt,
+        lastAutoReplyAt: existingConversation.lastAutoReplyAt,
+        lastAutoReplyMessageId: existingConversation.lastAutoReplyMessageId,
+        lastAutoReplyInboundAt: existingConversation.lastAutoReplyInboundAt,
         lastMessageAt: Math.max(existingConversation.lastMessageAt, receivedAt),
         lastInboundAt: Math.max(existingConversation.lastInboundAt, receivedAt),
         serviceWindowExpiresAt: contact.serviceWindowExpiresAt,
@@ -343,6 +352,14 @@ export async function findOrCreateActiveConversation(
     status: "open",
     handoffRequested: false,
     botPaused: false,
+    botReplyState: "idle",
+    botReplyError: undefined,
+    botReplyDebounceUntilAt: undefined,
+    replyGenerationToken: undefined,
+    replyGenerationStartedAt: undefined,
+    lastAutoReplyAt: undefined,
+    lastAutoReplyMessageId: undefined,
+    lastAutoReplyInboundAt: undefined,
     serviceWindowExpiresAt: contact.serviceWindowExpiresAt,
     serviceWindowExpiringSoon: false,
     lastMessageAt: receivedAt,
@@ -366,6 +383,14 @@ export async function findOrCreateActiveConversation(
     status: "open" as const,
     handoffRequested: false,
     botPaused: false,
+    botReplyState: "idle" as const,
+    botReplyError: undefined,
+    botReplyDebounceUntilAt: undefined,
+    replyGenerationToken: undefined,
+    replyGenerationStartedAt: undefined,
+    lastAutoReplyAt: undefined,
+    lastAutoReplyMessageId: undefined,
+    lastAutoReplyInboundAt: undefined,
     serviceWindowExpiresAt: contact.serviceWindowExpiresAt,
     serviceWindowExpiringSoon: false,
     lastMessageAt: receivedAt,
@@ -442,7 +467,7 @@ async function createWhatsappMediaRecord(
 }
 
 export async function processStoredWhatsappWebhookEvent(
-  ctx: Pick<MutationCtx, "db">,
+  ctx: Pick<MutationCtx, "db" | "scheduler">,
   webhookEvent: Doc<"whatsappWebhookEvents">,
 ) {
   if (!webhookEvent.organizationId || !webhookEvent.integrationId || !webhookEvent.botId) {
@@ -565,6 +590,14 @@ export async function processStoredWhatsappWebhookEvent(
       createdMediaRecords += 1;
     }
 
+    if (normalizedMessage.messageType === "text") {
+      await markConversationPendingBotReply(ctx, {
+        conversationId: conversation._id,
+        lastInboundAt: normalizedMessage.receivedAt,
+        serviceWindowExpiresAt: contact.serviceWindowExpiresAt,
+      });
+    }
+
     processedMessages += 1;
   }
 
@@ -626,6 +659,10 @@ export const getInboxState = query({
           id: conversation._id,
           channel: conversation.channel,
           status: conversation.status,
+          botReplyState: conversation.botReplyState,
+          botReplyError: conversation.botReplyError ?? null,
+          botReplyDebounceUntilAt: conversation.botReplyDebounceUntilAt ?? null,
+          serviceWindowExpiringSoon: conversation.serviceWindowExpiringSoon,
           waId: contact?.waId ?? null,
           profileName: contact?.profileName ?? null,
           serviceWindowExpiresAt: conversation.serviceWindowExpiresAt ?? null,
@@ -650,6 +687,20 @@ export const getInboxState = query({
       )
       .order("desc")
       .take(10);
+    const outboundQueue = await ctx.db
+      .query("outboundQueue")
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
+      .order("desc")
+      .take(10);
+    const notifications = await ctx.db
+      .query("dashboardNotifications")
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
+      .order("desc")
+      .take(10);
 
     return {
       role: access.role,
@@ -665,6 +716,28 @@ export const getInboxState = query({
         storageStatus: record.storageStatus,
         downloadDeadlineAt: record.downloadDeadlineAt,
         createdAt: record.createdAt,
+      })),
+      outboundQueue: outboundQueue.map((job) => ({
+        id: job._id,
+        conversationId: job.conversationId,
+        messageId: job.messageId,
+        status: job.status,
+        attemptCount: job.attemptCount,
+        nextAttemptAt: job.nextAttemptAt,
+        failureCode: job.failureCode ?? null,
+        failureMessage: job.failureMessage ?? null,
+        createdAt: job.createdAt,
+      })),
+      notifications: notifications.map((notification) => ({
+        id: notification._id,
+        conversationId: notification.conversationId ?? null,
+        type: notification.type,
+        severity: notification.severity,
+        title: notification.title,
+        body: notification.body,
+        recommendation: notification.recommendation ?? null,
+        status: notification.status,
+        createdAt: notification.createdAt,
       })),
     };
   },
