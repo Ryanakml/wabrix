@@ -1,6 +1,7 @@
 "use node";
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { v, ConvexError } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel.js";
@@ -23,6 +24,8 @@ type GenerateWithPrimaryModelInput = {
   organizationId: Id<"organizations">;
   botId: string;
   conversationId?: string;
+  providerType: "google" | "digitalocean_reference";
+  endpointUrl?: string | null;
   providerApiKey: string;
   selectedModel: string;
   messages: DraftHistoryEntry[];
@@ -50,7 +53,7 @@ type PreviewBotReplyArgs = {
 
 type PreviewBotReplyResult = {
   content: string;
-  modelProvider: "google";
+  modelProvider: "google" | "digitalocean_reference";
   modelId: string;
   outputLanguage: OutputLanguage;
   promptVersionId: string;
@@ -129,13 +132,28 @@ function buildPrompt(
 export async function generateWithPrimaryModel(
   input: GenerateWithPrimaryModelInput,
 ) {
-  const provider = createGoogleGenerativeAI({
-    apiKey: input.providerApiKey,
-  });
+  let model;
+
+  if (input.providerType === "digitalocean_reference") {
+    let baseURL = input.endpointUrl || undefined;
+    if (baseURL) {
+      baseURL = baseURL.replace(/\/(?:chat\/completions|responses)\/?$/, "");
+    }
+    const openai = createOpenAI({
+      baseURL,
+      apiKey: input.providerApiKey,
+    });
+    model = openai.chat(input.selectedModel);
+  } else {
+    const google = createGoogleGenerativeAI({
+      apiKey: input.providerApiKey,
+    });
+    model = google(input.selectedModel);
+  }
 
   const startedAt = Date.now();
   const result = await generateText({
-    model: provider(input.selectedModel),
+    model: model as any,
     prompt: buildPrompt(
       input.systemPrompt,
       input.messages.slice(0, -1),
@@ -145,12 +163,13 @@ export async function generateWithPrimaryModel(
     ),
     temperature: input.temperature,
     maxOutputTokens: input.maxTokens,
+    maxRetries: 0,
     abortSignal: AbortSignal.timeout(input.timeoutMs),
   });
 
   return {
     content: result.text,
-    selectedProvider: "google" as const,
+    selectedProvider: input.providerType,
     selectedModel: input.selectedModel,
     latencyMs: Date.now() - startedAt,
     usage: {
@@ -193,15 +212,20 @@ async function previewBotReplyHandler(
         : null,
   });
 
+  const fallbackGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const isGoogleProvider = runtimeState.provider.providerType === "google";
+
   const decryptedApiKey =
     (await decryptSecret(runtimeState.provider.apiKeyEncrypted)) ??
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    (isGoogleProvider ? fallbackGoogleKey : undefined);
 
   if (!decryptedApiKey) {
     throw new Error(
-      "No Google AI API key is configured. Save an API key in Bot Studio first.",
+      "No API key is configured for the selected model provider. Save an API key in Bot Studio first.",
     );
   }
+
+  const embeddingApiKey = isGoogleProvider ? decryptedApiKey : fallbackGoogleKey;
 
   const outputLanguage = resolveOutputLanguage(
     runtimeState.profile.defaultLanguage,
@@ -217,9 +241,14 @@ async function previewBotReplyHandler(
   let knowledgeMatches: ReturnType<typeof selectRelevantKnowledgeChunks> = [];
 
   if (knowledgeCorpus.chunks.length > 0) {
+    if (!embeddingApiKey) {
+      throw new Error(
+        "Knowledge retrieval requires a Google AI API key. Please configure GOOGLE_GENERATIVE_AI_API_KEY in the environment.",
+      );
+    }
     const queryEmbeddings = await embedTexts({
       texts: [sanitizedLatestMessage],
-      apiKey: decryptedApiKey,
+      apiKey: embeddingApiKey,
     });
     const queryEmbedding = queryEmbeddings[0];
     if (!queryEmbedding) {
@@ -262,6 +291,8 @@ async function previewBotReplyHandler(
   const draft = await generateWithPrimaryModel({
     organizationId: runtimeState.organizationId,
     botId: runtimeState.profile._id.toString(),
+    providerType: runtimeState.provider.providerType as "google" | "digitalocean_reference",
+    endpointUrl: runtimeState.provider.endpointUrl,
     providerApiKey: decryptedApiKey,
     selectedModel: runtimeState.provider.modelId,
     messages: [
@@ -272,7 +303,7 @@ async function previewBotReplyHandler(
       runtimeState.profile.localizedPromptTemplates[outputLanguage] ??
       runtimeState.profile.systemPrompt,
     ragContext,
-    timeoutMs: 8_000,
+    timeoutMs: 15_000,
     temperature: runtimeState.provider.temperature,
     maxTokens: runtimeState.provider.maxTokens,
   });

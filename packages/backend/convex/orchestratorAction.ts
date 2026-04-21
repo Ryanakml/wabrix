@@ -63,7 +63,7 @@ type KnowledgeCorpus = {
 type CreateBotReplyDraftResult = {
   content: string;
   outputLanguage: "en" | "id";
-  selectedProvider: "google";
+  selectedProvider: "google" | "digitalocean_reference";
   selectedModel: string;
   ragContextUsed: boolean;
   ragChunkCount: number;
@@ -101,6 +101,7 @@ export async function createBotReplyDraft({
   history,
   knowledgeCorpus,
   providerApiKey,
+  embeddingApiKey,
   generateDraft = generateWithPrimaryModel,
   embedQueryTexts = embedTexts,
 }: {
@@ -109,6 +110,7 @@ export async function createBotReplyDraft({
   history: DraftHistoryEntry[];
   knowledgeCorpus: KnowledgeCorpus;
   providerApiKey: string;
+  embeddingApiKey?: string;
   generateDraft?: typeof generateWithPrimaryModel;
   embedQueryTexts?: typeof embedTexts;
 }): Promise<CreateBotReplyDraftResult> {
@@ -129,9 +131,12 @@ export async function createBotReplyDraft({
   let knowledgeMatches: ReturnType<typeof selectRelevantKnowledgeChunks> = [];
 
   if (knowledgeCorpus.chunks.length > 0) {
+    if (!embeddingApiKey) {
+      throw new Error("Knowledge retrieval requires a Google AI API key. Please configure GOOGLE_GENERATIVE_AI_API_KEY in the environment.");
+    }
     const queryEmbeddings = await embedQueryTexts({
       texts: [sanitizedLatestMessage],
-      apiKey: providerApiKey,
+      apiKey: embeddingApiKey,
     });
     const queryEmbedding = queryEmbeddings[0];
     if (!queryEmbedding) {
@@ -163,6 +168,8 @@ export async function createBotReplyDraft({
   const draft = await generateDraft({
     organizationId: runtimeState.organizationId,
     botId: runtimeState.profile._id.toString(),
+    providerType: runtimeState.provider.providerType as "google" | "digitalocean_reference",
+    endpointUrl: runtimeState.provider.endpointUrl,
     providerApiKey,
     selectedModel: runtimeState.provider.modelId,
     messages: [...history, { role: "user", content: sanitizedLatestMessage }],
@@ -170,7 +177,7 @@ export async function createBotReplyDraft({
       runtimeState.profile.localizedPromptTemplates[outputLanguage] ??
       runtimeState.profile.systemPrompt,
     ragContext,
-    timeoutMs: 8_000,
+    timeoutMs: 15_000,
     temperature: runtimeState.provider.temperature,
     maxTokens: runtimeState.provider.maxTokens,
   });
@@ -239,15 +246,20 @@ async function runBotReplyOrchestratorHandler(
       throw new Error("Bot Studio runtime is not configured for this conversation.");
     }
 
+    const fallbackGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    const isGoogleProvider = runtimeState.provider.providerType === "google";
+
     const providerApiKey =
       (await decryptSecret(runtimeState.provider.apiKeyEncrypted)) ??
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      (isGoogleProvider ? fallbackGoogleKey : undefined);
 
     if (!providerApiKey) {
       throw new Error(
-        "No Google AI API key is configured. Save an API key in Bot Studio first.",
+        "No API key is configured for the selected model provider. Save an API key in Bot Studio first.",
       );
     }
+
+    const embeddingApiKey = isGoogleProvider ? providerApiKey : fallbackGoogleKey;
 
     const knowledgeCorpus = await ctx.runQuery(
       internal.knowledge.getKnowledgeRetrievalCorpusForOrganization,
@@ -263,6 +275,7 @@ async function runBotReplyOrchestratorHandler(
       history: claim.history,
       knowledgeCorpus,
       providerApiKey,
+      embeddingApiKey,
     });
 
     await ctx.runMutation(internal.knowledge.logKnowledgeUsage, {

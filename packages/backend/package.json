@@ -24,10 +24,11 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@ai-sdk/google": "^2.0.0",
+    "@ai-sdk/google": "^3.0.64",
+    "@ai-sdk/openai": "^3.0.53",
     "@clerk/backend": "^3.2.13",
     "@google/genai": "^1.30.0",
-    "ai": "^5.0.0",
+    "ai": "^6.0.168",
     "cheerio": "^1.1.2",
     "convex": "^1.35.1",
     "ipaddr.js": "^2.3.0",
