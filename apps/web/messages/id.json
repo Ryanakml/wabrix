@@ -32,6 +32,7 @@
     "backToMarketing": "Kembali ke marketing",
     "openBotStudio": "Buka Bot Studio",
     "openKnowledgeBase": "Buka Knowledge Base",
+    "openInbox": "Buka Inbox",
     "openWhatsAppSetup": "Buka Setup WhatsApp",
     "modules": {
       "botStudio": {
@@ -44,7 +45,7 @@
       },
       "inbox": {
         "title": "Inbox",
-        "body": "Surface percakapan, handoff, dan UX service window masuk di phase 7 sampai 10."
+        "body": "Percakapan inbound dan transcript persistence sekarang sudah terlihat di surface inbox read-only."
       },
       "ops": {
         "title": "Ops",
@@ -56,10 +57,10 @@
       "repo": "pnpm workspace dan Turbo tetap jadi tulang punggung repo.",
       "web": "Next.js App Router, Tailwind, dan next-intl menjalankan dashboard yang sudah dilokalkan.",
       "ingress": "Ingress sekarang memverifikasi signature Meta, menerapkan rate limit per phone number, dan menyimpan raw webhook event secara durable sebelum keluar.",
-      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, dan setup WhatsApp terenkripsi sudah terhubung end to end."
+      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, setup WhatsApp, dan persistence transcript inbound sudah terhubung end to end."
     },
     "nextStepsLabel": "Fase berikutnya",
-    "nextStepsBody": "Phase 7 menambahkan normalisasi inbound, pemetaan conversation, persistence transcript, dan scheduling media."
+    "nextStepsBody": "Phase 8 menambahkan orkestrasi bot, debounce, guard service window, dan outbound queue durable pertama."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -178,5 +179,23 @@
     "accessTokenStatus": "Access token",
     "appSecretStatus": "App secret",
     "verifyTokenStatus": "Verify token"
+  },
+  "Inbox": {
+    "eyebrow": "Phase 7",
+    "headline": "Inbox",
+    "subheadline": "Review percakapan WhatsApp inbound, baris transcript, timing service window, dan job pemrosesan media sebelum bot auto-reply diaktifkan.",
+    "back": "Kembali ke dashboard",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL belum dikonfigurasi. Data inbox memerlukan deployment Convex sebelum conversation bisa dimuat.",
+    "loading": "Memuat inbox…",
+    "empty": "Belum ada percakapan inbound. Setelah pesan webhook WhatsApp dinormalisasi, percakapannya akan muncul di sini.",
+    "conversationList": "Percakapan",
+    "recentMessages": "Pesan terbaru",
+    "mediaOps": "Operasi media",
+    "noMessages": "Belum ada pesan transcript.",
+    "serviceWindow": "Service window berakhir",
+    "lastInbound": "Inbound terakhir",
+    "noMedia": "Belum ada record media yang di-queue.",
+    "openStatus": "Terbuka",
+    "closedStatus": "Tutup"
   }
 }

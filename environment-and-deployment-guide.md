@@ -1040,13 +1040,19 @@ Ini adalah **Actionable Step-by-Step Guide** untuk mensetup Staging Environment 
 
 ### Step 1: Bikin Convex Staging Baru
 
-Convex harus di-setup paling awal karena URL-nya bakal dipake di semua tempat (Clerk, Web, Worker).
+Convex harus di-setup paling awal karena URL-nya bakal dipake di semua tempat (Clerk, Web, Worker). Tapi ingat, project Convex baru ini **tablenya masih kosong/belum ada schema**. Jadi kita harus nge-deploy schemanya ke sana.
 
 1. Buka [Convex Dashboard](https://dashboard.convex.dev).
-2. Bikin project baru untuk memisahkan data (atau setidaknya pakai deployment terpisah kalau project sama). Misal: `wabrix-staging`.
-3. Ambil `NEXT_PUBLIC_CONVEX_URL` dari project/deployment halaman dashboard tersebut.
-4. Buat token random untuk `CONVEX_SHARED_SECRET` (misal dengan `openssl rand -hex 32` atau sekedar random string panjang).
-5. Masukkan `CONVEX_SHARED_SECRET` ini ke menu **Settings > Environment Variables** di dashboard Convex `wabrix-staging`.
+2. Bikin project baru untuk memisahkan data (atau pakai environment Production/Staging terpisah kalau project sama). Misal: `wabrix-staging`.
+3. Ambil `NEXT_PUBLIC_CONVEX_URL` dari project/deployment tersebut.
+4. Pergi ke **Settings > Deploy Keys** di dashboard Convex tersebut, lalu Generate/Ambil **Deploy Key**. Ini rahasia, bentuknya biasanya panjang.
+5. **(PENTING - Biar Table Muncul)**: Buka terminal lokal lu sekarang, arahin ke folder kerja lu, dan jalankan perintah deploy ini buat nge-push schema lo ke staging:
+   ```bash
+   CONVEX_DEPLOY_KEY="<deploy_key_yang_lu_copas_tadi>" npx convex deploy
+   ```
+   _Note: Setelah lo jalanin ini, semua tabel dan fungsi backend langsung kebuat di staging!_
+6. Buat token random untuk `CONVEX_SHARED_SECRET` (misal dengan `openssl rand -hex 32` atau sekedar random string panjang).
+7. Masukkan `CONVEX_SHARED_SECRET` ini ke menu **Settings > Environment Variables** di dashboard Convex `wabrix-staging`.
 
 ### Step 2: Bikin Clerk Staging Baru
 
@@ -1063,17 +1069,21 @@ Clerk butuh tau Convex URL buat ngirim webhook sync user.
 
 ### Step 3: Setup Web App (Vercel)
 
-Web kita butuh kunci dari Convex dan Clerk.
+Web kita butuh kunci dari Convex dan Clerk, dan karena workflow kita pakai branch `dev` untuk Staging, ada sedikit "cheat" buat ngakalin Vercel yang otomatis maksa tracking branch `main` pas awal mula project dibikin.
 
 1. Buka [Vercel](https://vercel.com). Add New Project.
-2. Import repo GitHub wabrix kamu.
+2. Import repo GitHub wabrix kamu. (Biarin aja dia narik config dan deteksi pake `main` buat sementara).
 3. Di bagian **Framework Preset**, pilih `Next.js`.
-4. Di bagian **Root Directory**, set jadi `apps/web` (ini penting karena kita pakai turborepo).
-5. Masukkan Environment Variables di Vercel:
+4. Di bagian **Root Directory**, set jadi `apps/web` (ini penting karena kita pakai monorepo turborepo).
+5. Masukkan Environment Variables Staging di Vercel:
    - `NEXT_PUBLIC_CONVEX_URL` (dari Step 1)
    - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (dari Step 2)
    - `CLERK_SECRET_KEY` (dari Step 2)
-6. Deploy. Tunggu sampai selesai dan catat domain staging-nya. Misal: `https://web-wabrix-staging.vercel.app`.
+6. Klik **Deploy**.
+7. **Penting (Vercel Trade-off):** Saat proses deploy pertama ini, besar kemungkinan dia bakal **GAGAL** (karena branch `main` lo masih kosong/berantakan). Biarin aja fail, gak papa (cuekin). Lanjut tekan "Continue to Dashboard" buat masuk ke dashboard project.
+8. Masuk ke tab **Settings** -> pilih menu **Git** (sebelah kiri).
+9. Di bagian **Production Branch**, ubah setting tulisannya dari `main` menjadi `dev`. Terus di-Save.
+10. Selesai! Mulai sekarang Vercel "project staging" ini mengandalkan branch `dev`. Buat mancing render ulang, cukup commit kosongan atau hal kecil di lokal lalu `git push origin dev`. Otomatis Vercel ngerender staging lu. Catat url-nya pas selesai, misal: `https://wabrix-staging.vercel.app`.
 
 ### Step 4: Setup Webhook Ingress (Cloudflare Worker)
 
@@ -1089,7 +1099,14 @@ Ini pintu masuk dari Meta WhatsApp.
    - `npx wrangler secret put CONVEX_SHARED_SECRET --env staging` (paste secret dari Step 1)
    - `npx wrangler secret put META_APP_SECRET --env staging` (dapat dari Meta, lihat Step 5 nanti - bisa diisi dummy dulu sebelum Meta Meta app beres)
    - `npx wrangler secret put META_VERIFY_TOKEN --env staging` (bikin bebas aja "staging_verify_123")
-4. Edit URL Convex di environment variables cloudflare (bisa via toml atau dashboard) - pastikan `CONVEX_HTTP_URL` mengarah ke Convex staging kamu.
+4. **Edit `CONVEX_HTTP_URL` di Cloudflare Staging:**
+   _(Ini sering bikin orang nyasar dan dapet error 404!)_
+   URL yang lo dapet dari `NEXT_PUBLIC_CONVEX_URL` biasanya berakhiran `.convex.cloud` (buat koneksi frontend). **JANGAN pakai itu langsung!**
+   Untuk `CONVEX_HTTP_URL` (buat API/Webhook), lo harus ubah akhiran `.cloud` jadi `.site`.
+   Misal:
+   - `NEXT_PUBLIC_CONVEX_URL` lo: `https://happy-animal-123.convex.cloud`
+   - Maka `CONVEX_HTTP_URL` lo WAJIB: `https://happy-animal-123.convex.site`
+     Masukin URL `.site` ini ke environment variables Cloudflare Staging lo (bisa via file toml di `[env.staging]` atau lewat dashboard Cloudflare).
 5. Deploy: run `npm run deploy:staging` atau `npx wrangler deploy --env staging`.
 6. Simpan URL worker-nya. Misal: `https://wabrix-ingress-staging.username.workers.dev`.
 

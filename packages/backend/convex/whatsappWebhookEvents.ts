@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
 import { internalMutation } from "./_generated/server.js";
+import { internal } from "./_generated/api.js";
 import { hashSecret } from "./lib/crypto.js";
 
 export type StoredWebhookEventInput = {
@@ -201,7 +202,21 @@ export const storeRawWhatsappEvent = internalMutation({
     mediaDownloadPriority: v.union(v.literal("normal"), v.literal("high")),
     mediaDownloadDeadlineAt: v.optional(v.number()),
   },
-  handler: async (ctx, args) => persistWhatsappWebhookEvent(ctx, args),
+  handler: async (ctx, args) => {
+    const result = await persistWhatsappWebhookEvent(ctx, args);
+
+    if (!result.duplicate) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.inbound.processStoredWhatsappWebhookEventMutation,
+        {
+          eventId: result.eventId,
+        },
+      );
+    }
+
+    return result;
+  },
 });
 
 export const markWebhookVerified = internalMutation({
