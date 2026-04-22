@@ -40,7 +40,7 @@ describe("AI runtime helpers", () => {
       messages: [{ role: "user", content: "Hello there" }],
       systemPrompt: "You are helpful.",
       ragContext: [],
-      x: 5_000,
+      timeoutMs: 5_000,
       temperature: 0.4,
       maxTokens: 256,
     });
