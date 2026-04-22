@@ -48,7 +48,6 @@ export async function sendWhatsAppTextMessage({
   fetchImpl?: typeof fetch;
 }) {
   const url = `${getGraphApiBaseUrl()}/${phoneNumberId}/messages`;
-  console.log("URL:", url);
 
   const response = await fetchImpl(url, {
     method: "POST",
@@ -69,13 +68,79 @@ export async function sendWhatsAppTextMessage({
     }),
   });
 
-  console.log("Meta Status Code:", response.status);
+  const parsed = (await response.json()) as MetaSendResponse;
+
+  if (!response.ok) {
+    throw Object.assign(new Error("Meta send failed"), {
+      responseStatus: response.status,
+      responseBody: parsed,
+    });
+  }
+
+  const providerMessageId = parsed.messages?.[0]?.id;
+
+  if (!providerMessageId) {
+    throw Object.assign(
+      new Error("Meta send response did not include a message id"),
+      {
+        responseStatus: response.status,
+        responseBody: parsed,
+      },
+    );
+  }
+
+  return {
+    providerMessageId,
+    acceptedAt: Date.now(),
+    rawResponse: parsed,
+  };
+}
+
+export async function sendWhatsAppTemplateMessage({
+  phoneNumberId,
+  accessToken,
+  to,
+  idempotencyKey,
+  templateName,
+  languageCode,
+  components,
+  fetchImpl = fetch,
+}: {
+  phoneNumberId: string;
+  accessToken: string;
+  to: string;
+  idempotencyKey: string;
+  templateName: string;
+  languageCode: string;
+  components?: unknown[];
+  fetchImpl?: typeof fetch;
+}) {
+  const url = `${getGraphApiBaseUrl()}/${phoneNumberId}/messages`;
+  const response = await fetchImpl(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to,
+      type: "template",
+      template: {
+        name: templateName,
+        language: {
+          code: languageCode,
+        },
+        components: components ?? [],
+      },
+    }),
+  });
 
   const parsed = (await response.json()) as MetaSendResponse;
 
   if (!response.ok) {
-    const errorDetail = JSON.stringify(parsed);
-    console.log("Meta Error Detail:", errorDetail);
     throw Object.assign(new Error("Meta send failed"), {
       responseStatus: response.status,
       responseBody: parsed,
@@ -144,13 +209,44 @@ async function processOutboundQueueJobHandler(
       throw new Error("WhatsApp access token could not be decrypted.");
     }
 
-    const result = await sendWhatsAppTextMessage({
-      phoneNumberId: runtime.phoneNumberId,
-      accessToken,
-      to: claim.waId,
-      body: claim.content,
-      idempotencyKey: claim.idempotencyKey,
-    });
+    let result:
+      | Awaited<ReturnType<typeof sendWhatsAppTextMessage>>
+      | Awaited<ReturnType<typeof sendWhatsAppTemplateMessage>>;
+
+    if (claim.payloadType === "template") {
+      if (!claim.templateId || !claim.templateName || !claim.templateLanguageCode) {
+        throw new Error("Template queue job is missing template metadata.");
+      }
+
+      const approvedTemplate = await ctx.runQuery(
+        internal.whatsapp.getApprovedTemplateRuntime,
+        {
+          templateId: claim.templateId,
+        },
+      );
+
+      if (!approvedTemplate || !approvedTemplate.languageCode) {
+        throw new Error("Approved template could not be loaded for outbound send.");
+      }
+
+      result = await sendWhatsAppTemplateMessage({
+        phoneNumberId: runtime.phoneNumberId,
+        accessToken,
+        to: claim.waId,
+        idempotencyKey: claim.idempotencyKey,
+        templateName: approvedTemplate.name,
+        languageCode: approvedTemplate.languageCode,
+        components: approvedTemplate.components,
+      });
+    } else {
+      result = await sendWhatsAppTextMessage({
+        phoneNumberId: runtime.phoneNumberId,
+        accessToken,
+        to: claim.waId,
+        body: claim.content,
+        idempotencyKey: claim.idempotencyKey,
+      });
+    }
 
     return ctx.runMutation(
       internal.outbound.finalizeOutboundSendSuccessMutation,

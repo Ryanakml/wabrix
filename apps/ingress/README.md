@@ -1,6 +1,6 @@
 # Ingress Worker
 
-Phase 9 worker scope is live.
+Phase 11 worker scope is live.
 
 ## Commands
 
@@ -18,6 +18,8 @@ pnpm --filter @wabrix/ingress build
 - Accepted events are durably written to Convex before the worker returns `200`.
 - Media webhook events are marked for high-priority download work without calling AI inline.
 - Delivery-status webhook events are durably written and routed to async status reconciliation in Convex.
+- Template approval webhook events are durably written and routed to async template-state processing in Convex.
+- WABA lifecycle webhook events are durably written and routed to async lifecycle-state processing in Convex.
 
 ## Config
 

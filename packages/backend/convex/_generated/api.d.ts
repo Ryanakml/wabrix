@@ -20,6 +20,8 @@ import type * as lib_defaults from "../lib/defaults.js";
 import type * as lib_guardrails from "../lib/guardrails.js";
 import type * as lib_knowledge from "../lib/knowledge.js";
 import type * as lib_observability from "../lib/observability.js";
+import type * as media from "../media.js";
+import type * as mediaAction from "../mediaAction.js";
 import type * as orchestrator from "../orchestrator.js";
 import type * as orchestratorAction from "../orchestratorAction.js";
 import type * as outbound from "../outbound.js";
@@ -27,6 +29,7 @@ import type * as outboundAction from "../outboundAction.js";
 import type * as rbac from "../rbac.js";
 import type * as users from "../users.js";
 import type * as whatsapp from "../whatsapp.js";
+import type * as whatsappAction from "../whatsappAction.js";
 import type * as whatsappWebhookEvents from "../whatsappWebhookEvents.js";
 
 import type {
@@ -48,6 +51,8 @@ declare const fullApi: ApiFromModules<{
   "lib/guardrails": typeof lib_guardrails;
   "lib/knowledge": typeof lib_knowledge;
   "lib/observability": typeof lib_observability;
+  media: typeof media;
+  mediaAction: typeof mediaAction;
   orchestrator: typeof orchestrator;
   orchestratorAction: typeof orchestratorAction;
   outbound: typeof outbound;
@@ -55,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   rbac: typeof rbac;
   users: typeof users;
   whatsapp: typeof whatsapp;
+  whatsappAction: typeof whatsappAction;
   whatsappWebhookEvents: typeof whatsappWebhookEvents;
 }>;
 

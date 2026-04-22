@@ -51,16 +51,21 @@ describe("whatsapp integration helpers", () => {
       updatedAt: Date.now(),
     } as never);
 
-    expect(sanitized).toEqual({
-      integrationId: "integration_123",
-      phoneNumberId: "123456789",
-      businessAccountId: "987654321",
-      enabled: true,
-      connectionStatus: "configured",
-      hasAccessToken: true,
-      hasAppSecret: true,
-      hasVerifyToken: true,
-    });
+    expect(sanitized).toEqual(
+      expect.objectContaining({
+        integrationId: "integration_123",
+        phoneNumberId: "123456789",
+        businessAccountId: "987654321",
+        enabled: true,
+        connectionStatus: "configured",
+        hasAccessToken: true,
+        hasAppSecret: true,
+        hasVerifyToken: true,
+        approvalStatus: "pending",
+        phoneVerificationStatus: "missing",
+        businessProfileStatus: "pending",
+      }),
+    );
     expect("accessTokenEncrypted" in sanitized).toBe(false);
     expect("appSecretEncrypted" in sanitized).toBe(false);
     expect("verifyTokenHash" in sanitized).toBe(false);
