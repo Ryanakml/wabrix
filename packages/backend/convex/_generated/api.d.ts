@@ -12,6 +12,7 @@ import type * as ai from "../ai.js";
 import type * as configuration from "../configuration.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
+import type * as inbox from "../inbox.js";
 import type * as knowledge from "../knowledge.js";
 import type * as knowledgeActions from "../knowledgeActions.js";
 import type * as lib_crypto from "../lib/crypto.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   configuration: typeof configuration;
   http: typeof http;
   inbound: typeof inbound;
+  inbox: typeof inbox;
   knowledge: typeof knowledge;
   knowledgeActions: typeof knowledgeActions;
   "lib/crypto": typeof lib_crypto;

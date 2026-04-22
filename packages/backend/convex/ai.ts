@@ -51,6 +51,14 @@ type PreviewBotReplyArgs = {
   history?: DraftHistoryEntry[];
 };
 
+type TranslateInboxMessagesArgs = {
+  messages: Array<{
+    id: string;
+    content: string;
+  }>;
+  targetLanguage: OutputLanguage;
+};
+
 type PreviewBotReplyResult = {
   content: string;
   modelProvider: "google" | "digitalocean_reference";
@@ -71,6 +79,13 @@ type PreviewBotReplyResult = {
     confidence: number;
   };
   observability: ReturnType<typeof buildObservabilityPayload>;
+};
+
+type TranslateInboxMessagesResult = {
+  translations: Array<{
+    id: string;
+    translatedContent: string;
+  }>;
 };
 
 export function validateDigitalOceanReferenceConfig(config: {
@@ -373,6 +388,70 @@ async function previewBotReplyHandler(
   };
 }
 
+async function translateInboxMessagesHandler(
+  ctx: ActionCtx,
+  args: TranslateInboxMessagesArgs,
+): Promise<TranslateInboxMessagesResult> {
+  const runtimeState: RuntimeBotStudioState = await ctx.runQuery(
+    internal.configuration.getBotStudioRuntimeState,
+    {},
+  );
+
+  if (!runtimeState) {
+    throw new Error("Bot Studio is not configured for the active organization");
+  }
+
+  const fallbackGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const isGoogleProvider = runtimeState.provider.providerType === "google";
+  const decryptedApiKey =
+    (await decryptSecret(runtimeState.provider.apiKeyEncrypted)) ??
+    (isGoogleProvider ? fallbackGoogleKey : undefined);
+
+  if (!decryptedApiKey) {
+    throw new Error(
+      "No API key is configured for inbox translation. Save an API key in Bot Studio first.",
+    );
+  }
+
+  const translations = await Promise.all(
+    args.messages.slice(0, 20).map(async (message) => {
+      if (!message.content.trim()) {
+        return {
+          id: message.id,
+          translatedContent: message.content,
+        };
+      }
+
+      const translated = await generateWithPrimaryModel({
+        organizationId: runtimeState.organizationId,
+        botId: runtimeState.profile._id.toString(),
+        providerType: runtimeState.provider.providerType as
+          | "google"
+          | "digitalocean_reference",
+        endpointUrl: runtimeState.provider.endpointUrl,
+        providerApiKey: decryptedApiKey,
+        selectedModel: runtimeState.provider.modelId,
+        messages: [{ role: "user", content: message.content }],
+        systemPrompt:
+          args.targetLanguage === "id"
+            ? "Terjemahkan pesan berikut ke Bahasa Indonesia yang natural untuk agen support. Pertahankan makna, angka, link, dan tone. Balas hanya dengan hasil terjemahan."
+            : "Translate the following message into natural English for a support agent. Preserve meaning, numbers, links, and tone. Reply only with the translated text.",
+        ragContext: [],
+        timeoutMs: 10_000,
+        temperature: 0.1,
+        maxTokens: Math.min(runtimeState.provider.maxTokens, 512),
+      });
+
+      return {
+        id: message.id,
+        translatedContent: translated.content.trim() || message.content,
+      };
+    }),
+  );
+
+  return { translations };
+}
+
 export const previewBotReply = action({
   args: {
     latestUserMessage: v.string(),
@@ -388,6 +467,25 @@ export const previewBotReply = action({
   handler: async (ctx, args) => {
     try {
       return await previewBotReplyHandler(ctx, args);
+    } catch (e) {
+      throw new ConvexError(e instanceof Error ? e.message : String(e));
+    }
+  },
+});
+
+export const translateInboxMessages = action({
+  args: {
+    messages: v.array(
+      v.object({
+        id: v.string(),
+        content: v.string(),
+      }),
+    ),
+    targetLanguage: v.union(v.literal("en"), v.literal("id")),
+  },
+  handler: async (ctx, args) => {
+    try {
+      return await translateInboxMessagesHandler(ctx, args);
     } catch (e) {
       throw new ConvexError(e instanceof Error ? e.message : String(e));
     }

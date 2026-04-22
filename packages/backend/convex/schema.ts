@@ -282,6 +282,9 @@ export default defineSchema({
     organizationId: v.id("organizations"),
     channel: v.union(v.literal("whatsapp")),
     contactId: v.optional(v.id("whatsappContacts")),
+    assignedUserId: v.optional(v.id("users")),
+    assignedClerkUserId: v.optional(v.string()),
+    assignedUserName: v.optional(v.string()),
     status: v.union(v.literal("open"), v.literal("closed")),
     handoffRequested: v.boolean(),
     botPaused: v.boolean(),
@@ -310,6 +313,19 @@ export default defineSchema({
   })
     .index("by_org_last_message_at", ["organizationId", "lastMessageAt"])
     .index("by_contact", ["contactId"]),
+
+  conversationNotes: defineTable({
+    organizationId: v.id("organizations"),
+    conversationId: v.id("conversations"),
+    authorUserId: v.id("users"),
+    authorClerkUserId: v.string(),
+    authorDisplayName: v.string(),
+    body: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_conversation_created_at", ["conversationId", "createdAt"])
+    .index("by_org_created_at", ["organizationId", "createdAt"]),
 
   messages: defineTable({
     organizationId: v.id("organizations"),

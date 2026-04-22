@@ -45,6 +45,7 @@ pnpm build
 - Phase 7 adds a read-only inbox surface and requires phase-6 raw event durability to already be healthy.
 - Phase 8 adds bot orchestration plus the first durable outbound queue. It reuses the existing `GOOGLE_GENERATIVE_AI_API_KEY` fallback or the org-level encrypted key already saved through Bot Studio; no new external credential is introduced in this phase.
 - Phase 9 reuses the existing WhatsApp integration credentials from phase 5 for real outbound sends and delivery-status reconciliation. `WHATSAPP_GRAPH_API_BASE_URL` is optional and only useful if you want to point the sender at a mock or alternative Graph base during testing.
+- Phase 10 adds the operator inbox workspace, manual human replies through the same outbound queue, internal notes, assignee controls, and on-demand thread translation. Translation reuses the same Bot Studio provider key or Google fallback that already exists in earlier phases.
 - Website ingestion uses Jina Reader first by default.
 - `FIRECRAWL_API_KEY` is optional and enables a hosted secondary ingestion path before the local HTML fallback.
 - Observability env vars for Helicone or Axiom are optional in local development.
