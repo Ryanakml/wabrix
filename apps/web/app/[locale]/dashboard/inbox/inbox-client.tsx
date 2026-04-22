@@ -45,11 +45,14 @@ type InboxClientProps = {
     composerLabel: string;
     composerPlaceholder: string;
     sendReply: string;
+    sendTemplate: string;
     sendPending: string;
     manualReplyQueued: string;
+    templateReplyQueued: string;
     freeformBlocked: string;
     templateFallback: string;
     templatePreview: string;
+    optedOut: string;
     translationToggle: string;
     translationHide: string;
     translating: string;
@@ -163,6 +166,7 @@ export function InboxClient({
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [templatePreview, setTemplatePreview] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   const deferredSearchValue = useDeferredValue(searchValue);
 
@@ -176,6 +180,7 @@ export function InboxClient({
   const setConversationStatus = useMutation(api.inbox.setConversationStatus);
   const addConversationNote = useMutation(api.inbox.addConversationNote);
   const sendManualReply = useMutation(api.inbox.sendManualReply);
+  const sendTemplateReply = useMutation(api.inbox.sendTemplateReply);
   const translateInboxMessages = useAction(api.ai.translateInboxMessages);
 
   const selectedConversation = workspace?.selectedConversation ?? null;
@@ -190,6 +195,7 @@ export function InboxClient({
     setTranslationEnabled(false);
     setTranslatedMessages({});
     setTemplatePreview(null);
+    setSelectedTemplateId(null);
     setReplyBody("");
     setNoteBody("");
   }, [selectedConversation?.id]);
@@ -351,6 +357,25 @@ export function InboxClient({
       });
       setReplyBody("");
       toast.success(copy.manualReplyQueued);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : copy.freeformBlocked);
+    } finally {
+      setIsSendingReply(false);
+    }
+  }
+
+  async function handleSendTemplate() {
+    if (!selectedConversation || !selectedTemplateId) {
+      return;
+    }
+
+    setIsSendingReply(true);
+    try {
+      await sendTemplateReply({
+        conversationId: selectedConversation.id as never,
+        templateId: selectedTemplateId as never,
+      });
+      toast.success(copy.templateReplyQueued);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : copy.freeformBlocked);
     } finally {
@@ -548,6 +573,9 @@ export function InboxClient({
               {selectedConversation.serviceWindowExpiringSoon ? (
                 <p className="text-amber-300">{copy.expiringSoon}</p>
               ) : null}
+              {selectedConversation.optOut ? (
+                <p className="text-rose-300">{copy.optedOut}</p>
+              ) : null}
             </div>
 
             <div className="grid gap-3">
@@ -616,7 +644,10 @@ export function InboxClient({
                       <button
                         key={template.id}
                         type="button"
-                        onClick={() => setTemplatePreview(template.body)}
+                        onClick={() => {
+                          setSelectedTemplateId(template.id);
+                          setTemplatePreview(template.body);
+                        }}
                         className="rounded-full border border-amber-200/20 px-3 py-2 text-xs uppercase tracking-[0.16em] transition hover:bg-amber-200/10"
                       >
                         {template.language} · {template.title}
@@ -642,14 +673,26 @@ export function InboxClient({
               />
 
               <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSendReply}
-                  disabled={composerDisabled || isSendingReply || !replyBody.trim()}
-                  className="rounded-full bg-emerald-300 px-5 py-2 text-sm font-medium text-[#0b1614] transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSendingReply ? copy.sendPending : copy.sendReply}
-                </button>
+                <div className="flex gap-3">
+                  {!selectedConversation.serviceWindowOpen ? (
+                    <button
+                      type="button"
+                      onClick={handleSendTemplate}
+                      disabled={isSendingReply || !selectedTemplateId}
+                      className="rounded-full border border-amber-200/30 bg-amber-200/10 px-5 py-2 text-sm font-medium text-amber-50 transition hover:bg-amber-200/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isSendingReply ? copy.sendPending : copy.sendTemplate}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleSendReply}
+                    disabled={composerDisabled || isSendingReply || !replyBody.trim()}
+                    className="rounded-full bg-emerald-300 px-5 py-2 text-sm font-medium text-[#0b1614] transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSendingReply ? copy.sendPending : copy.sendReply}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -822,6 +865,8 @@ export function InboxClient({
                       <p className="font-medium uppercase tracking-[0.16em] text-stone-950">
                         {job.status}
                       </p>
+                      <p className="mt-2">type: {job.payloadType}</p>
+                      {job.templateName ? <p>template: {job.templateName}</p> : null}
                       <p className="mt-2">attempts: {job.attemptCount}</p>
                       <p>next attempt: {formatDate(job.nextAttemptAt)}</p>
                       {job.providerMessageId ? (

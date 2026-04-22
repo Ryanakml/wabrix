@@ -9,6 +9,7 @@ const assignConversation = vi.fn(async () => ({}));
 const setConversationStatus = vi.fn(async () => ({}));
 const addConversationNote = vi.fn(async () => ({}));
 const sendManualReply = vi.fn(async () => ({}));
+const sendTemplateReply = vi.fn(async () => ({}));
 const translateInboxMessages = vi.fn(async () => ({
   translations: [{ id: "message_1", translatedContent: "Translated hello" }],
 }));
@@ -22,6 +23,7 @@ const apiMock = vi.hoisted(() => ({
     setConversationStatus: "inbox.setConversationStatus",
     addConversationNote: "inbox.addConversationNote",
     sendManualReply: "inbox.sendManualReply",
+    sendTemplateReply: "inbox.sendTemplateReply",
   },
   ai: {
     translateInboxMessages: "ai.translateInboxMessages",
@@ -86,7 +88,7 @@ let workspaceState = {
   },
   templateSuggestions: [
     {
-      id: "reengagement_en",
+      id: "template_1",
       language: "en",
       title: "Re-engagement",
       body: "Reply here and our team will continue helping you.",
@@ -100,6 +102,7 @@ let workspaceState = {
     contactId: "contact_1",
     waId: "628111111111",
     profileName: "Ryan",
+    optOut: false,
     assignedUserId: "user_1",
     assignedUserName: "Ops Ryan",
     botPaused: false,
@@ -144,6 +147,8 @@ let workspaceState = {
       {
         id: "queue_1",
         status: "sent",
+        payloadType: "text",
+        templateName: null,
         attemptCount: 1,
         nextAttemptAt: 1_710_000_000_000 + 10_000,
         failureCode: null,
@@ -182,6 +187,8 @@ vi.mock("convex/react", () => ({
         return addConversationNote;
       case apiMock.inbox.sendManualReply:
         return sendManualReply;
+      case apiMock.inbox.sendTemplateReply:
+        return sendTemplateReply;
       default:
         return vi.fn();
     }
@@ -238,11 +245,14 @@ const copy = {
   composerLabel: "Manual reply",
   composerPlaceholder: "Write manual reply",
   sendReply: "Queue manual reply",
+  sendTemplate: "Queue approved template",
   sendPending: "Queueing",
   manualReplyQueued: "Manual reply queued",
+  templateReplyQueued: "Template reply queued",
   freeformBlocked: "Blocked",
   templateFallback: "Template fallback preview",
   templatePreview: "Selected template",
+  optedOut: "This contact is opted out.",
   translationToggle: "Translate thread",
   translationHide: "Show original",
   translating: "Translating",
@@ -289,6 +299,7 @@ describe("Phase 10 inbox workspace", () => {
     setConversationStatus.mockClear();
     addConversationNote.mockClear();
     sendManualReply.mockClear();
+    sendTemplateReply.mockClear();
     translateInboxMessages.mockClear();
     workspaceState = {
       ...workspaceState,

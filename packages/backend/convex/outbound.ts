@@ -47,6 +47,11 @@ type QueueReadyClaim = {
   content: string;
   idempotencyKey: string;
   claimToken: string;
+  payloadType: "text" | "template";
+  templateId?: Id<"whatsappTemplates">;
+  templateName?: string;
+  templateLanguageCode?: string;
+  templateComponents?: unknown[];
 };
 
 type QueueNonReadyClaim = {
@@ -283,7 +288,10 @@ export async function claimDueOutboundQueueJob(
     return { status: "failed", reason: "missing_conversation" };
   }
 
-  if (!isServiceWindowOpen(conversation.serviceWindowExpiresAt, now)) {
+  if (
+    (queueJob.requiresOpenServiceWindow ?? true) &&
+    !isServiceWindowOpen(conversation.serviceWindowExpiresAt, now)
+  ) {
     await ctx.db.patch(queueJob._id, {
       status: "failed",
       failureCode: "service_window_closed_before_send",
@@ -356,6 +364,11 @@ export async function claimDueOutboundQueueJob(
     content: transcriptMessage.content,
     idempotencyKey: queueJob.idempotencyKey,
     claimToken,
+    payloadType: queueJob.payloadType ?? "text",
+    templateId: queueJob.templateId,
+    templateName: queueJob.templateName,
+    templateLanguageCode: queueJob.templateLanguageCode,
+    templateComponents: queueJob.templateComponents,
   };
 }
 

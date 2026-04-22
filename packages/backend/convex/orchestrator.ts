@@ -352,6 +352,15 @@ export async function claimBotReplyWork(
     return { status: "blocked", reason: "missing_contact" };
   }
 
+  if (contact.optOut) {
+    await ctx.db.patch(conversationId, {
+      botReplyState: "blocked",
+      botReplyError: "contact_opted_out",
+      updatedAt: now,
+    });
+    return { status: "blocked", reason: "contact_opted_out" };
+  }
+
   const messages = await ctx.db
     .query("messages")
     .withIndex("by_conversation_created_at", (q) =>
@@ -496,6 +505,17 @@ export async function finalizeBotReplyDraft(
     return { status: "failed" as const, reason: "missing_contact" };
   }
 
+  if (contact.optOut) {
+    await ctx.db.patch(conversationId, {
+      botReplyState: "blocked",
+      botReplyError: "contact_opted_out",
+      replyGenerationToken: undefined,
+      replyGenerationStartedAt: undefined,
+      updatedAt: now,
+    });
+    return { status: "blocked" as const, reason: "contact_opted_out" };
+  }
+
   const assistantMessageId = await ctx.db.insert("messages", {
     organizationId: conversation.organizationId,
     conversationId,
@@ -552,6 +572,12 @@ export async function finalizeBotReplyDraft(
       messageId: assistantMessageId,
       whatsappMessageId,
       idempotencyKey: outboundIdempotencyKey,
+      payloadType: "text",
+      templateId: undefined,
+      templateName: undefined,
+      templateLanguageCode: undefined,
+      templateComponents: undefined,
+      requiresOpenServiceWindow: true,
       status: "queued",
       attemptCount: 0,
       maxAttempts: OUTBOUND_QUEUE_MAX_ATTEMPTS,

@@ -66,6 +66,24 @@ async function findIntegrationByPhoneNumberId(
     .first()) as IntegrationLookup | null;
 }
 
+async function findIntegrationByBusinessAccountId(
+  ctx: Pick<MutationCtx, "db">,
+  businessAccountId?: string,
+) {
+  if (!businessAccountId) {
+    return null;
+  }
+
+  return (await ctx.db
+    .query("whatsappIntegrations")
+    .collect()
+    .then((integrations) =>
+      integrations.find(
+        (integration) => integration.businessAccountId === businessAccountId,
+      ) ?? null,
+    )) as IntegrationLookup | null;
+}
+
 async function findEventByEventKey(
   ctx: Pick<MutationCtx, "db">,
   eventKey: string,
@@ -81,7 +99,9 @@ export async function persistWhatsappWebhookEvent(
   args: StoredWebhookEventInput,
 ) {
   const existing = await findEventByEventKey(ctx, args.eventKey);
-  const integration = await findIntegrationByPhoneNumberId(ctx, args.phoneNumberId);
+  const integration =
+    (await findIntegrationByPhoneNumberId(ctx, args.phoneNumberId)) ??
+    (await findIntegrationByBusinessAccountId(ctx, args.businessAccountId));
   const now = Date.now();
 
   if (existing) {
@@ -220,6 +240,30 @@ export const storeRawWhatsappEvent = internalMutation({
         await ctx.scheduler.runAfter(
           0,
           internal.outbound.processWhatsappStatusWebhookEventMutation,
+          {
+            eventId: result.eventId,
+          },
+        );
+      }
+
+      if (args.eventType === "message_template_status_update") {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.whatsapp.applyTemplateWebhookEventMutation,
+          {
+            eventId: result.eventId,
+          },
+        );
+      }
+
+      if (
+        args.eventType === "account_update" ||
+        args.eventType === "account_alerts" ||
+        args.eventType === "business_capability_update"
+      ) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.whatsapp.applyLifecycleWebhookEventMutation,
           {
             eventId: result.eventId,
           },

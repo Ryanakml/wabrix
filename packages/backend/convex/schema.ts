@@ -216,8 +216,54 @@ export default defineSchema({
         v.literal("receiving"),
       ),
     ),
+    approvalStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+        v.literal("action_required"),
+      ),
+    ),
+    phoneVerificationStatus: v.optional(
+      v.union(
+        v.literal("missing"),
+        v.literal("pending"),
+        v.literal("verified"),
+        v.literal("failed"),
+      ),
+    ),
+    businessProfileStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("synced"),
+        v.literal("failed"),
+      ),
+    ),
+    displayNameReviewStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+      ),
+    ),
+    messagingLimitTier: v.optional(v.string()),
+    businessProfile: v.optional(
+      v.object({
+        about: v.optional(v.string()),
+        address: v.optional(v.string()),
+        description: v.optional(v.string()),
+        email: v.optional(v.string()),
+        vertical: v.optional(v.string()),
+        websites: v.optional(v.array(v.string())),
+      }),
+    ),
     lastWebhookVerifiedAt: v.optional(v.number()),
     lastWebhookEventAt: v.optional(v.number()),
+    lastTemplateSyncAt: v.optional(v.number()),
+    lastTemplateSyncError: v.optional(v.string()),
+    lastLifecycleRefreshAt: v.optional(v.number()),
+    lastLifecycleError: v.optional(v.string()),
+    lastPhoneVerificationAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -242,6 +288,8 @@ export default defineSchema({
       v.literal("normalized"),
       v.literal("normalized_media_queued"),
       v.literal("status_processed"),
+      v.literal("template_processed"),
+      v.literal("lifecycle_processed"),
       v.literal("ignored"),
     ),
     attemptCount: v.number(),
@@ -270,6 +318,8 @@ export default defineSchema({
     profileName: v.optional(v.string()),
     activeConversationId: v.optional(v.id("conversations")),
     optOut: v.boolean(),
+    optOutReason: v.optional(v.string()),
+    optOutUpdatedAt: v.optional(v.number()),
     lastInboundAt: v.number(),
     serviceWindowExpiresAt: v.number(),
     createdAt: v.number(),
@@ -343,9 +393,12 @@ export default defineSchema({
       v.literal("audio"),
       v.literal("image"),
       v.literal("document"),
+      v.literal("template"),
       v.literal("unsupported"),
     ),
     transportMessageId: v.optional(v.id("whatsappMessages")),
+    whatsappMediaId: v.optional(v.id("whatsappMedia")),
+    templateId: v.optional(v.id("whatsappTemplates")),
     deliveryState: v.union(
       v.literal("received"),
       v.literal("queued"),
@@ -374,8 +427,12 @@ export default defineSchema({
       v.literal("audio"),
       v.literal("image"),
       v.literal("document"),
+      v.literal("template"),
       v.literal("unsupported"),
     ),
+    templateId: v.optional(v.id("whatsappTemplates")),
+    templateName: v.optional(v.string()),
+    templateLanguageCode: v.optional(v.string()),
     transportStatus: v.union(
       v.literal("received"),
       v.literal("queued"),
@@ -410,10 +467,53 @@ export default defineSchema({
       v.literal("image"),
       v.literal("document"),
     ),
-    downloadStatus: v.union(v.literal("queued"), v.literal("not_required")),
-    transcriptStatus: v.union(v.literal("queued"), v.literal("not_applicable")),
-    summaryStatus: v.union(v.literal("queued"), v.literal("not_applicable")),
-    storageStatus: v.union(v.literal("queued"), v.literal("not_applicable")),
+    mimeType: v.optional(v.string()),
+    fileName: v.optional(v.string()),
+    fileSizeBytes: v.optional(v.number()),
+    storageObjectKey: v.optional(v.string()),
+    storageProvider: v.optional(v.string()),
+    mediaSha256: v.optional(v.string()),
+    transcript: v.optional(v.string()),
+    summary: v.optional(v.string()),
+    extractedText: v.optional(v.string()),
+    downloadStatus: v.union(
+      v.literal("queued"),
+      v.literal("downloading"),
+      v.literal("downloaded"),
+      v.literal("failed"),
+      v.literal("expired"),
+      v.literal("not_required"),
+    ),
+    transcriptStatus: v.union(
+      v.literal("queued"),
+      v.literal("processing"),
+      v.literal("processed"),
+      v.literal("failed"),
+      v.literal("not_applicable"),
+    ),
+    summaryStatus: v.union(
+      v.literal("queued"),
+      v.literal("processing"),
+      v.literal("processed"),
+      v.literal("failed"),
+      v.literal("not_applicable"),
+    ),
+    storageStatus: v.union(
+      v.literal("queued"),
+      v.literal("uploading"),
+      v.literal("stored"),
+      v.literal("failed"),
+      v.literal("not_configured"),
+      v.literal("not_applicable"),
+    ),
+    processingStatus: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("processed"),
+      v.literal("failed"),
+      v.literal("unsupported"),
+    ),
+    lastError: v.optional(v.string()),
     downloadDeadlineAt: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -430,6 +530,12 @@ export default defineSchema({
     messageId: v.id("messages"),
     whatsappMessageId: v.id("whatsappMessages"),
     idempotencyKey: v.string(),
+    payloadType: v.union(v.literal("text"), v.literal("template")),
+    templateId: v.optional(v.id("whatsappTemplates")),
+    templateName: v.optional(v.string()),
+    templateLanguageCode: v.optional(v.string()),
+    templateComponents: v.optional(v.array(v.any())),
+    requiresOpenServiceWindow: v.boolean(),
     status: v.union(
       v.literal("queued"),
       v.literal("processing"),
@@ -461,6 +567,8 @@ export default defineSchema({
       v.literal("service_window_expiring"),
       v.literal("bot_reply_failed"),
       v.literal("outbound_send_failed"),
+      v.literal("template_rejected"),
+      v.literal("waba_action_required"),
     ),
     severity: v.union(
       v.literal("info"),
@@ -478,4 +586,74 @@ export default defineSchema({
     .index("by_org_created_at", ["organizationId", "createdAt"])
     .index("by_dedupe_key", ["dedupeKey"])
     .index("by_conversation", ["conversationId"]),
+
+  whatsappTemplates: defineTable({
+    organizationId: v.id("organizations"),
+    integrationId: v.id("whatsappIntegrations"),
+    metaTemplateId: v.optional(v.string()),
+    name: v.string(),
+    languageCode: v.string(),
+    category: v.union(
+      v.literal("marketing"),
+      v.literal("utility"),
+      v.literal("authentication"),
+    ),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected"),
+      v.literal("paused"),
+      v.literal("disabled"),
+      v.literal("archived"),
+    ),
+    rejectionReason: v.optional(v.string()),
+    components: v.array(v.any()),
+    lastSyncedAt: v.optional(v.number()),
+    archivedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org_status", ["organizationId", "status"])
+    .index("by_integration", ["integrationId"])
+    .index("by_org_name_language", ["organizationId", "name", "languageCode"])
+    .index("by_meta_template_id", ["metaTemplateId"]),
+
+  whatsappTemplateSyncLogs: defineTable({
+    organizationId: v.id("organizations"),
+    integrationId: v.id("whatsappIntegrations"),
+    templateId: v.optional(v.id("whatsappTemplates")),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("success"),
+      v.literal("failed"),
+    ),
+    action: v.union(
+      v.literal("pull_status"),
+      v.literal("push_create"),
+      v.literal("push_update"),
+    ),
+    lastError: v.optional(v.string()),
+    metaResponse: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_org_created_at", ["organizationId", "createdAt"])
+    .index("by_template_created_at", ["templateId", "createdAt"]),
+
+  wabaLifecycleEvents: defineTable({
+    organizationId: v.id("organizations"),
+    integrationId: v.id("whatsappIntegrations"),
+    eventType: v.union(
+      v.literal("meta_app_approval"),
+      v.literal("phone_verification"),
+      v.literal("business_profile_sync"),
+      v.literal("display_name_review"),
+      v.literal("messaging_tier"),
+    ),
+    status: v.string(),
+    details: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_org_created_at", ["organizationId", "createdAt"])
+    .index("by_integration_created_at", ["integrationId", "createdAt"]),
 });

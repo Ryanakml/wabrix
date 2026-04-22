@@ -70,6 +70,8 @@ type WhatsAppWebhookPayload = {
           id?: string;
           status?: string;
         }>;
+        message_template_id?: string;
+        message_template_name?: string;
       };
     }>;
   }>;
@@ -189,6 +191,18 @@ export function extractProviderEventId(
       const statusId = change.value?.statuses?.find((status) => status.id)?.id;
       if (statusId) {
         return payloadHash ? `${statusId}:${payloadHash}` : statusId;
+      }
+
+      if (typeof change.value?.message_template_id === "string") {
+        return payloadHash
+          ? `${change.value.message_template_id}:${payloadHash}`
+          : change.value.message_template_id;
+      }
+
+      if (typeof change.value?.message_template_name === "string") {
+        return payloadHash
+          ? `${change.value.message_template_name}:${payloadHash}`
+          : change.value.message_template_name;
       }
     }
   }

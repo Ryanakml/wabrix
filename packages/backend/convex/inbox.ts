@@ -25,32 +25,22 @@ function formatUserDisplayName(user: {
 }
 
 function buildConversationTemplateSuggestions() {
-  return [
-    {
-      id: "reengagement_en",
-      language: "en" as const,
-      title: "Re-engagement",
-      body: "Hi, thanks for reaching out. Reply here and our team will continue helping you as soon as possible.",
-    },
-    {
-      id: "handoff_en",
-      language: "en" as const,
-      title: "Human handoff",
-      body: "Hi, a human agent is ready to help. Reply to this message and we will continue the conversation from here.",
-    },
-    {
-      id: "reengagement_id",
-      language: "id" as const,
-      title: "Re-engagement",
-      body: "Halo, terima kasih sudah menghubungi kami. Balas pesan ini dan tim kami akan lanjut membantu secepatnya.",
-    },
-    {
-      id: "handoff_id",
-      language: "id" as const,
-      title: "Human handoff",
-      body: "Halo, agen manusia kami siap membantu. Balas pesan ini dan kami akan lanjutkan percakapannya dari sini.",
-    },
-  ];
+  return [];
+}
+
+function extractTemplatePreview(
+  components: unknown[],
+  fallbackName: string,
+) {
+  const bodyComponent = components.find((component) => {
+    if (!component || typeof component !== "object") {
+      return false;
+    }
+
+    return (component as { type?: string }).type === "BODY";
+  }) as { text?: string } | undefined;
+
+  return bodyComponent?.text?.trim() || fallbackName;
 }
 
 function deriveWabaLifecycleState(
@@ -58,6 +48,9 @@ function deriveWabaLifecycleState(
     | {
         connectionStatus: "not_connected" | "configured" | "disabled";
         webhookStatus?: "pending" | "verified" | "receiving";
+        approvalStatus?: "pending" | "approved" | "rejected" | "action_required";
+        phoneVerificationStatus?: "missing" | "pending" | "verified" | "failed";
+        businessProfileStatus?: "pending" | "synced" | "failed";
       }
     | null
     | undefined,
@@ -71,16 +64,9 @@ function deriveWabaLifecycleState(
   }
 
   return {
-    approvalStatus:
-      integration.connectionStatus === "configured" ? "approved" : "pending",
-    otpStatus:
-      integration.connectionStatus === "configured" ? "configured" : "missing",
-    profileSyncStatus:
-      integration.webhookStatus === "receiving"
-        ? "synced"
-        : integration.webhookStatus === "verified"
-          ? "verified"
-          : "pending",
+    approvalStatus: integration.approvalStatus ?? "pending",
+    otpStatus: integration.phoneVerificationStatus ?? "missing",
+    profileSyncStatus: integration.businessProfileStatus ?? "pending",
   } as const;
 }
 
@@ -226,6 +212,12 @@ export async function queueManualReply(
       messageId: manualMessageId,
       whatsappMessageId,
       idempotencyKey,
+      payloadType: "text",
+      templateId: undefined,
+      templateName: undefined,
+      templateLanguageCode: undefined,
+      templateComponents: undefined,
+      requiresOpenServiceWindow: true,
       status: "queued",
       attemptCount: 0,
       maxAttempts: OUTBOUND_QUEUE_MAX_ATTEMPTS,
@@ -263,6 +255,151 @@ export async function queueManualReply(
 
   return {
     manualMessageId,
+    whatsappMessageId,
+    outboundQueueId,
+  };
+}
+
+export async function queueTemplateReply(
+  ctx: InboxMutationCtx,
+  {
+    conversationId,
+    organizationId,
+    authorDisplayName,
+    templateId,
+    now = Date.now(),
+  }: {
+    conversationId: Id<"conversations">;
+    organizationId: Id<"organizations">;
+    authorDisplayName: string;
+    templateId: Id<"whatsappTemplates">;
+    now?: number;
+  },
+) {
+  const conversation = await getConversationForOrg(ctx, {
+    organizationId,
+    conversationId,
+  });
+
+  if (conversation.status !== "open") {
+    throw new Error("Reopen the conversation before sending a template reply.");
+  }
+
+  if (!conversation.contactId) {
+    throw new Error("Conversation is missing a WhatsApp contact.");
+  }
+
+  const contact = await ctx.db.get(conversation.contactId);
+  const template = await ctx.db.get(templateId);
+
+  if (!contact) {
+    throw new Error("Conversation contact could not be loaded.");
+  }
+
+  if (!template || template.organizationId !== organizationId) {
+    throw new Error("Template not found for the active organization.");
+  }
+
+  if (!template.languageCode.trim()) {
+    throw new Error("Approved template languageCode is required.");
+  }
+
+  if (template.status !== "approved") {
+    throw new Error("Only approved WhatsApp templates can be sent.");
+  }
+
+  const preview = extractTemplatePreview(template.components, template.name);
+  const templateMessageId = await ctx.db.insert("messages", {
+    organizationId,
+    conversationId,
+    role: "agent",
+    source: "inbox_template_reply",
+    content: preview,
+    contentType: "template",
+    templateId,
+    deliveryState: "queued",
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const whatsappMessageId = await ctx.db.insert("whatsappMessages", {
+    organizationId,
+    integrationId: contact.integrationId,
+    conversationId,
+    contactId: contact._id,
+    transcriptMessageId: templateMessageId,
+    providerMessageId: `queued:${templateMessageId}`,
+    waId: contact.waId,
+    direction: "outbound",
+    messageType: "template",
+    templateId,
+    templateName: template.name,
+    templateLanguageCode: template.languageCode,
+    transportStatus: "queued",
+    rawSummary: preview,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await ctx.db.patch(templateMessageId, {
+    transportMessageId: whatsappMessageId,
+    updatedAt: now,
+  });
+
+  const idempotencyKey = buildOutboundQueueIdempotencyKey(templateMessageId);
+  const outboundQueueId = await ctx.db.insert("outboundQueue", {
+    organizationId,
+    integrationId: contact.integrationId,
+    conversationId,
+    contactId: contact._id,
+    channel: "whatsapp",
+    messageId: templateMessageId,
+    whatsappMessageId,
+    idempotencyKey,
+    payloadType: "template",
+    templateId,
+    templateName: template.name,
+    templateLanguageCode: template.languageCode,
+    templateComponents: template.components,
+    requiresOpenServiceWindow: false,
+    status: "queued",
+    attemptCount: 0,
+    maxAttempts: OUTBOUND_QUEUE_MAX_ATTEMPTS,
+    nextAttemptAt: now,
+    claimToken: undefined,
+    lastAttemptAt: undefined,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await ctx.db.patch(conversationId, {
+    lastMessageAt: now,
+    lastMessagePreview: preview,
+    updatedAt: now,
+  });
+
+  await ctx.db.insert("auditLogs", {
+    orgId: organizationId,
+    action: "template_reply_queued",
+    details: {
+      conversationId,
+      templateId,
+      templateMessageId,
+      whatsappMessageId,
+      outboundQueueId,
+      authorDisplayName,
+    },
+    createdAt: now,
+  });
+
+  if (ctx.scheduler) {
+    await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {
+      queueJobId: outboundQueueId,
+    });
+  }
+
+  return {
+    templateMessageId,
     whatsappMessageId,
     outboundQueueId,
   };
@@ -324,6 +461,14 @@ export const getInboxWorkspace = query({
     const selectedIntegration = selectedContact
       ? await ctx.db.get(selectedContact.integrationId)
       : null;
+    const selectedTemplates = selectedIntegration
+      ? await ctx.db
+          .query("whatsappTemplates")
+          .withIndex("by_integration", (q) =>
+            q.eq("integrationId", selectedIntegration._id),
+          )
+          .collect()
+      : [];
 
     const teamMemberships = await ctx.db
       .query("orgMembers")
@@ -397,7 +542,16 @@ export const getInboxWorkspace = query({
       conversations: conversationSummaries,
       teamMembers,
       wabaLifecycle,
-      templateSuggestions: buildConversationTemplateSuggestions(),
+      templateSuggestions:
+        selectedTemplates
+          .filter((template) => template.status === "approved")
+          .sort((left, right) => right.updatedAt - left.updatedAt)
+          .map((template) => ({
+            id: template._id,
+            language: template.languageCode,
+            title: template.name,
+            body: extractTemplatePreview(template.components, template.name),
+          })) || buildConversationTemplateSuggestions(),
       selectedConversation: selectedConversation
         ? {
             id: selectedConversation._id,
@@ -407,6 +561,7 @@ export const getInboxWorkspace = query({
             contactId: selectedConversation.contactId ?? null,
             waId: selectedContact?.waId ?? null,
             profileName: selectedContact?.profileName ?? null,
+            optOut: selectedContact?.optOut ?? false,
             assignedUserId: selectedConversation.assignedUserId ?? null,
             assignedUserName: selectedConversation.assignedUserName ?? null,
             botPaused: selectedConversation.botPaused,
@@ -445,6 +600,8 @@ export const getInboxWorkspace = query({
               failureCode: job.failureCode ?? null,
               failureMessage: job.failureMessage ?? null,
               providerMessageId: job.providerMessageId ?? null,
+              payloadType: job.payloadType,
+              templateName: job.templateName ?? null,
               createdAt: job.createdAt,
             })),
             notifications: selectedNotifications.map((notification) => ({
@@ -736,5 +893,27 @@ export const sendManualReply = mutation({
     });
 
     return queued;
+  },
+});
+
+export const sendTemplateReply = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    templateId: v.id("whatsappTemplates"),
+  },
+  handler: async (ctx, args) => {
+    const access = await assertHasRole(ctx, "org:member");
+    const user = await ctx.db.get(access.userId);
+
+    return queueTemplateReply(ctx, {
+      conversationId: args.conversationId,
+      organizationId: access.organizationId,
+      authorDisplayName: formatUserDisplayName({
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        email: user?.email,
+      }),
+      templateId: args.templateId,
+    });
   },
 });

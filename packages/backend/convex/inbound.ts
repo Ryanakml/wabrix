@@ -5,11 +5,14 @@ import {
   query,
   type MutationCtx,
 } from "./_generated/server.js";
+import { internal } from "./_generated/api.js";
 import { markConversationPendingBotReply } from "./orchestrator.js";
 import { requireOrgContext } from "./rbac.js";
 
 const SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MEDIA_DOWNLOAD_DEADLINE_MS = 4 * 60 * 1000;
+const OPT_OUT_KEYWORDS = new Set(["stop", "unsubscribe", "opt out", "quit"]);
+const OPT_IN_KEYWORDS = new Set(["start", "unstop", "subscribe"]);
 
 type RawWhatsappPayload = {
   object?: string;
@@ -170,6 +173,18 @@ function normalizeInboundMessageType(message: RawWhatsappInboundMessage) {
   }
 }
 
+function normalizeKeyword(text: string) {
+  return text.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function isOptOutMessage(text: string) {
+  return OPT_OUT_KEYWORDS.has(normalizeKeyword(text));
+}
+
+function isOptInMessage(text: string) {
+  return OPT_IN_KEYWORDS.has(normalizeKeyword(text));
+}
+
 export function normalizeInboundWhatsappMessages({
   rawPayload,
   fallbackReceivedAt,
@@ -259,6 +274,9 @@ export async function upsertWhatsappContact(
       integrationId,
       botId,
       profileName: profileName ?? existing.profileName,
+      optOut: existing.optOut,
+      optOutReason: existing.optOutReason,
+      optOutUpdatedAt: existing.optOutUpdatedAt,
       lastInboundAt: Math.max(existing.lastInboundAt, receivedAt),
       serviceWindowExpiresAt: Math.max(
         existing.serviceWindowExpiresAt,
@@ -275,6 +293,8 @@ export async function upsertWhatsappContact(
     waId,
     profileName,
     optOut: false,
+    optOutReason: undefined,
+    optOutUpdatedAt: undefined,
     lastInboundAt: receivedAt,
     serviceWindowExpiresAt,
     createdAt: now,
@@ -290,6 +310,8 @@ export async function upsertWhatsappContact(
     waId,
     profileName,
     optOut: false,
+    optOutReason: undefined,
+    optOutUpdatedAt: undefined,
     lastInboundAt: receivedAt,
     serviceWindowExpiresAt,
     createdAt: now,
@@ -446,7 +468,7 @@ async function createWhatsappMediaRecord(
   },
 ) {
   const now = Date.now();
-  await ctx.db.insert("whatsappMedia", {
+  return ctx.db.insert("whatsappMedia", {
     organizationId,
     integrationId,
     conversationId,
@@ -460,6 +482,8 @@ async function createWhatsappMediaRecord(
     transcriptStatus: mediaRequiresTranscript ? "queued" : "not_applicable",
     summaryStatus: mediaRequiresSummary ? "queued" : "not_applicable",
     storageStatus: mediaRequiresStorage ? "queued" : "not_applicable",
+    processingStatus: "pending",
+    lastError: undefined,
     downloadDeadlineAt: receivedAt + MEDIA_DOWNLOAD_DEADLINE_MS,
     createdAt: now,
     updatedAt: now,
@@ -530,6 +554,22 @@ export async function processStoredWhatsappWebhookEvent(
     });
 
     const now = Date.now();
+    const normalizedContent = normalizedMessage.content.trim();
+    const shouldOptOut =
+      normalizedMessage.messageType === "text" && isOptOutMessage(normalizedContent);
+    const shouldOptIn =
+      normalizedMessage.messageType === "text" && isOptInMessage(normalizedContent);
+    const effectiveOptOut = shouldOptOut ? true : shouldOptIn ? false : contact.optOut;
+
+    if (shouldOptOut || shouldOptIn) {
+      await ctx.db.patch(contact._id, {
+        optOut: shouldOptOut,
+        optOutReason: shouldOptOut ? "customer_opt_out_keyword" : undefined,
+        optOutUpdatedAt: now,
+        updatedAt: now,
+      });
+    }
+
     const transcriptMessageId = await ctx.db.insert("messages", {
       organizationId: webhookEvent.organizationId,
       conversationId: conversation._id,
@@ -572,7 +612,7 @@ export async function processStoredWhatsappWebhookEvent(
     });
 
     if (normalizedMessage.providerMediaId && normalizedMessage.mediaType) {
-      await createWhatsappMediaRecord(ctx, {
+      const mediaId = await createWhatsappMediaRecord(ctx, {
         organizationId: webhookEvent.organizationId,
         integrationId: webhookEvent.integrationId,
         conversationId: conversation._id,
@@ -587,10 +627,24 @@ export async function processStoredWhatsappWebhookEvent(
         mediaRequiresSummary: normalizedMessage.mediaRequiresSummary,
         mediaRequiresStorage: normalizedMessage.mediaRequiresStorage,
       });
+      await ctx.db.patch(transcriptMessageId, {
+        whatsappMediaId: mediaId,
+        updatedAt: now,
+      });
+
+      if (ctx.scheduler) {
+        await ctx.scheduler.runAfter(0, internal.mediaAction.processWhatsappMedia, {
+          mediaId,
+        });
+      }
       createdMediaRecords += 1;
     }
 
-    if (normalizedMessage.messageType === "text") {
+    if (
+      normalizedMessage.messageType === "text" &&
+      !effectiveOptOut &&
+      !shouldOptOut
+    ) {
       await markConversationPendingBotReply(ctx, {
         conversationId: conversation._id,
         lastInboundAt: normalizedMessage.receivedAt,
