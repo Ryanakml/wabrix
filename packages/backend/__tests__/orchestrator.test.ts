@@ -34,9 +34,15 @@ function createFakeDb(initial?: Partial<Record<string, FakeDoc[]>>) {
         withIndex(
           _indexName: string,
           builder: (query: {
-            eq: (field: string, value: unknown) => {
+            eq: (
+              field: string,
+              value: unknown,
+            ) => {
               clauses: Array<{ field: string; value: unknown }>;
-              eq: (field: string, value: unknown) => {
+              eq: (
+                field: string,
+                value: unknown,
+              ) => {
                 clauses: Array<{ field: string; value: unknown }>;
                 eq: never;
               };
@@ -124,7 +130,11 @@ function createFakeDb(initial?: Partial<Record<string, FakeDoc[]>>) {
       return null;
     },
     scheduler: {
-      async runAfter(delayMs: number, ref: unknown, args: Record<string, unknown>) {
+      async runAfter(
+        delayMs: number,
+        ref: unknown,
+        args: Record<string, unknown>,
+      ) {
         scheduled.push({ delayMs, ref, args });
       },
     },
@@ -208,9 +218,9 @@ describe("phase 8 orchestrator", () => {
       ],
     });
 
-    expect(isServiceWindowOpen(1_710_000_000_000 + 60_000, 1_710_000_000_000)).toBe(
-      true,
-    );
+    expect(
+      isServiceWindowOpen(1_710_000_000_000 + 60_000, 1_710_000_000_000),
+    ).toBe(true);
 
     const result = await claimBotReplyWork({ db } as never, {
       conversationId: "conversation_1" as never,
@@ -383,12 +393,15 @@ describe("phase 8 orchestrator", () => {
       whatsappContacts: [buildContact()],
     });
 
-    const result = await finalizeBotReplyDraft({ db, scheduler: db.scheduler } as never, {
-      conversationId: "conversation_1" as never,
-      generationToken: "token_1",
-      claimedLastInboundAt: 1_710_000_000_000,
-      content: "Halo, ada yang bisa saya bantu?",
-    });
+    const result = await finalizeBotReplyDraft(
+      { db, scheduler: db.scheduler } as never,
+      {
+        conversationId: "conversation_1" as never,
+        generationToken: "token_1",
+        claimedLastInboundAt: 1_710_000_000_000,
+        content: "Halo, ada yang bisa saya bantu?",
+      },
+    );
 
     expect(result.status).toBe("queued");
     expect(db.tables.messages).toHaveLength(1);
@@ -540,6 +553,7 @@ describe("phase 8 orchestrator", () => {
         ],
       },
       providerApiKey: "api-key",
+      embeddingApiKey: "embedding-key",
       generateDraft,
       embedQueryTexts,
     });

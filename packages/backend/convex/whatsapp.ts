@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import type { MutationCtx, QueryCtx } from "./_generated/server.js";
-import { mutation, query } from "./_generated/server.js";
+import { internalQuery, mutation, query } from "./_generated/server.js";
 import { encryptSecret, hashSecret } from "./lib/crypto.js";
 import { assertHasRole, requireOrgContext } from "./rbac.js";
 
@@ -144,6 +144,30 @@ export const getWhatsAppIntegrationState = query({
       botConfigured: Boolean(botProfile),
       linkedBotName: botProfile?.name ?? null,
       state: sanitizeWhatsAppIntegrationForFrontend(integration),
+    };
+  },
+});
+
+export const getWhatsAppSenderRuntime = internalQuery({
+  args: {
+    integrationId: v.id("whatsappIntegrations"),
+  },
+  handler: async (ctx, args) => {
+    const integration = await ctx.db.get(args.integrationId);
+
+    if (!integration) {
+      return null;
+    }
+
+    return {
+      integrationId: integration._id,
+      organizationId: integration.organizationId,
+      botId: integration.botId,
+      phoneNumberId: integration.phoneNumberId,
+      businessAccountId: integration.businessAccountId,
+      accessTokenEncrypted: integration.accessTokenEncrypted,
+      enabled: integration.enabled,
+      connectionStatus: integration.connectionStatus,
     };
   },
 });

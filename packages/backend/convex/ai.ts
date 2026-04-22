@@ -24,7 +24,7 @@ type GenerateWithPrimaryModelInput = {
   organizationId: Id<"organizations">;
   botId: string;
   conversationId?: string;
-  providerType: "google" | "digitalocean_reference";
+  providerType?: "google" | "digitalocean_reference";
   endpointUrl?: string | null;
   providerApiKey: string;
   selectedModel: string;
@@ -132,9 +132,10 @@ function buildPrompt(
 export async function generateWithPrimaryModel(
   input: GenerateWithPrimaryModelInput,
 ) {
-  let model;
+  const providerType = input.providerType ?? "google";
+  let model: Parameters<typeof generateText>[0]["model"];
 
-  if (input.providerType === "digitalocean_reference") {
+  if (providerType === "digitalocean_reference") {
     let baseURL = input.endpointUrl || undefined;
     if (baseURL) {
       baseURL = baseURL.replace(/\/(?:chat\/completions|responses)\/?$/, "");
@@ -153,7 +154,7 @@ export async function generateWithPrimaryModel(
 
   const startedAt = Date.now();
   const result = await generateText({
-    model: model as any,
+    model,
     prompt: buildPrompt(
       input.systemPrompt,
       input.messages.slice(0, -1),
@@ -169,7 +170,7 @@ export async function generateWithPrimaryModel(
 
   return {
     content: result.text,
-    selectedProvider: input.providerType,
+    selectedProvider: providerType,
     selectedModel: input.selectedModel,
     latencyMs: Date.now() - startedAt,
     usage: {

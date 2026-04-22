@@ -181,9 +181,9 @@
     "verifyTokenStatus": "Verify token"
   },
   "Inbox": {
-    "eyebrow": "Phase 8",
+    "eyebrow": "Phase 9",
     "headline": "Inbox",
-    "subheadline": "Review percakapan WhatsApp inbound, state orkestrasi bot, job outbound queue, timing service window, dan pemrosesan media dari satu surface inbox yang tenant-scoped.",
+    "subheadline": "Review percakapan WhatsApp inbound, state orkestrasi bot, percobaan send outbound, rekonsiliasi status delivery, timing service window, dan pemrosesan media dari satu surface inbox yang tenant-scoped.",
     "back": "Kembali ke dashboard",
     "missingRuntime": "NEXT_PUBLIC_CONVEX_URL belum dikonfigurasi. Data inbox memerlukan deployment Convex sebelum conversation bisa dimuat.",
     "loading": "Memuat inbox…",

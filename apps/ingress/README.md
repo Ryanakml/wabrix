@@ -1,6 +1,6 @@
 # Ingress Worker
 
-Phase 6 is now live in the worker.
+Phase 9 worker scope is live.
 
 ## Commands
 
@@ -17,6 +17,7 @@ pnpm --filter @wabrix/ingress build
 - Requests are rate-limited by `phoneNumberId`.
 - Accepted events are durably written to Convex before the worker returns `200`.
 - Media webhook events are marked for high-priority download work without calling AI inline.
+- Delivery-status webhook events are durably written and routed to async status reconciliation in Convex.
 
 ## Config
 

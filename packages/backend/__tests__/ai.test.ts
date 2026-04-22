@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const generateTextMock = vi.fn();
-const createGoogleGenerativeAIMock = vi.fn(() => vi.fn((modelId: string) => modelId));
+const createGoogleGenerativeAIMock = vi.fn(() =>
+  vi.fn((modelId: string) => modelId),
+);
 
 vi.mock("ai", () => ({
   generateText: (...args: unknown[]) => generateTextMock(...args),
@@ -32,6 +34,7 @@ describe("AI runtime helpers", () => {
     const result = await generateWithPrimaryModel({
       organizationId: "org_doc_123",
       botId: "bot_doc_123",
+      providerType: "google",
       providerApiKey: "api-key",
       selectedModel: "gemini-2.5-flash",
       messages: [{ role: "user", content: "Hello there" }],
@@ -59,13 +62,16 @@ describe("AI runtime helpers", () => {
   });
 
   it("validates DigitalOcean reference config coherently", async () => {
-    const { validateDigitalOceanReferenceConfig } = await import("../convex/ai");
+    const { validateDigitalOceanReferenceConfig } =
+      await import("../convex/ai");
 
     expect(() =>
       validateDigitalOceanReferenceConfig({
         endpointUrl: "https://example.com",
       }),
-    ).toThrow("DigitalOcean reference config requires both endpointUrl and modelId");
+    ).toThrow(
+      "DigitalOcean reference config requires both endpointUrl and modelId",
+    );
 
     expect(
       validateDigitalOceanReferenceConfig({

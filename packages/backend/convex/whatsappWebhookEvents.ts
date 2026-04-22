@@ -206,13 +206,25 @@ export const storeRawWhatsappEvent = internalMutation({
     const result = await persistWhatsappWebhookEvent(ctx, args);
 
     if (!result.duplicate) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.inbound.processStoredWhatsappWebhookEventMutation,
-        {
-          eventId: result.eventId,
-        },
-      );
+      if (args.eventType === "messages") {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.inbound.processStoredWhatsappWebhookEventMutation,
+          {
+            eventId: result.eventId,
+          },
+        );
+      }
+
+      if (args.eventType === "statuses") {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.outbound.processWhatsappStatusWebhookEventMutation,
+          {
+            eventId: result.eventId,
+          },
+        );
+      }
     }
 
     return result;
