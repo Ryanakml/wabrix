@@ -21,6 +21,8 @@ import type * as lib_knowledge from "../lib/knowledge.js";
 import type * as lib_observability from "../lib/observability.js";
 import type * as orchestrator from "../orchestrator.js";
 import type * as orchestratorAction from "../orchestratorAction.js";
+import type * as outbound from "../outbound.js";
+import type * as outboundAction from "../outboundAction.js";
 import type * as rbac from "../rbac.js";
 import type * as users from "../users.js";
 import type * as whatsapp from "../whatsapp.js";
@@ -46,6 +48,8 @@ declare const fullApi: ApiFromModules<{
   "lib/observability": typeof lib_observability;
   orchestrator: typeof orchestrator;
   orchestratorAction: typeof orchestratorAction;
+  outbound: typeof outbound;
+  outboundAction: typeof outboundAction;
   rbac: typeof rbac;
   users: typeof users;
   whatsapp: typeof whatsapp;

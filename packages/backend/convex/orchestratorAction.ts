@@ -131,12 +131,13 @@ export async function createBotReplyDraft({
   let knowledgeMatches: ReturnType<typeof selectRelevantKnowledgeChunks> = [];
 
   if (knowledgeCorpus.chunks.length > 0) {
-    if (!embeddingApiKey) {
+    const resolvedEmbeddingApiKey = embeddingApiKey ?? providerApiKey;
+    if (!resolvedEmbeddingApiKey) {
       throw new Error("Knowledge retrieval requires a Google AI API key. Please configure GOOGLE_GENERATIVE_AI_API_KEY in the environment.");
     }
     const queryEmbeddings = await embedQueryTexts({
       texts: [sanitizedLatestMessage],
-      apiKey: embeddingApiKey,
+      apiKey: resolvedEmbeddingApiKey,
     });
     const queryEmbedding = queryEmbeddings[0];
     if (!queryEmbedding) {

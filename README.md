@@ -2,7 +2,7 @@
 
 `wabrix` is a production-oriented WhatsApp AI SaaS built as a `pnpm` monorepo with Turborepo.
 
-Phase 0 is approved. Phase 1 established the monorepo foundation, phase 2 established auth and tenancy, phase 3 shipped the configurable bot runtime, phase 4 added the Knowledge Base and retrieval layer, phase 5 added tenant-scoped WhatsApp integration setup, phase 6 added production-safe webhook ingress, phase 7 added inbound normalization plus conversation mapping, and phase 8 now adds bot orchestration plus the first durable outbound queue.
+Phase 0 is approved. Phase 1 established the monorepo foundation, phase 2 established auth and tenancy, phase 3 shipped the configurable bot runtime, phase 4 added the Knowledge Base and retrieval layer, phase 5 added tenant-scoped WhatsApp integration setup, phase 6 added production-safe webhook ingress, phase 7 added inbound normalization plus conversation mapping, phase 8 added bot orchestration plus the first durable outbound queue, and phase 9 now adds outbound sending plus delivery-status reconciliation.
 
 - `apps/web`: Next.js App Router shell with Tailwind and `next-intl`
 - `apps/ingress`: Hono Cloudflare Worker shell with Wrangler placeholders
@@ -34,7 +34,8 @@ Core commands:
 - [Phase 6 Summary](./docs/phase-6/README.md)
 - [Phase 7 Summary](./docs/phase-7/README.md)
 - [Phase 8 Summary](./docs/phase-8/README.md)
-- [Environment And Deployment Guide](./docs/environment-and-deployment-guide.md)
+- [Phase 9 Summary](./docs/phase-9/README.md)
+- [Environment And Deployment Guide](./environment-and-deployment-guide.md)
 - [Local Setup](./docs/local-setup.md)
 - [Contributing](./CONTRIBUTING.md)
 
@@ -50,13 +51,15 @@ Current implemented state:
 - Ingress now verifies Meta GET and POST requests, rate limits per phone number, and durably stores raw webhook events before returning `200`.
 - Inbound WhatsApp events now normalize into contacts, conversations, transcript rows, transport rows, and media-debug records.
 - Bot orchestration now claims eligible inbound conversations, debounces bursts, drafts one AI reply, and creates one durable outbound queue row.
+- Outbound queue workers now send WhatsApp text replies to Meta with idempotency, retry backoff, and service-window rechecks right before send.
+- Status webhook events now reconcile transcript delivery state, transport delivery state, and queue visibility for sent, delivered, read, and failed outcomes.
 - Service-window warnings and bot-reply failures now surface as dashboard notifications.
+- Outbound send failures now surface as dashboard notifications with retry visibility.
 - Gemini 2.5 Flash is wired as the default draft-generation model path.
 - `gemini-embedding-001` is wired for knowledge embeddings.
 - Web and ingress health/build surfaces are in place.
 
 Still intentionally deferred to later phases:
 
-- Outbound Meta sending and delivery-status reconciliation
 - Inbox assignment, manual reply, and handoff workflows
 - Templates, analytics, and billing

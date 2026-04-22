@@ -343,4 +343,58 @@ describe("ingress worker", () => {
       }),
     );
   });
+
+  it("accepts a valid signed status webhook and persists the raw payload", async () => {
+    const persistWebhookEvent = vi.fn(async () => ({
+      eventId: "event_status_123",
+      duplicate: false,
+      mediaWorkEnqueued: false,
+      processingStatus: "received",
+    }));
+    const app = createIngressApp({ persistWebhookEvent });
+    const rawBody = JSON.stringify({
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          id: "waba_status_123",
+          changes: [
+            {
+              field: "messages",
+              value: {
+                metadata: {
+                  phone_number_id: "phone_status_123",
+                },
+                statuses: [
+                  {
+                    id: "wamid.status.123",
+                    status: "delivered",
+                    timestamp: "1710000010",
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const response = await app.request(
+      "http://localhost/webhooks/whatsapp",
+      await buildSignedRequest(rawBody),
+      baseEnv,
+    );
+
+    expect(response.status).toBe(200);
+    expect(persistWebhookEvent).toHaveBeenCalledWith(
+      baseEnv,
+      expect.objectContaining({
+        rawPayload: rawBody,
+        eventType: "statuses",
+        phoneNumberId: "phone_status_123",
+        businessAccountId: "waba_status_123",
+        providerEventId: "wamid.status.123",
+        mediaDownloadEnqueued: false,
+      }),
+    );
+  });
 });

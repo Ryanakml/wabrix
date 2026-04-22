@@ -181,9 +181,9 @@
     "verifyTokenStatus": "Verify token"
   },
   "Inbox": {
-    "eyebrow": "Phase 8",
+    "eyebrow": "Phase 9",
     "headline": "Inbox",
-    "subheadline": "Review inbound WhatsApp conversations, bot orchestration state, outbound queue jobs, service-window timing, and media processing from one tenant-scoped inbox surface.",
+    "subheadline": "Review inbound WhatsApp conversations, bot orchestration state, outbound send attempts, delivery status reconciliation, service-window timing, and media processing from one tenant-scoped inbox surface.",
     "back": "Back to dashboard",
     "missingRuntime": "NEXT_PUBLIC_CONVEX_URL is not configured. Inbox data needs a Convex deployment before conversations can load.",
     "loading": "Loading inbox…",

@@ -533,8 +533,16 @@ export async function finalizeBotReplyDraft(
     .query("outboundQueue")
     .withIndex("by_message_id", (q) => q.eq("messageId", assistantMessageId))
     .first();
+  const outboundIdempotencyKey = buildOutboundQueueIdempotencyKey(assistantMessageId);
+  const existingQueueJobByIdempotency = await ctx.db
+    .query("outboundQueue")
+    .withIndex("by_idempotency_key", (q) =>
+      q.eq("idempotencyKey", outboundIdempotencyKey),
+    )
+    .first();
   const outboundQueueId =
     existingQueueJob?._id ??
+    existingQueueJobByIdempotency?._id ??
     (await ctx.db.insert("outboundQueue", {
       organizationId: conversation.organizationId,
       integrationId: contact.integrationId,
@@ -543,11 +551,13 @@ export async function finalizeBotReplyDraft(
       channel: "whatsapp",
       messageId: assistantMessageId,
       whatsappMessageId,
-      idempotencyKey: buildOutboundQueueIdempotencyKey(assistantMessageId),
+      idempotencyKey: outboundIdempotencyKey,
       status: "queued",
       attemptCount: 0,
       maxAttempts: OUTBOUND_QUEUE_MAX_ATTEMPTS,
       nextAttemptAt: now,
+      claimToken: undefined,
+      lastAttemptAt: undefined,
       createdAt: now,
       updatedAt: now,
     }));
@@ -577,6 +587,12 @@ export async function finalizeBotReplyDraft(
     },
     createdAt: now,
   });
+
+  if (ctx.scheduler) {
+    await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {
+      queueJobId: outboundQueueId,
+    });
+  }
 
   return {
     status: "queued" as const,

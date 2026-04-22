@@ -241,6 +241,7 @@ export default defineSchema({
       v.literal("media_download_queued"),
       v.literal("normalized"),
       v.literal("normalized_media_queued"),
+      v.literal("status_processed"),
       v.literal("ignored"),
     ),
     attemptCount: v.number(),
@@ -333,6 +334,8 @@ export default defineSchema({
       v.literal("received"),
       v.literal("queued"),
       v.literal("sent"),
+      v.literal("delivered"),
+      v.literal("read"),
       v.literal("failed"),
     ),
     createdAt: v.number(),
@@ -361,8 +364,14 @@ export default defineSchema({
       v.literal("received"),
       v.literal("queued"),
       v.literal("sent"),
+      v.literal("delivered"),
+      v.literal("read"),
       v.literal("failed"),
     ),
+    providerStatus: v.optional(v.string()),
+    providerStatusAt: v.optional(v.number()),
+    failureCode: v.optional(v.string()),
+    failureMessage: v.optional(v.string()),
     rawSummary: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -415,6 +424,8 @@ export default defineSchema({
     attemptCount: v.number(),
     maxAttempts: v.number(),
     nextAttemptAt: v.number(),
+    claimToken: v.optional(v.string()),
+    lastAttemptAt: v.optional(v.number()),
     failureCode: v.optional(v.string()),
     failureMessage: v.optional(v.string()),
     providerMessageId: v.optional(v.string()),
@@ -423,6 +434,7 @@ export default defineSchema({
   })
     .index("by_message_id", ["messageId"])
     .index("by_idempotency_key", ["idempotencyKey"])
+    .index("by_provider_message_id", ["providerMessageId"])
     .index("by_status_next_attempt_at", ["status", "nextAttemptAt"])
     .index("by_org_created_at", ["organizationId", "createdAt"]),
 
@@ -432,6 +444,7 @@ export default defineSchema({
     type: v.union(
       v.literal("service_window_expiring"),
       v.literal("bot_reply_failed"),
+      v.literal("outbound_send_failed"),
     ),
     severity: v.union(
       v.literal("info"),
