@@ -15,7 +15,7 @@ export function Button({
 }: ButtonProps) {
   const variantClassName =
     variant === "secondary"
-      ? "border border-white/20 bg-white/10 text-white hover:bg-white/16"
+      ? "border border-stone-300 bg-stone-100 text-stone-950 hover:bg-stone-200"
       : "bg-stone-950 text-stone-50 hover:bg-stone-800";
 
   return (
