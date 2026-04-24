@@ -28,7 +28,9 @@ async function forwardBillingWebhookToConvex(payload: Record<string, unknown>) {
   );
 
   if (!response.ok) {
-    throw new Error(`Convex billing webhook forwarding failed with ${response.status}.`);
+    throw new Error(
+      `Convex billing webhook forwarding failed with ${response.status}.`,
+    );
   }
 
   return response.json();
@@ -76,6 +78,7 @@ export async function POST(
     }
 
     const serverKey = process.env.MIDTRANS_SERVER_KEY;
+    console.log("MIDTRANS WEBHOOK RECEIVED, ENV KEY:", serverKey?.slice(0, 5));
     if (!serverKey) {
       throw new Error("MIDTRANS_SERVER_KEY is not configured.");
     }
@@ -83,7 +86,8 @@ export async function POST(
     const payload = JSON.parse(rawBody) as Record<string, unknown>;
     const verified = verifyMidtransNotificationSignature({
       orderId: typeof payload.order_id === "string" ? payload.order_id : null,
-      statusCode: typeof payload.status_code === "string" ? payload.status_code : null,
+      statusCode:
+        typeof payload.status_code === "string" ? payload.status_code : null,
       grossAmount:
         typeof payload.gross_amount === "string"
           ? payload.gross_amount
@@ -91,12 +95,16 @@ export async function POST(
             ? String(payload.gross_amount)
             : null,
       signatureKey:
-        typeof payload.signature_key === "string" ? payload.signature_key : null,
+        typeof payload.signature_key === "string"
+          ? payload.signature_key
+          : null,
       serverKey,
     });
 
     if (!verified) {
-      return new Response("Invalid Midtrans webhook signature", { status: 403 });
+      return new Response("Invalid Midtrans webhook signature", {
+        status: 403,
+      });
     }
 
     const normalized = normalizeMidtransBillingWebhook(payload);
@@ -107,7 +115,8 @@ export async function POST(
 
     return new Response(null, { status: 200 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Billing webhook failed";
+    const message =
+      error instanceof Error ? error.message : "Billing webhook failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
