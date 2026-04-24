@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server.js";
+import { internal } from "./_generated/api.js";
+import { markConversationPendingBotReply } from "./orchestrator.js";
 
 function truncate(value: string, maxLength = 4_000) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
@@ -145,6 +147,17 @@ export const applyProcessedWhatsappMediaMutation = internalMutation({
         whatsappMediaId: media._id,
         updatedAt: now,
       });
+
+      const conversation = await ctx.db.get(media.conversationId);
+      const contact = await ctx.db.get(media.contactId);
+      
+      if (conversation && contact && !contact.optOut) {
+        await markConversationPendingBotReply(ctx, {
+          conversationId: conversation._id,
+          lastInboundAt: conversation.lastInboundAt,
+          serviceWindowExpiresAt: conversation.serviceWindowExpiresAt,
+        });
+      }
     }
 
     await ctx.db.insert("auditLogs", {
@@ -157,6 +170,13 @@ export const applyProcessedWhatsappMediaMutation = internalMutation({
       },
       createdAt: now,
     });
+
+    if (ctx.runMutation) {
+      await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+        organizationId: media.organizationId,
+        mediaProcessedCount: 1,
+      });
+    }
 
     return { status: "processed" as const };
   },

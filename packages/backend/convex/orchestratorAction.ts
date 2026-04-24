@@ -10,6 +10,7 @@ import {
   validateDigitalOceanReferenceConfig,
 } from "./ai.js";
 import type { ClaimBotReplyWorkResult } from "./orchestrator.js";
+import { buildUsageLimitErrorMessage } from "./lib/billing.js";
 import { decryptSecret } from "./lib/crypto.js";
 import {
   applyPromptInjectionGuard,
@@ -245,6 +246,19 @@ async function runBotReplyOrchestratorHandler(
 
     if (!runtimeState) {
       throw new Error("Bot Studio runtime is not configured for this conversation.");
+    }
+
+    const usageGuard = await ctx.runQuery(internal.billing.getUsageGuardState, {
+      organizationId: claim.organizationId,
+    });
+
+    if (usageGuard.usage.aiTokens >= usageGuard.limits.aiTokens) {
+      throw new Error(
+        buildUsageLimitErrorMessage({
+          kind: "ai_tokens",
+          planName: usageGuard.planName,
+        }),
+      );
     }
 
     const fallbackGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;

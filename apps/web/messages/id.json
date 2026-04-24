@@ -26,14 +26,16 @@
   },
   "Dashboard": {
     "eyebrow": "Workspace tenant",
-    "headline": "Dashboard tenant sekarang sudah punya auth, Bot Studio, Knowledge Base, setup WhatsApp, dan webhook ingress yang aktif.",
-    "subheadline": "Repo sudah melewati tahap shell-only. Tenancy, konfigurasi bot terlokalisasi, ingestion knowledge berbasis markdown, setup WhatsApp terenkripsi, dan durability webhook mentah yang aman untuk validasi signature sekarang sudah siap.",
+    "headline": "Dashboard tenant sekarang sudah punya auth, automation, billing, dan analytics.",
+    "subheadline": "Repo sudah lewat tahap shell-only. Tenancy, konfigurasi bot terlokalisasi, knowledge ingestion, transport WhatsApp yang compliant, monetization, dan visibilitas usage operasional sekarang sudah ada.",
     "authStatus": "runtime-tenant-scope",
     "backToMarketing": "Kembali ke marketing",
     "openBotStudio": "Buka Bot Studio",
     "openKnowledgeBase": "Buka Knowledge Base",
     "openInbox": "Buka Inbox",
     "openWhatsAppSetup": "Buka Setup WhatsApp",
+    "openBilling": "Buka Billing",
+    "openAnalytics": "Buka Analytics",
     "modules": {
       "botStudio": {
         "title": "Bot Studio",
@@ -47,6 +49,14 @@
         "title": "Inbox",
         "body": "Inbox sekarang jadi workspace operator dengan assignment, kontrol pause atau handoff, catatan, balasan manual, dan visibilitas delivery."
       },
+      "billing": {
+        "title": "Billing",
+        "body": "Routing plan, pemilihan provider checkout, subscription, dan billing events sekarang sudah tercatat."
+      },
+      "analytics": {
+        "title": "Analytics",
+        "body": "Usage counters, AI tokens, health queue, dan delivery metrics sekarang sudah kelihatan."
+      },
       "ops": {
         "title": "Ops",
         "body": "Visibilitas queue, status webhook, dan monitoring berkembang di phase 6 sampai 14."
@@ -57,10 +67,10 @@
       "repo": "pnpm workspace dan Turbo tetap jadi tulang punggung repo.",
       "web": "Next.js App Router, Tailwind, dan next-intl menjalankan dashboard yang sudah dilokalkan.",
       "ingress": "Ingress sekarang memverifikasi signature Meta, menerapkan rate limit per phone number, dan menyimpan raw webhook event secara durable sebelum keluar.",
-      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, setup WhatsApp, dan persistence transcript inbound sudah terhubung end to end."
+      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, setup WhatsApp, billing, analytics, dan persistence transcript sekarang sudah terhubung end to end."
     },
     "nextStepsLabel": "Fase berikutnya",
-    "nextStepsBody": "Phase 12 menambahkan analytics, billing, dan usage limits di atas messaging stack yang sekarang sudah jauh lebih production-ready."
+    "nextStepsBody": "Phase 13 menghadap keluar: landing page, SEO, docs, dan growth surfaces."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -289,5 +299,65 @@
     "stateQueued": "Queued",
     "stateBlocked": "Blocked",
     "stateFailed": "Failed"
+  },
+  "Pricing": {
+    "eyebrow": "Phase 12",
+    "headline": "Pilih jalur pembayaran yang cocok buat market kamu.",
+    "subheadline": "Pricing sekarang mengarahkan Indonesia ke Midtrans dengan IDR, sementara negara lain default ke Polar dengan USD. Country selector ini aman buat preview sebelum checkout mengunci jalur billing final.",
+    "countryLabel": "Negara billing",
+    "providerLabel": "Provider checkout",
+    "currencyLabel": "Mata uang",
+    "cta": "Buka workspace billing",
+    "perMonth": "per bulan",
+    "seats": "Seat",
+    "aiTokens": "AI tokens",
+    "outboundMessages": "Pesan outbound"
+  },
+  "Billing": {
+    "eyebrow": "Phase 12",
+    "headline": "Billing",
+    "subheadline": "Kelola pilihan plan, routing provider, status subscription, dan billing events yang teraudit dari satu workspace tenant.",
+    "back": "Kembali ke dashboard",
+    "pricingLink": "Buka pricing",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL belum dikonfigurasi. Billing butuh deployment Convex sebelum usage dan state subscription bisa dimuat.",
+    "loading": "Memuat billing state…",
+    "currentPlan": "Subscription saat ini",
+    "noSubscription": "Belum ada paid subscription aktif. Tenant ini masih memakai snapshot entitlement starter default.",
+    "status": "Status",
+    "gateway": "Gateway",
+    "period": "Periode",
+    "usage": "Usage saat ini",
+    "aiTokens": "AI tokens",
+    "outboundMessages": "Pesan outbound",
+    "seats": "Seat",
+    "recentEvents": "Billing events terbaru",
+    "noEvents": "Belum ada billing event yang tercatat.",
+    "countryLabel": "Negara billing",
+    "startCheckout": "Mulai checkout",
+    "checkoutPending": "Membuka checkout…",
+    "checkoutFailed": "Pembuatan checkout gagal.",
+    "managePlans": "Katalog plan",
+    "perMonth": "per bulan"
+  },
+  "Analytics": {
+    "eyebrow": "Phase 12",
+    "headline": "Analytics",
+    "subheadline": "Pantau usage AI, health outbound queue, status delivery, dan beban automation terbaru langsung dari dashboard tenant.",
+    "back": "Kembali ke dashboard",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL belum dikonfigurasi. Analytics butuh deployment Convex sebelum metrik usage bisa dimuat.",
+    "loading": "Memuat analytics…",
+    "usage": "Usage",
+    "queueMetrics": "Metrik queue",
+    "deliveryMetrics": "Metrik delivery",
+    "recentAiRuns": "AI runs terbaru",
+    "aiTokens": "AI tokens",
+    "outboundMessages": "Pesan outbound",
+    "queued": "Queued",
+    "processing": "Processing",
+    "sent": "Sent",
+    "failed": "Failed",
+    "delivered": "Delivered",
+    "read": "Read",
+    "noRuns": "Belum ada AI run yang tercatat."
   }
 }

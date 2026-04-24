@@ -656,4 +656,114 @@ export default defineSchema({
   })
     .index("by_org_created_at", ["organizationId", "createdAt"])
     .index("by_integration_created_at", ["integrationId", "createdAt"]),
+
+  plans: defineTable({
+    key: v.string(),
+    name: v.string(),
+    monthlyPriceUsdCents: v.number(),
+    monthlyPriceIdr: v.number(),
+    includedAiTokens: v.number(),
+    includedOutboundMessages: v.number(),
+    includedSeats: v.number(),
+    tagline: v.string(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_active", ["active"]),
+
+  subscriptions: defineTable({
+    organizationId: v.id("organizations"),
+    planId: v.optional(v.id("plans")),
+    planKey: v.string(),
+    status: v.union(
+      v.literal("trialing"),
+      v.literal("active"),
+      v.literal("past_due"),
+      v.literal("canceled"),
+      v.literal("incomplete"),
+      v.literal("incomplete_expired"),
+    ),
+    gateway: v.union(
+      v.literal("polar"),
+      v.literal("midtrans"),
+      v.literal("manual"),
+    ),
+    billingCountry: v.string(),
+    currency: v.union(v.literal("USD"), v.literal("IDR")),
+    amount: v.number(),
+    providerCustomerId: v.optional(v.string()),
+    providerSubscriptionId: v.optional(v.string()),
+    providerCheckoutId: v.optional(v.string()),
+    providerOrderId: v.optional(v.string()),
+    externalReferenceId: v.optional(v.string()),
+    interval: v.union(v.literal("month")),
+    currentPeriodStart: v.optional(v.number()),
+    currentPeriodEnd: v.optional(v.number()),
+    cancelAtPeriodEnd: v.boolean(),
+    canceledAt: v.optional(v.number()),
+    entitlements: v.object({
+      aiTokens: v.number(),
+      outboundMessages: v.number(),
+      seats: v.number(),
+    }),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org", ["organizationId"])
+    .index("by_org_status", ["organizationId", "status"])
+    .index("by_provider_subscription_id", ["providerSubscriptionId"])
+    .index("by_provider_checkout_id", ["providerCheckoutId"])
+    .index("by_provider_order_id", ["providerOrderId"]),
+
+  usageCounters: defineTable({
+    organizationId: v.id("organizations"),
+    periodKey: v.string(),
+    periodStart: v.number(),
+    aiRunCount: v.number(),
+    aiPromptTokens: v.number(),
+    aiCompletionTokens: v.number(),
+    aiTotalTokens: v.number(),
+    aiEstimatedCostUsd: v.number(),
+    inboundMessageCount: v.number(),
+    outboundMessageCount: v.number(),
+    outboundTemplateMessageCount: v.number(),
+    deliverySentCount: v.number(),
+    deliveryDeliveredCount: v.number(),
+    deliveryReadCount: v.number(),
+    deliveryFailedCount: v.number(),
+    queueFailureCount: v.number(),
+    mediaProcessedCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org_period_key", ["organizationId", "periodKey"])
+    .index("by_org_period_start", ["organizationId", "periodStart"]),
+
+  billingEvents: defineTable({
+    organizationId: v.optional(v.id("organizations")),
+    subscriptionId: v.optional(v.id("subscriptions")),
+    gateway: v.union(v.literal("polar"), v.literal("midtrans")),
+    providerEventId: v.string(),
+    eventType: v.string(),
+    externalReferenceId: v.optional(v.string()),
+    providerCustomerId: v.optional(v.string()),
+    providerSubscriptionId: v.optional(v.string()),
+    providerCheckoutId: v.optional(v.string()),
+    providerOrderId: v.optional(v.string()),
+    currency: v.optional(v.union(v.literal("USD"), v.literal("IDR"))),
+    amount: v.optional(v.number()),
+    status: v.string(),
+    rawPayload: v.string(),
+    idempotencyKey: v.string(),
+    processedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_idempotency_key", ["idempotencyKey"])
+    .index("by_org_created_at", ["organizationId", "createdAt"])
+    .index("by_provider_subscription_id", ["providerSubscriptionId"])
+    .index("by_provider_order_id", ["providerOrderId"]),
 });

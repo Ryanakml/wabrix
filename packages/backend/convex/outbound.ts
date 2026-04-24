@@ -9,6 +9,7 @@ const BASE_RETRY_DELAY_MS = 15_000;
 
 type SchedulerLike = Pick<MutationCtx, "scheduler">["scheduler"];
 type OutboundCtx = Pick<MutationCtx, "db"> & {
+  runMutation?: MutationCtx["runMutation"];
   scheduler?: SchedulerLike;
 };
 
@@ -373,7 +374,9 @@ export async function claimDueOutboundQueueJob(
 }
 
 export async function finalizeOutboundSendSuccess(
-  ctx: Pick<MutationCtx, "db">,
+  ctx: Pick<MutationCtx, "db"> & {
+    runMutation?: MutationCtx["runMutation"];
+  },
   {
     queueJobId,
     claimToken,
@@ -449,6 +452,13 @@ export async function finalizeOutboundSendSuccess(
     },
     createdAt: now,
   });
+
+  if (ctx.runMutation) {
+    await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+      organizationId: queueJob.organizationId,
+      deliverySentCount: 1,
+    });
+  }
 
   return {
     status: "sent" as const,
@@ -576,6 +586,14 @@ export async function finalizeOutboundSendFailure(
     createdAt: now,
   });
 
+  if (ctx.runMutation) {
+    await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+      organizationId: queueJob.organizationId,
+      queueFailureCount: 1,
+      deliveryFailedCount: 1,
+    });
+  }
+
   return {
     status: "failed" as const,
     notificationId,
@@ -584,7 +602,9 @@ export async function finalizeOutboundSendFailure(
 }
 
 export async function processWhatsappStatusWebhookEvent(
-  ctx: Pick<MutationCtx, "db">,
+  ctx: Pick<MutationCtx, "db"> & {
+    runMutation?: MutationCtx["runMutation"];
+  },
   webhookEvent: Doc<"whatsappWebhookEvents">,
 ) {
   const normalizedStatuses = normalizeWhatsappStatusWebhook({
@@ -644,6 +664,42 @@ export async function processWhatsappStatusWebhookEvent(
         botReplyError:
           status.status === "failed" ? status.errorMessage ?? "Meta send failed" : undefined,
         updatedAt: Date.now(),
+      });
+    }
+  }
+
+  if (webhookEvent.organizationId && ctx.runMutation) {
+    const usageIncrements: {
+      deliveryDeliveredCount?: number;
+      deliveryReadCount?: number;
+      deliveryFailedCount?: number;
+    } = {};
+
+    for (const status of normalizedStatuses) {
+      if (status.status === "delivered") {
+        usageIncrements.deliveryDeliveredCount =
+          (usageIncrements.deliveryDeliveredCount ?? 0) + 1;
+      }
+
+      if (status.status === "read") {
+        usageIncrements.deliveryReadCount =
+          (usageIncrements.deliveryReadCount ?? 0) + 1;
+      }
+
+      if (status.status === "failed") {
+        usageIncrements.deliveryFailedCount =
+          (usageIncrements.deliveryFailedCount ?? 0) + 1;
+      }
+    }
+
+    if (
+      usageIncrements.deliveryDeliveredCount ||
+      usageIncrements.deliveryReadCount ||
+      usageIncrements.deliveryFailedCount
+    ) {
+      await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+        organizationId: webhookEvent.organizationId,
+        ...usageIncrements,
       });
     }
   }

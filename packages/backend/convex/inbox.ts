@@ -6,12 +6,14 @@ import {
   buildOutboundQueueIdempotencyKey,
   isServiceWindowOpen,
 } from "./orchestrator.js";
+import { assertUsageAllowed } from "./billing.js";
 import { assertHasRole, requireOrgContext } from "./rbac.js";
 
 const OUTBOUND_QUEUE_MAX_ATTEMPTS = 5;
 
 type SchedulerLike = Pick<MutationCtx, "scheduler">["scheduler"];
 type InboxMutationCtx = Pick<MutationCtx, "db"> & {
+  runMutation?: MutationCtx["runMutation"];
   scheduler?: SchedulerLike;
 };
 
@@ -157,6 +159,12 @@ export async function queueManualReply(
     throw new Error("Conversation contact could not be loaded.");
   }
 
+  await assertUsageAllowed(ctx, {
+    organizationId,
+    kind: "outbound_messages",
+    now,
+  });
+
   const manualMessageId = await ctx.db.insert("messages", {
     organizationId,
     conversationId,
@@ -247,6 +255,13 @@ export async function queueManualReply(
     createdAt: now,
   });
 
+  if (ctx.runMutation) {
+    await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+      organizationId,
+      outboundMessageCount: 1,
+    });
+  }
+
   if (ctx.scheduler) {
     await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {
       queueJobId: outboundQueueId,
@@ -307,6 +322,12 @@ export async function queueTemplateReply(
   if (template.status !== "approved") {
     throw new Error("Only approved WhatsApp templates can be sent.");
   }
+
+  await assertUsageAllowed(ctx, {
+    organizationId,
+    kind: "outbound_messages",
+    now,
+  });
 
   const preview = extractTemplatePreview(template.components, template.name);
   const templateMessageId = await ctx.db.insert("messages", {
@@ -391,6 +412,14 @@ export async function queueTemplateReply(
     },
     createdAt: now,
   });
+
+  if (ctx.runMutation) {
+    await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+      organizationId,
+      outboundMessageCount: 1,
+      outboundTemplateMessageCount: 1,
+    });
+  }
 
   if (ctx.scheduler) {
     await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {

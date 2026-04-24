@@ -31,6 +31,7 @@ pnpm build
 - Current local development expects at minimum:
   - `NEXT_PUBLIC_CONVEX_URL`
   - `NEXT_PUBLIC_INGRESS_URL`
+  - `CONVEX_HTTP_URL`
   - `CONVEX_SHARED_SECRET`
   - `CLERK_PUBLISHABLE_KEY`
   - `CLERK_SECRET_KEY`
@@ -49,6 +50,10 @@ pnpm build
 - Phase 11 adds production WhatsApp template sync plus lifecycle refresh actions on the dashboard. It reuses the existing Meta credentials from phase 5 and needs a real `phoneNumberId` plus `businessAccountId` before staging validation makes sense.
 - Phase 11 media processing can optionally upload inbound media to S3-compatible storage. Set `MEDIA_STORAGE_ENDPOINT`, `MEDIA_STORAGE_BUCKET`, `MEDIA_STORAGE_ACCESS_KEY_ID`, `MEDIA_STORAGE_SECRET_ACCESS_KEY`, and `MEDIA_STORAGE_REGION` if you want durable object storage instead of metadata-only processing.
 - Phase 11 media summarization or transcription can optionally use `WHATSAPP_MEDIA_GEMINI_MODEL`. If unset, the current Google model path is still reused when available.
+- Phase 12 adds billing and analytics. The web app now needs `CONVEX_HTTP_URL` plus `CONVEX_SHARED_SECRET` in the same environment so the unified Next.js billing webhook handler can forward normalized events into Convex.
+- Phase 12 Polar checkout expects `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, and one product id env per plan: `POLAR_STARTER_PRODUCT_ID`, `POLAR_GROWTH_PRODUCT_ID`, and `POLAR_SCALE_PRODUCT_ID`.
+- Phase 12 Midtrans checkout expects `MIDTRANS_SERVER_KEY`. `MIDTRANS_IS_PRODUCTION=true` switches the checkout route from sandbox to production. `MIDTRANS_CLIENT_KEY` stays optional unless you later add direct browser-side Midtrans widgets.
+- Phase 12 Geo-IP routing uses `cf-ipcountry`, `x-vercel-ip-country`, or the manual country selector on the pricing and billing pages. In local development, the selector is the easiest way to test both Polar and Midtrans paths.
 - Website ingestion uses Jina Reader first by default.
 - `FIRECRAWL_API_KEY` is optional and enables a hosted secondary ingestion path before the local HTML fallback.
 - Observability env vars for Helicone or Axiom are optional in local development.

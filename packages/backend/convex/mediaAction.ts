@@ -176,39 +176,49 @@ async function generateGeminiInlineText(args: {
   body: Buffer;
   fetchImpl?: typeof fetch;
 }) {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const apiKey = process.env.GOOGLE_AI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey || args.body.length > MAX_INLINE_MEDIA_BYTES) {
     return null;
   }
 
-  const model = process.env.WHATSAPP_MEDIA_GEMINI_MODEL ?? "gemini-2.0-flash";
+  const cleanMimeType = args.mimeType.split(";")[0]?.trim() || args.mimeType;
+
+  const envModel = (process.env.WHATSAPP_MEDIA_GEMINI_MODEL ?? "gemini-2.5-flash").trim();
+  const rawModel = envModel.startsWith("models/") ? envModel.slice(7) : envModel;
+
+  const requestBody = JSON.stringify({
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: args.prompt },
+          {
+            inlineData: {
+              mimeType: cleanMimeType,
+              data: args.body.toString("base64"),
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  console.log(`[Gemini API] Sending payload to models/${rawModel}. MimeType: ${cleanMimeType}, Audio Base64 length: ${args.body.toString("base64").length}`);
+
   const response = await (args.fetchImpl ?? fetch)(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${rawModel}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: args.prompt },
-              {
-                inlineData: {
-                  mimeType: args.mimeType,
-                  data: args.body.toString("base64"),
-                },
-              },
-            ],
-          },
-        ],
-      }),
+      body: requestBody,
     },
   );
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Gemini API failed with status ${response.status}: ${errorText}`);
     return null;
   }
 

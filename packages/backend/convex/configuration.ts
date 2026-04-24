@@ -5,6 +5,7 @@ import {
   mutation,
   query,
 } from "./_generated/server.js";
+import { internal } from "./_generated/api.js";
 import { encryptSecret } from "./lib/crypto.js";
 import {
   backendDefaultBotName,
@@ -368,7 +369,7 @@ export const logAiRun = internalMutation({
       throw new Error("Cannot log AI run for missing bot profile");
     }
 
-    return ctx.db.insert("aiRuns", {
+    const aiRunId = await ctx.db.insert("aiRuns", {
       organizationId: botProfile.organizationId,
       botId: args.botId,
       promptVersionId: args.promptVersionId,
@@ -386,5 +387,16 @@ export const logAiRun = internalMutation({
       guardrailCategory: args.guardrailCategory,
       createdAt: Date.now(),
     });
+
+    await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+      organizationId: botProfile.organizationId,
+      aiRunCount: 1,
+      aiPromptTokens: args.promptTokens,
+      aiCompletionTokens: args.completionTokens,
+      aiTotalTokens: args.totalTokens,
+      aiEstimatedCostUsd: args.estimatedCostUsd,
+    });
+
+    return aiRunId;
   },
 });

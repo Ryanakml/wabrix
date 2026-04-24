@@ -491,7 +491,7 @@ async function createWhatsappMediaRecord(
 }
 
 export async function processStoredWhatsappWebhookEvent(
-  ctx: Pick<MutationCtx, "db" | "scheduler">,
+  ctx: Pick<MutationCtx, "db" | "scheduler" | "runMutation">,
   webhookEvent: Doc<"whatsappWebhookEvents">,
 ) {
   if (!webhookEvent.organizationId || !webhookEvent.integrationId || !webhookEvent.botId) {
@@ -581,6 +581,13 @@ export async function processStoredWhatsappWebhookEvent(
       createdAt: normalizedMessage.receivedAt,
       updatedAt: now,
     });
+
+    if (ctx.runMutation) {
+      await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+        organizationId: webhookEvent.organizationId,
+        inboundMessageCount: 1,
+      });
+    }
 
     const whatsappMessageId = await ctx.db.insert("whatsappMessages", {
       organizationId: webhookEvent.organizationId,
