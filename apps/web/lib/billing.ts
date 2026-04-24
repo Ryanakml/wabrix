@@ -26,14 +26,8 @@ export function detectBillingCountry(
   );
 }
 
-export function buildMidtransOrderId({
-  clerkOrgId,
-  planKey,
-}: {
-  clerkOrgId: string;
-  planKey: PlanKey;
-}) {
-  return `wabrix__${clerkOrgId}__${planKey}__${Date.now()}`;
+export function buildMidtransOrderId() {
+  return `trx_${Date.now()}`;
 }
 
 export function parseMidtransOrderId(orderId?: string | null) {
@@ -261,6 +255,9 @@ export function normalizePolarBillingWebhook(
 export function normalizeMidtransBillingWebhook(payload: Record<string, unknown>) {
   const orderId = typeof payload.order_id === "string" ? payload.order_id : undefined;
   const parsedOrder = parseMidtransOrderId(orderId);
+  const clerkOrgId = typeof payload.custom_field1 === "string" ? payload.custom_field1 : parsedOrder?.clerkOrgId;
+  const planKey = typeof payload.custom_field2 === "string" ? payload.custom_field2 : parsedOrder?.planKey;
+
   const currency =
     typeof payload.currency === "string" && payload.currency.toUpperCase() === "IDR"
       ? "IDR"
@@ -273,8 +270,8 @@ export function normalizeMidtransBillingWebhook(payload: Record<string, unknown>
       `${orderId ?? "midtrans"}:${String(payload.transaction_status ?? "unknown")}`,
     eventType: "midtrans.payment_notification",
     status: String(payload.transaction_status ?? "pending"),
-    clerkOrgId: parsedOrder?.clerkOrgId,
-    planKey: parsedOrder?.planKey,
+    clerkOrgId,
+    planKey,
     billingCountry: "ID",
     currency,
     amount:
@@ -360,10 +357,7 @@ export async function createMidtransCheckoutSession(input: {
   appUrl: string;
 }) {
   const plan = getBillingPlanDefinition(input.planKey);
-  const orderId = buildMidtransOrderId({
-    clerkOrgId: input.clerkOrgId,
-    planKey: input.planKey,
-  });
+  const orderId = buildMidtransOrderId();
   const baseUrl =
     process.env.MIDTRANS_IS_PRODUCTION === "true"
       ? "https://app.midtrans.com"
@@ -393,6 +387,8 @@ export async function createMidtransCheckoutSession(input: {
       callbacks: {
         finish: `${input.appUrl.replace(/\/$/, "")}/billing/complete`,
       },
+      custom_field1: input.clerkOrgId,
+      custom_field2: input.planKey,
     }),
   });
 
