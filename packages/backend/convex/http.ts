@@ -218,4 +218,53 @@ http.route({
   }),
 });
 
+http.route({
+  path: "/internal/billing/webhook-events",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const authFailure = requireSharedSecret(request);
+    if (authFailure) {
+      return authFailure;
+    }
+
+    try {
+      const payload = (await request.json()) as {
+        gateway: "polar" | "midtrans";
+        providerEventId: string;
+        eventType: string;
+        status: string;
+        organizationId?: string;
+        clerkOrgId?: string;
+        planKey?: string;
+        billingCountry?: string;
+        currency?: "USD" | "IDR";
+        amount?: number;
+        providerCustomerId?: string;
+        providerSubscriptionId?: string;
+        providerCheckoutId?: string;
+        providerOrderId?: string;
+        externalReferenceId?: string;
+        currentPeriodStart?: number;
+        currentPeriodEnd?: number;
+        cancelAtPeriodEnd?: boolean;
+        canceledAt?: number;
+        rawPayload: string;
+      };
+
+      const result = await ctx.runMutation(
+        internal.billing.processBillingWebhookMutation,
+        {
+          ...payload,
+          organizationId: payload.organizationId as never,
+        },
+      );
+
+      return Response.json(result, { status: 200 });
+    } catch (error) {
+      console.error("Billing webhook processing failed", error);
+      return new Response("Webhook processing failed", { status: 500 });
+    }
+  }),
+});
+
 export default http;

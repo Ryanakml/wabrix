@@ -8,6 +8,7 @@ import type { Doc, Id } from "./_generated/dataModel.js";
 import { action, type ActionCtx } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import { decryptSecret } from "./lib/crypto.js";
+import { buildUsageLimitErrorMessage } from "./lib/billing.js";
 import { applyPromptInjectionGuard, detectLanguage } from "./lib/guardrails.js";
 import { embedTexts, selectRelevantKnowledgeChunks } from "./lib/knowledge.js";
 import {
@@ -220,6 +221,19 @@ async function previewBotReplyHandler(
     throw new Error("Bot Studio is not configured for the active organization");
   }
 
+  const usageGuard = await ctx.runQuery(internal.billing.getUsageGuardState, {
+    organizationId: runtimeState.organizationId,
+  });
+
+  if (usageGuard.usage.aiTokens >= usageGuard.limits.aiTokens) {
+    throw new Error(
+      buildUsageLimitErrorMessage({
+        kind: "ai_tokens",
+        planName: usageGuard.planName,
+      }),
+    );
+  }
+
   validateDigitalOceanReferenceConfig({
     endpointUrl: runtimeState.provider.endpointUrl,
     modelId:
@@ -399,6 +413,19 @@ async function translateInboxMessagesHandler(
 
   if (!runtimeState) {
     throw new Error("Bot Studio is not configured for the active organization");
+  }
+
+  const usageGuard = await ctx.runQuery(internal.billing.getUsageGuardState, {
+    organizationId: runtimeState.organizationId,
+  });
+
+  if (usageGuard.usage.aiTokens >= usageGuard.limits.aiTokens) {
+    throw new Error(
+      buildUsageLimitErrorMessage({
+        kind: "ai_tokens",
+        planName: usageGuard.planName,
+      }),
+    );
   }
 
   const fallbackGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;

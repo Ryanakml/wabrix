@@ -3,6 +3,7 @@ import type { Doc, Id } from "./_generated/dataModel.js";
 import type { MutationCtx } from "./_generated/server.js";
 import { internalMutation } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
+import { assertUsageAllowed } from "./billing.js";
 
 export const BOT_REPLY_DEBOUNCE_MS = 3_500;
 export const SERVICE_WINDOW_EXPIRING_SOON_MS = 30 * 60 * 1_000;
@@ -15,6 +16,7 @@ type ConversationHistoryEntry = {
 
 type SchedulerLike = Pick<MutationCtx, "scheduler">["scheduler"];
 type OrchestratorCtx = Pick<MutationCtx, "db"> & {
+  runMutation?: MutationCtx["runMutation"];
   scheduler?: SchedulerLike;
 };
 
@@ -516,6 +518,12 @@ export async function finalizeBotReplyDraft(
     return { status: "blocked" as const, reason: "contact_opted_out" };
   }
 
+  await assertUsageAllowed(ctx, {
+    organizationId: conversation.organizationId,
+    kind: "outbound_messages",
+    now,
+  });
+
   const assistantMessageId = await ctx.db.insert("messages", {
     organizationId: conversation.organizationId,
     conversationId,
@@ -613,6 +621,13 @@ export async function finalizeBotReplyDraft(
     },
     createdAt: now,
   });
+
+  if (ctx.runMutation) {
+    await ctx.runMutation(internal.billing.incrementUsageCountersMutation, {
+      organizationId: conversation.organizationId,
+      outboundMessageCount: 1,
+    });
+  }
 
   if (ctx.scheduler) {
     await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {

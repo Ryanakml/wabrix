@@ -12,6 +12,8 @@ const dashboardModules = [
   "botStudio",
   "knowledgeBase",
   "inbox",
+  "billing",
+  "analytics",
   "ops",
 ] as const;
 
@@ -49,6 +51,12 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
               </Link>
               <Link href={`/${locale}/dashboard/whatsapp`}>
                 <Button>{t("openWhatsAppSetup")}</Button>
+              </Link>
+              <Link href={`/${locale}/dashboard/billing`}>
+                <Button>{t("openBilling")}</Button>
+              </Link>
+              <Link href={`/${locale}/dashboard/analytics`}>
+                <Button>{t("openAnalytics")}</Button>
               </Link>
               <Link href={`/${locale}`}>
                 <Button variant="secondary">{t("backToMarketing")}</Button>

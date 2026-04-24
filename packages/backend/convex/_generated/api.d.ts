@@ -9,12 +9,14 @@
  */
 
 import type * as ai from "../ai.js";
+import type * as billing from "../billing.js";
 import type * as configuration from "../configuration.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
 import type * as inbox from "../inbox.js";
 import type * as knowledge from "../knowledge.js";
 import type * as knowledgeActions from "../knowledgeActions.js";
+import type * as lib_billing from "../lib/billing.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_defaults from "../lib/defaults.js";
 import type * as lib_guardrails from "../lib/guardrails.js";
@@ -40,12 +42,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
+  billing: typeof billing;
   configuration: typeof configuration;
   http: typeof http;
   inbound: typeof inbound;
   inbox: typeof inbox;
   knowledge: typeof knowledge;
   knowledgeActions: typeof knowledgeActions;
+  "lib/billing": typeof lib_billing;
   "lib/crypto": typeof lib_crypto;
   "lib/defaults": typeof lib_defaults;
   "lib/guardrails": typeof lib_guardrails;

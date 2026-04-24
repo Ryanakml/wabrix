@@ -26,14 +26,16 @@
   },
   "Dashboard": {
     "eyebrow": "Tenant workspace",
-    "headline": "The tenant dashboard now ships with auth, Bot Studio, Knowledge Base, WhatsApp setup, and live webhook ingress.",
-    "subheadline": "The repo has moved past shell-only delivery. Tenancy, localized bot configuration, markdown-first knowledge ingestion, encrypted WhatsApp setup, and signature-safe raw webhook durability are now in place.",
+    "headline": "The tenant dashboard now ships with auth, automation, billing, and analytics.",
+    "subheadline": "The repo has moved past shell-only delivery. Tenancy, localized bot configuration, knowledge ingestion, compliant WhatsApp transport, monetization, and operational usage visibility are now in place.",
     "authStatus": "tenant-scoped-runtime",
     "backToMarketing": "Back to marketing",
     "openBotStudio": "Open Bot Studio",
     "openKnowledgeBase": "Open Knowledge Base",
     "openInbox": "Open Inbox",
     "openWhatsAppSetup": "Open WhatsApp Setup",
+    "openBilling": "Open Billing",
+    "openAnalytics": "Open Analytics",
     "modules": {
       "botStudio": {
         "title": "Bot Studio",
@@ -47,6 +49,14 @@
         "title": "Inbox",
         "body": "Inbox is now an operator workspace with assignment, pause or handoff controls, notes, manual replies, and delivery visibility."
       },
+      "billing": {
+        "title": "Billing",
+        "body": "Plan routing, checkout provider selection, subscriptions, and billing events are now tracked."
+      },
+      "analytics": {
+        "title": "Analytics",
+        "body": "Usage counters, AI tokens, queue health, and delivery metrics are now visible."
+      },
       "ops": {
         "title": "Ops",
         "body": "Queue visibility, webhook state, and monitoring expand across phases 6 to 14."
@@ -57,10 +67,10 @@
       "repo": "pnpm workspace and Turbo remain the repo backbone.",
       "web": "Next.js App Router, Tailwind, and next-intl power the localized dashboard.",
       "ingress": "Ingress now verifies Meta signatures, rate limits by phone number, and durably stores raw webhook events before exiting.",
-      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, WhatsApp setup, and inbound transcript persistence are wired end to end."
+      "shared": "Convex auth, RBAC, Bot Studio, Knowledge Base, WhatsApp setup, billing, analytics, and transcript persistence are wired end to end."
     },
     "nextStepsLabel": "Next phase",
-    "nextStepsBody": "Phase 12 adds analytics, billing, and usage limits on top of the now-production-ready messaging stack."
+    "nextStepsBody": "Phase 13 turns the product outward with landing pages, SEO, docs, and growth surfaces."
   },
   "BotStudio": {
     "eyebrow": "Phase 3",
@@ -289,5 +299,65 @@
     "stateQueued": "Queued",
     "stateBlocked": "Blocked",
     "stateFailed": "Failed"
+  },
+  "Pricing": {
+    "eyebrow": "Phase 12",
+    "headline": "Choose the payment path that fits your market.",
+    "subheadline": "Pricing now routes Indonesia to Midtrans with IDR, while other countries default to Polar with USD. The country selector is a safe preview before checkout confirms the final billing path.",
+    "countryLabel": "Billing country",
+    "providerLabel": "Checkout provider",
+    "currencyLabel": "Currency",
+    "cta": "Open billing workspace",
+    "perMonth": "per month",
+    "seats": "Seats",
+    "aiTokens": "AI tokens",
+    "outboundMessages": "Outbound messages"
+  },
+  "Billing": {
+    "eyebrow": "Phase 12",
+    "headline": "Billing",
+    "subheadline": "Manage plan selection, provider routing, subscription state, and audited billing events from one tenant-scoped workspace.",
+    "back": "Back to dashboard",
+    "pricingLink": "Open pricing",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL is not configured. Billing needs a Convex deployment before usage and subscription state can load.",
+    "loading": "Loading billing state…",
+    "currentPlan": "Current subscription",
+    "noSubscription": "No active paid subscription yet. The tenant is currently using the default starter entitlement snapshot.",
+    "status": "Status",
+    "gateway": "Gateway",
+    "period": "Period",
+    "usage": "Current usage",
+    "aiTokens": "AI tokens",
+    "outboundMessages": "Outbound messages",
+    "seats": "Seats",
+    "recentEvents": "Recent billing events",
+    "noEvents": "No billing events have been recorded yet.",
+    "countryLabel": "Billing country",
+    "startCheckout": "Start checkout",
+    "checkoutPending": "Opening checkout…",
+    "checkoutFailed": "Checkout creation failed.",
+    "managePlans": "Plan catalog",
+    "perMonth": "per month"
+  },
+  "Analytics": {
+    "eyebrow": "Phase 12",
+    "headline": "Analytics",
+    "subheadline": "Monitor AI usage, outbound queue health, delivery state, and recent automation load from the tenant dashboard.",
+    "back": "Back to dashboard",
+    "missingRuntime": "NEXT_PUBLIC_CONVEX_URL is not configured. Analytics needs a Convex deployment before usage metrics can load.",
+    "loading": "Loading analytics…",
+    "usage": "Usage",
+    "queueMetrics": "Queue metrics",
+    "deliveryMetrics": "Delivery metrics",
+    "recentAiRuns": "Recent AI runs",
+    "aiTokens": "AI tokens",
+    "outboundMessages": "Outbound messages",
+    "queued": "Queued",
+    "processing": "Processing",
+    "sent": "Sent",
+    "failed": "Failed",
+    "delivered": "Delivered",
+    "read": "Read",
+    "noRuns": "No AI runs have been logged yet."
   }
 }
