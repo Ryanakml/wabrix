@@ -1,28 +1,193 @@
 {
   "Marketing": {
-    "phaseBadge": "Phase 1 sedang berjalan",
-    "eyebrow": "Fondasi SaaS khusus WhatsApp",
-    "headline": "Monorepo bersih untuk operasi AI WhatsApp yang andal.",
-    "subheadline": "Repo sekarang punya Turbo workspace, shell Next.js yang sudah dilokalkan, shell Cloudflare Worker untuk ingress, dan package bersama yang siap dipakai untuk fase Convex, Clerk, dan WhatsApp berikutnya.",
-    "ctaPrimary": "Buka shell dashboard",
-    "ctaSecondary": "Baca dokumen yang disetujui",
-    "cards": {
-      "foundationTitle": "Turbo workspace",
-      "foundationBody": "Satu repo dengan apps dan packages yang siap untuk delivery per fase.",
-      "i18nTitle": "Inggris + Bahasa",
-      "i18nBody": "next-intl sudah diinisialisasi dengan routing berbasis locale sejak awal.",
-      "ingressTitle": "Shell worker",
-      "ingressBody": "Hono dan Wrangler sudah siap dengan placeholder local, staging, dan production."
+    "nav": {
+      "overview": "Overview",
+      "pricing": "Pricing",
+      "docs": "Docs",
+      "dashboard": "Dashboard",
+      "cta": "Lihat plan",
+      "openMenu": "Buka navigasi",
+      "mobileDescription": "Loncat ke halaman public, docs, atau workspace operator.",
+      "tagline": "WhatsApp ops yang siap revenue"
     },
-    "shellBadge": "Snapshot fondasi",
-    "shellTitle": "Surface lokal yang tersedia di phase 1",
-    "shellItems": {
-      "web": "Shell marketing + dashboard",
-      "ingress": "Shell worker ingress",
-      "status": "Status implementasi",
-      "statusValue": "Fondasi repo"
+    "footer": {
+      "description": "Wabrix mengubah WhatsApp jadi workflow operator yang rapi dengan orkestrasi bot, kontrol inbox, guard billing, dan jalur fallback yang tetap compliant.",
+      "pricing": "Pricing",
+      "docs": "Dokumentasi",
+      "whatsapp": "Setup WhatsApp",
+      "billing": "Workspace Billing"
     },
-    "shellFootnote": "Fase berikutnya akan mengganti placeholder dengan auth Clerk, persistence Convex, verifikasi webhook, orkestrasi queue, dan observability production."
+    "seo": {
+      "title": "Wabrix | WhatsApp AI Buat Tim Revenue",
+      "description": "Jalankan automation WhatsApp, inbox operator yang compliant, template, billing, dan analytics dari satu SaaS yang fokus ke produksi."
+    },
+    "hero": {
+      "badge": "Phase 13: Landing, SEO, docs, dan growth",
+      "title": "Workspace WhatsApp AI premium buat tim yang butuh automation tanpa bikin chaos.",
+      "description": "Wabrix menyatukan delivery WhatsApp yang compliant, balasan berbasis AI, handoff ke human, kontrol billing, dan analytics dalam satu produk yang benar-benar dibangun buat operasi, bukan sekadar demo.",
+      "primaryCta": "Lihat pricing",
+      "secondaryCta": "Baca docs",
+      "statOne": {
+        "label": "Ingress ke inbox",
+        "value": "End to end"
+      },
+      "statTwo": {
+        "label": "Logic compliance",
+        "value": "24h aware"
+      },
+      "statThree": {
+        "label": "Billing path",
+        "value": "Polar + Midtrans"
+      },
+      "snapshotBadge": "Snapshot produk",
+      "snapshotTitle": "Stack ini sudah lewat fase main-main.",
+      "snapshotDescription": "Di balik landing page, repo ini sudah punya tenancy Convex, auth Clerk, ingress staging-safe, outbound queue, flow template, billing, dan analytics.",
+      "snapshotItems": {
+        "0": {
+          "label": "Pipeline inbound",
+          "value": "Live",
+          "body": "Signature Meta, durability raw event, normalisasi, contact, conversation, dan tracking service window sudah ada."
+        },
+        "1": {
+          "label": "Orkestrasi reply",
+          "value": "Guarded",
+          "body": "Bot pause, handoff, opt-out, fallback template, dan recheck policy saat send sudah ditegakkan di flow backend."
+        },
+        "2": {
+          "label": "Monetisasi",
+          "value": "Ready",
+          "body": "Indonesia diarahkan ke Midtrans dalam IDR, sementara traffic global diarahkan ke Polar dalam USD dengan state subscription yang provider-agnostic."
+        }
+      },
+      "snapshotFootnote": "Phase ini bikin produk layak dipresentasikan ke prospect tanpa ngerusak kontrak operasional yang sudah dibangun di phase-phase sebelumnya."
+    },
+    "features": {
+      "badge": "Kenapa tim bakal pilih ini",
+      "title": "Satu produk buat seluruh loop operasional WhatsApp.",
+      "description": "Daripada nempel lima tool berbeda, Wabrix menjaga delivery, pengecekan policy, automation, takeover human, dan state billing tetap dekat supaya lebih reliable.",
+      "items": {
+        "0": {
+          "title": "Ingress terverifikasi",
+          "body": "Ingress Cloudflare Worker memvalidasi signature Meta, menangani challenge verification, dan menyimpan raw event secara durable sebelum return 200."
+        },
+        "1": {
+          "title": "Sending yang sadar policy",
+          "body": "Produk ini ngecek ulang window 24 jam, state opt-out, dan keamanan queue sebelum outbound send, bukan cuma di UI."
+        },
+        "2": {
+          "title": "Inbox operator",
+          "body": "Assignment, notes, translation, handoff, dan balasan manual hidup di samping thread, bukan tercecer di banyak admin screen."
+        },
+        "3": {
+          "title": "AI yang tetap scoped",
+          "body": "Bot Studio, retrieval knowledge, prompt versions, dan runtime logs semuanya tenant-scoped jadi satu org tidak bocor ke org lain."
+        },
+        "4": {
+          "title": "Template dan media",
+          "body": "Template approved, enrichment transcript media, dan visibilitas lifecycle WhatsApp sudah jadi bagian dari surface produk yang sama."
+        },
+        "5": {
+          "title": "Billing sesuai geografi",
+          "body": "Checkout global bisa tetap USD lewat Polar sementara buyer Indonesia dapat jalur native IDR lewat Midtrans."
+        }
+      }
+    },
+    "workflow": {
+      "badge": "Cara kerjanya",
+      "title": "Dari webhook ke reply queue dengan blind spot yang lebih sedikit.",
+      "description": "Cerita operasionalnya simpel: ingest dengan aman, map identity dengan benar, draft hanya saat boleh, lalu kirim dengan state yang ramah audit.",
+      "items": {
+        "0": {
+          "title": "1. Capture",
+          "body": "Ingress menerima event WhatsApp, memvalidasi signature, melakukan dedup, dan menulis payload raw secara durable ke Convex."
+        },
+        "1": {
+          "title": "2. Normalize",
+          "body": "Pemrosesan inbound memetakan contact, conversation, message, dan state service window supaya transcript bisa dipakai bot dan operator."
+        },
+        "2": {
+          "title": "3. Orchestrate",
+          "body": "Bot bikin draft saat policy mengizinkan, queue reply secara durable, lalu nanti reconcile delivery state dari status webhook Meta."
+        }
+      }
+    },
+    "proof": {
+      "badge": "Yang bikin ini kredibel",
+      "title": "Bukan shell cantik yang nutupin backend yang masih kosong.",
+      "description": "Phase 13 rilis di atas behavior runtime yang sudah real dan sudah lolos manual DoD di staging.",
+      "items": {
+        "0": {
+          "title": "Jalur staging real",
+          "body": "Convex, Clerk, Cloudflare Worker, dan Vercel sudah jalan di staging terisolasi dengan traffic webhook yang real."
+        },
+        "1": {
+          "title": "Docs operasional sudah ada",
+          "body": "Docs public sekarang menjelaskan setup, lifecycle, approval template, dan aturan service window supaya operator baru lebih cepat onboard."
+        },
+        "2": {
+          "title": "Growth tanpa ngibul",
+          "body": "Halaman public boleh jualan, tapi tetap nempel ke capability produk yang memang sudah ada hari ini."
+        }
+      }
+    },
+    "testimonials": {
+      "badge": "Rasa produknya",
+      "title": "Dibikin buat operator, bukan cuma buat founder yang nunjukin deck.",
+      "description": "Bahasanya memang masih marketing, tapi bentuknya tetap ngikutin shape produk yang benar-benar sudah ada di repo.",
+      "items": {
+        "0": {
+          "quote": "Akhirnya kami berhenti menjelaskan stack WhatsApp kami pakai lima panah dan tiga caveat.",
+          "name": "Nadia",
+          "role": "Lead Customer Ops"
+        },
+        "1": {
+          "quote": "Kemenangan terbesarnya bukan botnya. Tapi policy check, queue state, dan human takeover ada di satu tempat.",
+          "name": "Rizal",
+          "role": "Support Manager"
+        },
+        "2": {
+          "quote": "Billing lokal plus checkout global itu penting banget, walau banyak SaaS pura-pura nggak sadar. Ini ngerti poin itu.",
+          "name": "Maya",
+          "role": "Growth Operator"
+        }
+      }
+    },
+    "cta": {
+      "badge": "Siap evaluasi",
+      "title": "Pakai halaman public buat paham produknya cepat, lalu langsung masuk ke workspace.",
+      "description": "Kalau kamu lagi cek technical fit, docs adalah jalur tercepat. Kalau lagi cek commercial fit, pricing sekarang sudah mengikuti logic billing phase 12 yang real.",
+      "primary": "Ke pricing",
+      "secondary": "Buka docs",
+      "points": {
+        "0": "English dan Bahasa Indonesia dua-duanya tersedia.",
+        "1": "Metadata public dan OG images sudah siap dibagikan.",
+        "2": "Docs sekarang diroute di dalam app, bukan cuma ngumpet di repo.",
+        "3": "Cerita produk sekarang match sama state implementasi yang real."
+      }
+    },
+    "faq": {
+      "badge": "FAQ",
+      "title": "Pertanyaan yang biasanya ditanya buyer dan operator dari awal.",
+      "description": "Jawabannya singkat dulu. Docs public akan ngasih detail lebih dalam saat operasionalnya memang butuh.",
+      "items": {
+        "0": {
+          "question": "Apakah ini sudah support traffic WhatsApp yang real?",
+          "answer": "Iya. Staging sudah memvalidasi signature Meta, menyimpan raw webhook events, menormalisasi inbound message, membuat draft reply, dan merekonsiliasi delivery status."
+        },
+        "1": {
+          "question": "Billing dan pricing beda bagaimana per market?",
+          "answer": "Indonesia diarahkan ke Midtrans dengan IDR, sementara traffic non-Indonesia default ke Polar dengan USD. Pricing page menampilkan logic itu secara langsung."
+        },
+        "2": {
+          "question": "Apakah operator bisa ambil alih dari bot?",
+          "answer": "Bisa. Inbox sudah support assignment, internal notes, manual reply, bot pause, dan handoff controls."
+        },
+        "3": {
+          "question": "Kalau mau cepat paham policy rules, mulai dari mana?",
+          "answer": "Mulai dari docs public untuk setup WhatsApp, lifecycle WABA, approval template, dan aturan service window."
+        }
+      }
+    }
   },
   "Dashboard": {
     "eyebrow": "Workspace tenant",
@@ -301,17 +466,46 @@
     "stateFailed": "Failed"
   },
   "Pricing": {
-    "eyebrow": "Phase 12",
-    "headline": "Pilih jalur pembayaran yang cocok buat market kamu.",
-    "subheadline": "Pricing sekarang mengarahkan Indonesia ke Midtrans dengan IDR, sementara negara lain default ke Polar dengan USD. Country selector ini aman buat preview sebelum checkout mengunci jalur billing final.",
-    "countryLabel": "Negara billing",
-    "providerLabel": "Provider checkout",
+    "seo": {
+      "title": "Pricing | Wabrix",
+      "description": "Lihat pricing Wabrix dengan logic checkout sesuai region: Midtrans dalam IDR untuk Indonesia dan Polar dalam USD untuk traffic global."
+    },
+    "eyebrow": "Phase 13 pricing",
+    "headline": "Pricing premium yang tetap ngerti cara buyer kamu bayar.",
+    "subheadline": "Katalog plan-nya tetap konsisten, tapi routing checkout berubah mengikuti market. Indonesia pakai Midtrans dalam IDR. Traffic global default ke Polar dalam USD. Nggak ada cerita pricing yang pecah dua arah.",
+    "detectedLabel": "Negara terdeteksi",
+    "indiaNotSupportedHint": "Kalau tim kamu jualan ke Indonesia dan market global sekaligus, pertahankan logic plan yang sama dan biarkan provider checkout berpindah sesuai geografi, bukan memecah cerita produk.",
+    "gatewayLabel": "Provider checkout",
     "currencyLabel": "Mata uang",
-    "cta": "Buka workspace billing",
-    "perMonth": "per bulan",
+    "monthlyLabel": "per bulan",
+    "recommended": "Paling populer",
+    "startCta": "Buka workspace billing",
+    "contactCta": "Butuh konteks procurement dulu?",
+    "regionIndonesia": "Indonesia",
+    "regionGlobal": "Global",
+    "regionIndonesiaBody": "Pakai view ini saat buyer harus bayar lokal dalam IDR lewat Midtrans. Ini match dengan behavior checkout phase 12 yang memang sudah hidup di app.",
+    "regionGlobalBody": "Pakai view ini untuk traffic non-Indonesia. Polar menjaga cerita pricing tetap di USD dan cocok buat alur pembelian global.",
+    "included": "Yang termasuk tiap bulan",
     "seats": "Seat",
     "aiTokens": "AI tokens",
-    "outboundMessages": "Pesan outbound"
+    "outboundMessages": "Pesan outbound",
+    "trustedLabel": "Catatan routing",
+    "trustedBody": "Geo-aware routing memakai header negara dari Cloudflare atau Vercel saat tersedia, sementara halaman ini tetap kasih preview region yang jelas supaya sales dan ops bisa validasi jalurnya sebelum checkout.",
+    "docsCta": "Baca docs policy",
+    "compareTitle": "Satu cerita pricing, dua rel checkout.",
+    "compareBody": "Halaman ini sengaja diikat ke logic billing real yang sudah berjalan di produk, bukan pura-pura menganggap pricing universal di semua market."
+  },
+  "DocsMarketing": {
+    "seo": {
+      "title": "Docs | Wabrix",
+      "description": "Baca dokumentasi siap-operator untuk setup WhatsApp, lifecycle WABA, approval template, dan aturan service window."
+    },
+    "badge": "Docs public",
+    "title": "Docs praktis yang paling sering dibutuhkan operator baru duluan.",
+    "description": "Halaman ini didesain buat momen saat teammate baru nanya, “eh value ini masuk ke mana?” atau “kenapa freeform keblok sekarang?”",
+    "cardFootnote": "Singkat, public, dan operasional. Detail implementasi yang lebih dalam tetap hidup di phase docs.",
+    "readMore": "Baca dokumen",
+    "back": "Kembali ke docs"
   },
   "Billing": {
     "eyebrow": "Phase 12",
@@ -358,6 +552,17 @@
     "failed": "Failed",
     "delivered": "Delivered",
     "read": "Read",
-    "noRuns": "Belum ada AI run yang tercatat."
+    "noRuns": "Belum ada AI run yang tercatat.",
+    "currentPeriod": "Periode saat ini",
+    "dailySeries": "Seri harian",
+    "last7Days": "7 hari terakhir",
+    "activityBreakdown": "Ringkasan aktivitas",
+    "queueBreakdown": "Ringkasan queue",
+    "deliveryBreakdown": "Ringkasan delivery",
+    "used": "Terpakai",
+    "limit": "Limit",
+    "provider": "Provider",
+    "model": "Model",
+    "totalTokens": "Total token"
   }
 }

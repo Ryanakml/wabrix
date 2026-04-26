@@ -1,4 +1,5 @@
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import { cookies } from "next/headers";
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 
 export default function DashboardLayout({
   children,
@@ -22,27 +23,13 @@ async function DashboardLayoutInner({
   children: React.ReactNode;
   localePromise: Promise<{ locale: string }>;
 }) {
-  const { locale } = await localePromise;
+  await localePromise;
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex h-14 items-center justify-between border-b px-6">
-        <div className="flex items-center gap-4">
-          <span className="font-semibold">Dashboard</span>
-          <OrganizationSwitcher 
-            hidePersonal={true} 
-            afterCreateOrganizationUrl={`/${locale}/dashboard`}
-            afterLeaveOrganizationUrl={`/${locale}/onboarding`}
-            afterSelectOrganizationUrl={`/${locale}/dashboard`} 
-          />
-        </div>
-        <div>
-          <UserButton />
-        </div>
-      </header>
-      <main className="flex-1 overflow-auto bg-muted/20">
-        {children}
-      </main>
-    </div>
+    <DashboardShell defaultOpen={defaultOpen}>
+      {children}
+    </DashboardShell>
   );
 }

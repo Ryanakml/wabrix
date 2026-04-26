@@ -787,100 +787,62 @@ export const getAnalyticsDashboardState = query({
   args: {},
   handler: async (ctx) => {
     const access = await requireOrgContext(ctx);
-    const snapshot = await getEntitlementSnapshot(ctx, access.organizationId, Date.now());
-    const recentAiRuns = await ctx.db
-      .query("aiRuns")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+    const usageCounters = await ctx.db
+      .query("usageCounters")
+      .withIndex("by_org_period_start", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
-      .take(100);
+      .take(12);
+    const conversations = await ctx.db
+      .query("conversations")
+      .withIndex("by_org_last_message_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
+      .collect();
     const recentMessages = await ctx.db
       .query("messages")
       .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
       .order("desc")
-      .take(200);
-    const recentQueue = await ctx.db
-      .query("outboundQueue")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
-      .order("desc")
-      .take(200);
+      .take(8);
 
-    const queueMetrics = recentQueue.reduce(
-      (acc, job) => {
-        if (job.status === "queued") acc.queued += 1;
-        if (job.status === "processing") acc.processing += 1;
-        if (job.status === "sent") acc.sent += 1;
-        if (job.status === "failed") acc.failed += 1;
+    const orderedUsageCounters = [...usageCounters]
+      .sort((left, right) => left.periodStart - right.periodStart)
+      .map((counter) => ({
+        id: counter._id,
+        periodKey: counter.periodKey,
+        periodStart: counter.periodStart,
+        aiRunCount: counter.aiRunCount,
+        aiPromptTokens: counter.aiPromptTokens,
+        aiCompletionTokens: counter.aiCompletionTokens,
+        aiTotalTokens: counter.aiTotalTokens,
+        inboundMessageCount: counter.inboundMessageCount,
+        outboundMessageCount: counter.outboundMessageCount,
+        deliverySentCount: counter.deliverySentCount,
+        deliveryDeliveredCount: counter.deliveryDeliveredCount,
+        deliveryReadCount: counter.deliveryReadCount,
+        deliveryFailedCount: counter.deliveryFailedCount,
+      }));
+
+    const conversationBreakdown = conversations.reduce(
+      (acc, conversation) => {
+        if (conversation.status === "open") acc.open += 1;
+        if (conversation.status === "closed") acc.closed += 1;
+        if (conversation.handoffRequested) acc.handoff += 1;
+        if (conversation.botPaused) acc.botPaused += 1;
         return acc;
       },
-      { queued: 0, processing: 0, sent: 0, failed: 0 },
+      { open: 0, closed: 0, handoff: 0, botPaused: 0 },
     );
-
-    const deliveryMetrics = recentMessages.reduce(
-      (acc, message) => {
-        if (message.deliveryState === "sent") acc.sent += 1;
-        if (message.deliveryState === "delivered") acc.delivered += 1;
-        if (message.deliveryState === "read") acc.read += 1;
-        if (message.deliveryState === "failed") acc.failed += 1;
-        return acc;
-      },
-      { sent: 0, delivered: 0, read: 0, failed: 0 },
-    );
-
-    const dailyBuckets = new Map<string, { aiRuns: number; inbound: number; outbound: number }>();
-    const bucketKeyFor = (timestamp: number) => {
-      const date = new Date(timestamp);
-      return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
-    };
-
-    for (const run of recentAiRuns) {
-      const key = bucketKeyFor(run.createdAt);
-      const bucket = dailyBuckets.get(key) ?? { aiRuns: 0, inbound: 0, outbound: 0 };
-      bucket.aiRuns += 1;
-      dailyBuckets.set(key, bucket);
-    }
-
-    for (const message of recentMessages) {
-      const key = bucketKeyFor(message.createdAt);
-      const bucket = dailyBuckets.get(key) ?? { aiRuns: 0, inbound: 0, outbound: 0 };
-      if (message.role === "user") {
-        bucket.inbound += 1;
-      }
-      if (message.role === "assistant" || message.role === "agent") {
-        bucket.outbound += 1;
-      }
-      dailyBuckets.set(key, bucket);
-    }
 
     return {
-      currentPeriod: snapshot.period.periodKey,
-      usage: {
-        aiTokensUsed: snapshot.usage.aiTokens,
-        aiTokensLimit: snapshot.entitlements.aiTokens,
-        outboundMessagesUsed: snapshot.usage.outboundMessages,
-        outboundMessagesLimit: snapshot.entitlements.outboundMessages,
-      },
-      utilization: {
-        aiTokensRatio: clampRatio(snapshot.usage.aiTokens, snapshot.entitlements.aiTokens),
-        outboundMessagesRatio: clampRatio(
-          snapshot.usage.outboundMessages,
-          snapshot.entitlements.outboundMessages,
-        ),
-      },
-      queueMetrics,
-      deliveryMetrics,
-      dailySeries: [...dailyBuckets.entries()]
-        .sort(([left], [right]) => left.localeCompare(right))
-        .slice(-7)
-        .map(([date, counts]) => ({
-          date,
-          ...counts,
-        })),
-      recentAiRuns: recentAiRuns.slice(0, 8).map((run) => ({
-        id: run._id,
-        model: run.selectedModel,
-        provider: run.selectedProvider,
-        totalTokens: run.totalTokens ?? 0,
-        createdAt: run.createdAt,
+      usageCounters: orderedUsageCounters,
+      conversationBreakdown,
+      recentActivity: recentMessages.map((message) => ({
+        id: message._id,
+        role: message.role,
+        content: message.content,
+        createdAt: message.createdAt,
       })),
     };
   },

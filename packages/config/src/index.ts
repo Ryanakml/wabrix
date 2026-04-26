@@ -9,7 +9,7 @@ export type SupportedLocale = (typeof supportedLocales)[number];
 
 export const defaultLocale: SupportedLocale = "en";
 
-export const phaseLabel = "phase-12";
+export const phaseLabel = "phase-13";
 
 export type BillingGateway = "polar" | "midtrans";
 

@@ -155,6 +155,58 @@ export const getBotStudioRuntimeState = internalQuery({
   },
 });
 
+export const getBotStudioPreviewState = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const access = await requireOrgContext(ctx);
+    const fallback = buildFallbackState();
+    const profile = await ctx.db
+      .query("botProfiles")
+      .withIndex("by_org", (q) => q.eq("organizationId", access.organizationId))
+      .first();
+    const provider = await ctx.db
+      .query("modelProviderSettings")
+      .withIndex("by_org", (q) => q.eq("organizationId", access.organizationId))
+      .first();
+    const promptVersions = await ctx.db
+      .query("promptVersions")
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
+      .order("desc")
+      .take(1);
+
+    return {
+      organizationId: access.organizationId,
+      clerkOrgId: access.clerkOrgId,
+      botId: profile?._id ?? null,
+      promptVersionId: String(
+        promptVersions[0]?._id ?? `draft-${access.organizationId.toString()}`,
+      ),
+      state: {
+        name: profile?.name ?? fallback.name,
+        defaultLanguage: profile?.defaultLanguage ?? fallback.defaultLanguage,
+        systemPrompt: profile?.systemPrompt ?? fallback.systemPrompt,
+        localizedPromptTemplates: {
+          en:
+            profile?.localizedPromptTemplates.en ??
+            fallback.localizedPromptTemplates.en,
+          id:
+            profile?.localizedPromptTemplates.id ??
+            fallback.localizedPromptTemplates.id,
+        },
+        providerType: provider?.providerType ?? fallback.providerType,
+        modelId: provider?.modelId ?? fallback.modelId,
+        endpointUrl: provider?.endpointUrl ?? fallback.endpointUrl,
+        temperature: provider?.temperature ?? fallback.temperature,
+        maxTokens: provider?.maxTokens ?? fallback.maxTokens,
+        hasApiKey: Boolean(provider?.apiKeyEncrypted),
+      },
+      providerApiKeyEncrypted: provider?.apiKeyEncrypted ?? null,
+    };
+  },
+});
+
 export const getBotStudioRuntimeStateForOrganization = internalQuery({
   args: {
     organizationId: v.id("organizations"),

@@ -2,7 +2,7 @@
 
 `wabrix` is a production-oriented WhatsApp AI SaaS built as a `pnpm` monorepo with Turborepo.
 
-Phase 0 is approved. Phase 1 established the monorepo foundation, phase 2 established auth and tenancy, phase 3 shipped the configurable bot runtime, phase 4 added the Knowledge Base and retrieval layer, phase 5 added tenant-scoped WhatsApp integration setup, phase 6 added production-safe webhook ingress, phase 7 added inbound normalization plus conversation mapping, phase 8 added bot orchestration plus the first durable outbound queue, phase 9 added outbound sending plus delivery-status reconciliation, phase 10 added the operator inbox plus handoff controls, phase 11 added production WhatsApp templates plus media handling, and phase 12 now adds analytics, billing, and usage limits.
+Phase 0 is approved. Phase 1 established the monorepo foundation, phase 2 established auth and tenancy, phase 3 shipped the configurable bot runtime, phase 4 added the Knowledge Base and retrieval layer, phase 5 added tenant-scoped WhatsApp integration setup, phase 6 added production-safe webhook ingress, phase 7 added inbound normalization plus conversation mapping, phase 8 added bot orchestration plus the first durable outbound queue, phase 9 added outbound sending plus delivery-status reconciliation, phase 10 added the operator inbox plus handoff controls, phase 11 added production WhatsApp templates plus media handling, phase 12 added analytics, billing, and usage limits, and phase 13 adds the public landing, SEO, public docs, and growth surfaces.
 
 - `apps/web`: Next.js App Router shell with Tailwind and `next-intl`
 - `apps/ingress`: Hono Cloudflare Worker shell with Wrangler placeholders
@@ -38,6 +38,7 @@ Core commands:
 - [Phase 10 Summary](./docs/phase-10/README.md)
 - [Phase 11 Summary](./docs/phase-11/README.md)
 - [Phase 12 Summary](./docs/phase-12/README.md)
+- [Phase 13 Summary](./docs/phase-13/README.md)
 - [Environment And Deployment Guide](./environment-and-deployment-guide.md)
 - [Local Setup](./docs/local-setup.md)
 - [Contributing](./CONTRIBUTING.md)
@@ -66,6 +67,8 @@ Current implemented state:
 - Usage counters now track AI tokens, inbound and outbound messaging, queue failures, delivery state, and processed media.
 - Backend usage checks now block over-limit AI and outbound traffic from direct backend flows, not just from the UI.
 - The dashboard now includes dedicated billing and analytics surfaces.
+- The public product story is now live with a localized landing page, upgraded pricing page, SEO metadata, social images, and public docs routes.
+- Public docs now cover WhatsApp setup, WABA lifecycle, template approval, and service-window rules in English and Bahasa Indonesia.
 - Service-window warnings and bot-reply failures now surface as dashboard notifications.
 - Outbound send failures now surface as dashboard notifications with retry visibility.
 - Gemini 2.5 Flash is wired as the default draft-generation model path.
@@ -74,5 +77,4 @@ Current implemented state:
 
 Still intentionally deferred to later phases:
 
-- Landing page, SEO, docs, and growth surfaces
 - CI/CD, monitoring, and production hardening

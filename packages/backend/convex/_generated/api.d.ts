@@ -29,6 +29,7 @@ import type * as orchestratorAction from "../orchestratorAction.js";
 import type * as outbound from "../outbound.js";
 import type * as outboundAction from "../outboundAction.js";
 import type * as rbac from "../rbac.js";
+import type * as seed from "../seed.js";
 import type * as users from "../users.js";
 import type * as whatsapp from "../whatsapp.js";
 import type * as whatsappAction from "../whatsappAction.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   outbound: typeof outbound;
   outboundAction: typeof outboundAction;
   rbac: typeof rbac;
+  seed: typeof seed;
   users: typeof users;
   whatsapp: typeof whatsapp;
   whatsappAction: typeof whatsappAction;

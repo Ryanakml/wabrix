@@ -54,6 +54,8 @@ pnpm build
 - Phase 12 Polar checkout expects `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, and one product id env per plan: `POLAR_STARTER_PRODUCT_ID`, `POLAR_GROWTH_PRODUCT_ID`, and `POLAR_SCALE_PRODUCT_ID`.
 - Phase 12 Midtrans checkout expects `MIDTRANS_SERVER_KEY`. `MIDTRANS_IS_PRODUCTION=true` switches the checkout route from sandbox to production. `MIDTRANS_CLIENT_KEY` stays optional unless you later add direct browser-side Midtrans widgets.
 - Phase 12 Geo-IP routing uses `cf-ipcountry`, `x-vercel-ip-country`, or the manual country selector on the pricing and billing pages. In local development, the selector is the easiest way to test both Polar and Midtrans paths.
+- Phase 13 adds public marketing pages, public docs routes, social image generation, and localized SEO metadata. There are no new required third-party secrets in this phase, but `NEXT_PUBLIC_APP_URL` should be correct in each environment so canonical URLs and social metadata resolve cleanly.
+- Phase 13 public docs content lives in `apps/web/content/docs/{locale}` and is rendered through the Next.js app at `/{locale}/docs`.
 - Website ingestion uses Jina Reader first by default.
 - `FIRECRAWL_API_KEY` is optional and enables a hosted secondary ingestion path before the local HTML fallback.
 - Observability env vars for Helicone or Axiom are optional in local development.

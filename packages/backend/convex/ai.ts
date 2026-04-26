@@ -50,6 +50,20 @@ type RuntimeBotStudioState = {
 type PreviewBotReplyArgs = {
   latestUserMessage: string;
   history?: DraftHistoryEntry[];
+  configOverride?: {
+    defaultLanguage?: "auto" | "en" | "id";
+    systemPrompt?: string;
+    localizedPromptTemplates?: {
+      en?: string;
+      id?: string;
+    };
+    providerType?: "google" | "digitalocean_reference";
+    modelId?: string;
+    endpointUrl?: string;
+    apiKey?: string;
+    temperature?: number;
+    maxTokens?: number;
+  };
 };
 
 type TranslateInboxMessagesArgs = {
@@ -212,17 +226,13 @@ async function previewBotReplyHandler(
   ctx: ActionCtx,
   args: PreviewBotReplyArgs,
 ): Promise<PreviewBotReplyResult> {
-  const runtimeState: RuntimeBotStudioState = await ctx.runQuery(
-    internal.configuration.getBotStudioRuntimeState,
+  const previewState = await ctx.runQuery(
+    internal.configuration.getBotStudioPreviewState,
     {},
   );
 
-  if (!runtimeState) {
-    throw new Error("Bot Studio is not configured for the active organization");
-  }
-
   const usageGuard = await ctx.runQuery(internal.billing.getUsageGuardState, {
-    organizationId: runtimeState.organizationId,
+    organizationId: previewState.organizationId,
   });
 
   if (usageGuard.usage.aiTokens >= usageGuard.limits.aiTokens) {
@@ -235,19 +245,24 @@ async function previewBotReplyHandler(
   }
 
   validateDigitalOceanReferenceConfig({
-    endpointUrl: runtimeState.provider.endpointUrl,
+    endpointUrl:
+      args.configOverride?.endpointUrl ?? previewState.state.endpointUrl,
     modelId:
-      runtimeState.provider.providerType === "digitalocean_reference"
-        ? runtimeState.provider.modelId
+      (args.configOverride?.providerType ?? previewState.state.providerType) ===
+      "digitalocean_reference"
+        ? (args.configOverride?.modelId ?? previewState.state.modelId)
         : null,
   });
 
   const fallbackGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  const isGoogleProvider = runtimeState.provider.providerType === "google";
+  const effectiveProviderType =
+    args.configOverride?.providerType ?? previewState.state.providerType;
+  const isGoogleProvider = effectiveProviderType === "google";
 
   const decryptedApiKey =
-    (await decryptSecret(runtimeState.provider.apiKeyEncrypted)) ??
-    (isGoogleProvider ? fallbackGoogleKey : undefined);
+    args.configOverride?.apiKey?.trim() ||
+    ((await decryptSecret(previewState.providerApiKeyEncrypted)) ??
+      (isGoogleProvider ? fallbackGoogleKey : undefined));
 
   if (!decryptedApiKey) {
     throw new Error(
@@ -258,7 +273,7 @@ async function previewBotReplyHandler(
   const embeddingApiKey = isGoogleProvider ? decryptedApiKey : fallbackGoogleKey;
 
   const outputLanguage = resolveOutputLanguage(
-    runtimeState.profile.defaultLanguage,
+    args.configOverride?.defaultLanguage ?? previewState.state.defaultLanguage,
     args.latestUserMessage,
   );
 
@@ -308,75 +323,82 @@ async function previewBotReplyHandler(
     ...new Set(knowledgeMatches.map((match) => match.title)),
   ];
 
-  await ctx.runMutation(internal.knowledge.logKnowledgeUsage, {
-    organizationId: runtimeState.organizationId,
-    botId: runtimeState.profile._id,
-    sourceIds: matchedSourceIds,
-    query: sanitizedLatestMessage,
-    queryLanguage: outputLanguage,
-    matchedChunkCount: knowledgeMatches.length,
-    retrievalStrategy: "cosine_similarity_gemini_embedding_001",
-  });
+  if (previewState.botId) {
+    await ctx.runMutation(internal.knowledge.logKnowledgeUsage, {
+      organizationId: previewState.organizationId,
+      botId: previewState.botId,
+      sourceIds: matchedSourceIds,
+      query: sanitizedLatestMessage,
+      queryLanguage: outputLanguage,
+      matchedChunkCount: knowledgeMatches.length,
+      retrievalStrategy: "cosine_similarity_gemini_embedding_001",
+    });
+  }
 
   const draft = await generateWithPrimaryModel({
-    organizationId: runtimeState.organizationId,
-    botId: runtimeState.profile._id.toString(),
-    providerType: runtimeState.provider.providerType as "google" | "digitalocean_reference",
-    endpointUrl: runtimeState.provider.endpointUrl,
+    organizationId: previewState.organizationId,
+    botId: previewState.botId?.toString() ?? "draft-preview",
+    providerType: effectiveProviderType,
+    endpointUrl:
+      args.configOverride?.endpointUrl ?? previewState.state.endpointUrl,
     providerApiKey: decryptedApiKey,
-    selectedModel: runtimeState.provider.modelId,
+    selectedModel: args.configOverride?.modelId ?? previewState.state.modelId,
     messages: [
       ...(args.history ?? []),
       { role: "user", content: sanitizedLatestMessage },
     ],
     systemPrompt:
-      runtimeState.profile.localizedPromptTemplates[outputLanguage] ??
-      runtimeState.profile.systemPrompt,
+      args.configOverride?.localizedPromptTemplates?.[outputLanguage] ??
+      previewState.state.localizedPromptTemplates[outputLanguage] ??
+      args.configOverride?.systemPrompt ??
+      previewState.state.systemPrompt,
     ragContext,
     timeoutMs: 15_000,
-    temperature: runtimeState.provider.temperature,
-    maxTokens: runtimeState.provider.maxTokens,
+    temperature: args.configOverride?.temperature ?? previewState.state.temperature,
+    maxTokens: args.configOverride?.maxTokens ?? previewState.state.maxTokens,
   });
 
-  await ctx.runMutation(internal.configuration.logAiRun, {
-    botId: runtimeState.profile._id,
-    promptVersionId: runtimeState.promptVersionId,
-    selectedProvider: draft.selectedProvider,
-    selectedModel: draft.selectedModel,
-    outputLanguage,
-    attempts: [
-      {
-        provider: draft.selectedProvider,
-        model: draft.selectedModel,
-        status: "success",
-        latencyMs: draft.latencyMs,
-      },
-    ],
-    ragContextUsed: knowledgeMatches.length > 0,
-    ragChunkCount: knowledgeMatches.length,
-    promptTokens: draft.usage?.promptTokens,
-    completionTokens: draft.usage?.completionTokens,
-    totalTokens: draft.usage?.totalTokens,
-    estimatedCostUsd: undefined,
-    guardrailTriggered: guardrail.flagged,
-    guardrailCategory: guardrail.flagged ? guardrail.category : undefined,
-  });
+  if (previewState.botId) {
+    await ctx.runMutation(internal.configuration.logAiRun, {
+      botId: previewState.botId,
+      promptVersionId: previewState.promptVersionId,
+      selectedProvider: draft.selectedProvider,
+      selectedModel: draft.selectedModel,
+      outputLanguage,
+      attempts: [
+        {
+          provider: draft.selectedProvider,
+          model: draft.selectedModel,
+          status: "success",
+          latencyMs: draft.latencyMs,
+        },
+      ],
+      ragContextUsed: knowledgeMatches.length > 0,
+      ragChunkCount: knowledgeMatches.length,
+      promptTokens: draft.usage?.promptTokens,
+      completionTokens: draft.usage?.completionTokens,
+      totalTokens: draft.usage?.totalTokens,
+      estimatedCostUsd: undefined,
+      guardrailTriggered: guardrail.flagged,
+      guardrailCategory: guardrail.flagged ? guardrail.category : undefined,
+    });
+  }
 
   const observabilityPayload = buildObservabilityPayload({
-    organizationId: runtimeState.organizationId,
+    organizationId: previewState.organizationId,
     provider: draft.selectedProvider,
     model: draft.selectedModel,
-    promptVersionId: runtimeState.promptVersionId,
+    promptVersionId: previewState.promptVersionId,
     guardrailTriggered: guardrail.flagged,
     ragChunkCount: knowledgeMatches.length,
     promptPreview: sanitizedLatestMessage,
     responsePreview: draft.content,
   });
   await emitObservabilityEvent({
-    organizationId: runtimeState.organizationId,
+    organizationId: previewState.organizationId,
     provider: draft.selectedProvider,
     model: draft.selectedModel,
-    promptVersionId: runtimeState.promptVersionId,
+    promptVersionId: previewState.promptVersionId,
     guardrailTriggered: guardrail.flagged,
     ragChunkCount: knowledgeMatches.length,
     promptPreview: sanitizedLatestMessage,
@@ -388,7 +410,7 @@ async function previewBotReplyHandler(
     modelProvider: draft.selectedProvider,
     modelId: draft.selectedModel,
     outputLanguage,
-    promptVersionId: runtimeState.promptVersionId,
+    promptVersionId: previewState.promptVersionId,
     ragContextUsed: knowledgeMatches.length > 0,
     ragChunkCount: knowledgeMatches.length,
     knowledgeSourceTitles,
@@ -489,6 +511,31 @@ export const previewBotReply = action({
           content: v.string(),
         }),
       ),
+    ),
+    configOverride: v.optional(
+      v.object({
+        defaultLanguage: v.optional(
+          v.union(v.literal("auto"), v.literal("en"), v.literal("id")),
+        ),
+        systemPrompt: v.optional(v.string()),
+        localizedPromptTemplates: v.optional(
+          v.object({
+            en: v.optional(v.string()),
+            id: v.optional(v.string()),
+          }),
+        ),
+        providerType: v.optional(
+          v.union(
+            v.literal("google"),
+            v.literal("digitalocean_reference"),
+          ),
+        ),
+        modelId: v.optional(v.string()),
+        endpointUrl: v.optional(v.string()),
+        apiKey: v.optional(v.string()),
+        temperature: v.optional(v.number()),
+        maxTokens: v.optional(v.number()),
+      }),
     ),
   },
   handler: async (ctx, args) => {

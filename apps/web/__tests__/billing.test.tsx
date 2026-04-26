@@ -15,6 +15,16 @@ const billingState = {
       includedSeats: 1,
       tagline: "Starter plan",
     },
+    {
+      key: "growth",
+      name: "Growth",
+      monthlyPriceUsdCents: 4900,
+      monthlyPriceIdr: 649000,
+      includedAiTokens: 250000,
+      includedOutboundMessages: 2500,
+      includedSeats: 5,
+      tagline: "Growth plan",
+    },
   ],
   currentSubscription: {
     id: "sub_123",
@@ -97,11 +107,11 @@ describe("Billing page", () => {
       />,
     );
 
-    expect(screen.getByText("starter")).toBeDefined();
+    expect(screen.getAllByText("Starter")).toHaveLength(2);
     expect(screen.getByText("1,200 / 50,000")).toBeDefined();
-    expect(screen.getByText("checkout_session_created")).toBeDefined();
+    expect(screen.getByText("Checkout Session Created")).toBeDefined();
 
-    fireEvent.click(screen.getByText("Start checkout"));
+    fireEvent.click(screen.getByText("Upgrade"));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -111,5 +121,16 @@ describe("Billing page", () => {
         }),
       );
     });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/billing/checkout",
+      expect.objectContaining({
+        body: JSON.stringify({
+          planKey: "growth",
+          billingCountry: "US",
+          locale: "en",
+        }),
+      }),
+    );
   });
 });

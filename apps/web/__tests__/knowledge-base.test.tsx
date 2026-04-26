@@ -1,7 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { KnowledgeBaseClient } from "../app/[locale]/dashboard/knowledge-base/knowledge-base-client";
+import { KnowledgeBaseClient } from "../features/knowledge-base/components/knowledge-base-client";
 
 const ingestKnowledgeSource = vi.fn(async () => ({
   sourceId: "source_123",
@@ -66,7 +66,7 @@ describe("Knowledge Base", () => {
           inlineContent: "Inline content",
           inlineContentPlaceholder: "Paste business knowledge",
           pdfDeferred: "PDF deferred",
-          configureBotFirst: "Configure Bot Studio first",
+          configureBotFirst: "Configure Bot Profile first",
           emptyState: "No sources",
           sourceListTitle: "Saved sources",
           previewTitle: "Markdown preview",

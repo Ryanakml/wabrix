@@ -1,28 +1,193 @@
 {
   "Marketing": {
-    "phaseBadge": "Phase 1 in progress",
-    "eyebrow": "WhatsApp-first SaaS foundation",
-    "headline": "A clean monorepo base for reliable WhatsApp AI operations.",
-    "subheadline": "The repo now ships with a Turbo workspace, a localized Next.js shell, a Cloudflare Worker ingress shell, and shared workspace packages prepared for the later Convex, Clerk, and WhatsApp phases.",
-    "ctaPrimary": "Open dashboard shell",
-    "ctaSecondary": "Read approved docs",
-    "cards": {
-      "foundationTitle": "Turbo workspace",
-      "foundationBody": "Single repo with apps and packages wired for phase-by-phase delivery.",
-      "i18nTitle": "English + Bahasa",
-      "i18nBody": "next-intl is initialized with locale-aware routing from day one.",
-      "ingressTitle": "Worker shell",
-      "ingressBody": "Hono and Wrangler are in place with local, staging, and production placeholders."
+    "nav": {
+      "overview": "Overview",
+      "pricing": "Pricing",
+      "docs": "Docs",
+      "dashboard": "Dashboard",
+      "cta": "See plans",
+      "openMenu": "Open navigation",
+      "mobileDescription": "Jump to the public pages, docs, or operator workspace.",
+      "tagline": "Revenue-grade WhatsApp ops"
     },
-    "shellBadge": "Foundation snapshot",
-    "shellTitle": "Local surfaces available in phase 1",
-    "shellItems": {
-      "web": "Marketing + dashboard shell",
-      "ingress": "Ingress worker shell",
-      "status": "Implementation state",
-      "statusValue": "Repo foundation"
+    "footer": {
+      "description": "Wabrix turns WhatsApp into a reliable operator workflow with bot orchestration, inbox controls, billing guardrails, and compliant fallback paths.",
+      "pricing": "Pricing",
+      "docs": "Documentation",
+      "whatsapp": "WhatsApp Setup",
+      "billing": "Billing Workspace"
     },
-    "shellFootnote": "Later phases will replace placeholders with Clerk auth, Convex persistence, webhook verification, queue orchestration, and production observability."
+    "seo": {
+      "title": "Wabrix | WhatsApp AI For Revenue Teams",
+      "description": "Run WhatsApp automation, compliant inbox operations, templates, billing, and analytics from one production-focused SaaS."
+    },
+    "hero": {
+      "badge": "Phase 13: Landing, SEO, docs, and growth",
+      "title": "The premium WhatsApp AI workspace for teams that need automation without chaos.",
+      "description": "Wabrix combines compliant WhatsApp delivery, AI-assisted replies, human handoff, billing control, and analytics in one product that is actually built for operations, not demos.",
+      "primaryCta": "View pricing",
+      "secondaryCta": "Read docs",
+      "statOne": {
+        "label": "Ingress to inbox",
+        "value": "End to end"
+      },
+      "statTwo": {
+        "label": "Compliance logic",
+        "value": "24h aware"
+      },
+      "statThree": {
+        "label": "Billing path",
+        "value": "Polar + Midtrans"
+      },
+      "snapshotBadge": "Product snapshot",
+      "snapshotTitle": "The stack is already past toy mode.",
+      "snapshotDescription": "Behind the landing page, the repo already includes Convex tenancy, Clerk auth, staging-safe ingress, outbound queueing, template flow, billing, and analytics.",
+      "snapshotItems": {
+        "0": {
+          "label": "Inbound pipeline",
+          "value": "Live",
+          "body": "Meta signatures, raw event durability, normalization, contacts, conversations, and service-window tracking already exist."
+        },
+        "1": {
+          "label": "Reply orchestration",
+          "value": "Guarded",
+          "body": "Bot pause, handoff, opt-out, template fallback, and send-time policy rechecks are already enforced in backend flows."
+        },
+        "2": {
+          "label": "Monetization",
+          "value": "Ready",
+          "body": "Indonesia routes to Midtrans with IDR while global traffic routes to Polar with USD and provider-agnostic subscription state."
+        }
+      },
+      "snapshotFootnote": "This phase makes the product presentable to prospects without breaking the operational contracts that earlier phases already established."
+    },
+    "features": {
+      "badge": "Why teams pick it",
+      "title": "One product for the whole WhatsApp operating loop.",
+      "description": "Instead of stitching five tools together, Wabrix keeps delivery, policy checks, automation, human takeover, and billing state close enough to stay reliable.",
+      "items": {
+        "0": {
+          "title": "Verified ingress",
+          "body": "Cloudflare Worker ingress validates Meta signatures, handles challenge verification, and stores raw events durably before returning 200."
+        },
+        "1": {
+          "title": "Policy-aware sending",
+          "body": "The product rechecks the 24-hour window, opt-out state, and queue safety before outbound send, not just in the UI."
+        },
+        "2": {
+          "title": "Operator inbox",
+          "body": "Assignment, notes, translation, handoff, and manual reply all live next to the thread instead of scattered across admin screens."
+        },
+        "3": {
+          "title": "AI that stays scoped",
+          "body": "Bot Studio, knowledge retrieval, prompt versions, and runtime logs are tenant-scoped so one org cannot bleed into another."
+        },
+        "4": {
+          "title": "Templates and media",
+          "body": "Approved templates, media transcript enrichment, and WhatsApp lifecycle visibility are already part of the same product surface."
+        },
+        "5": {
+          "title": "Billing that matches geography",
+          "body": "Global checkout can stay USD through Polar while Indonesian buyers get a native IDR path through Midtrans."
+        }
+      }
+    },
+    "workflow": {
+      "badge": "How it runs",
+      "title": "From webhook to reply queue with fewer blind spots.",
+      "description": "The operational story is simple: ingest safely, map identity correctly, draft only when allowed, and send with audit-friendly state.",
+      "items": {
+        "0": {
+          "title": "1. Capture",
+          "body": "Ingress receives WhatsApp events, validates signatures, deduplicates, and writes the raw payload durably into Convex."
+        },
+        "1": {
+          "title": "2. Normalize",
+          "body": "Inbound processing maps contacts, conversations, messages, and service-window state so the transcript becomes usable by both bot and operator."
+        },
+        "2": {
+          "title": "3. Orchestrate",
+          "body": "The bot drafts when policy allows, queues replies durably, and later reconciles delivery state from Meta status webhooks."
+        }
+      }
+    },
+    "proof": {
+      "badge": "What makes it credible",
+      "title": "Not a pretty shell hiding a missing backend.",
+      "description": "Phase 13 ships on top of real runtime behavior that has already passed manual DoD in staging.",
+      "items": {
+        "0": {
+          "title": "Real staging path",
+          "body": "Convex, Clerk, Cloudflare Worker, and Vercel already run in isolated staging with real webhook traffic."
+        },
+        "1": {
+          "title": "Operational docs included",
+          "body": "Public docs now explain setup, lifecycle, template approval, and service-window rules so new operators onboard faster."
+        },
+        "2": {
+          "title": "Growth without pretending",
+          "body": "The public pages are allowed to sell, but they stay anchored to what the product genuinely does today."
+        }
+      }
+    },
+    "testimonials": {
+      "badge": "What this feels like",
+      "title": "Built for operators, not just founders showing a deck.",
+      "description": "The language below is still marketing, but it reflects the product shape that already exists in the repo.",
+      "items": {
+        "0": {
+          "quote": "We finally stopped explaining our WhatsApp stack with five arrows and three caveats.",
+          "name": "Nadia",
+          "role": "Customer Ops Lead"
+        },
+        "1": {
+          "quote": "The biggest win is not the bot. It is having policy checks, queue state, and human takeover in one place.",
+          "name": "Rizal",
+          "role": "Support Manager"
+        },
+        "2": {
+          "quote": "Local billing plus global checkout matters more than most SaaS tools admit. This gets that right.",
+          "name": "Maya",
+          "role": "Growth Operator"
+        }
+      }
+    },
+    "cta": {
+      "badge": "Ready to evaluate",
+      "title": "Use the public pages to understand the product fast, then go straight into the workspace.",
+      "description": "If you are checking technical fit, the docs are the fastest path. If you are checking commercial fit, pricing already reflects the real phase-12 billing logic.",
+      "primary": "Go to pricing",
+      "secondary": "Open docs",
+      "points": {
+        "0": "English and Bahasa Indonesia are both available.",
+        "1": "Public metadata and OG images are ready for sharing.",
+        "2": "Docs are routed inside the app, not buried in the repo only.",
+        "3": "The product story now matches the actual implementation state."
+      }
+    },
+    "faq": {
+      "badge": "FAQ",
+      "title": "Questions smart buyers and operators ask early.",
+      "description": "Short answers only. The public docs go deeper where operational detail matters.",
+      "items": {
+        "0": {
+          "question": "Does this already support real WhatsApp traffic?",
+          "answer": "Yes. Staging already validates Meta signatures, stores raw webhook events, normalizes inbound messages, drafts replies, and reconciles delivery status."
+        },
+        "1": {
+          "question": "How do billing and pricing differ by market?",
+          "answer": "Indonesia is routed to Midtrans with IDR while non-Indonesian traffic defaults to Polar with USD. The pricing page surfaces that logic directly."
+        },
+        "2": {
+          "question": "Can operators take over from the bot?",
+          "answer": "Yes. Inbox already supports assignment, internal notes, manual reply, bot pause, and handoff controls."
+        },
+        "3": {
+          "question": "Where do I learn the policy rules fast?",
+          "answer": "Start with the public docs for WhatsApp setup, WABA lifecycle, template approval, and service-window rules."
+        }
+      }
+    }
   },
   "Dashboard": {
     "eyebrow": "Tenant workspace",
@@ -301,17 +466,46 @@
     "stateFailed": "Failed"
   },
   "Pricing": {
-    "eyebrow": "Phase 12",
-    "headline": "Choose the payment path that fits your market.",
-    "subheadline": "Pricing now routes Indonesia to Midtrans with IDR, while other countries default to Polar with USD. The country selector is a safe preview before checkout confirms the final billing path.",
-    "countryLabel": "Billing country",
-    "providerLabel": "Checkout provider",
+    "seo": {
+      "title": "Pricing | Wabrix",
+      "description": "Explore Wabrix pricing with region-aware checkout logic: Midtrans in IDR for Indonesia and Polar in USD for global traffic."
+    },
+    "eyebrow": "Phase 13 pricing",
+    "headline": "Premium pricing that still respects how your buyers actually pay.",
+    "subheadline": "The plan catalog stays consistent, but checkout routing changes by market. Indonesia uses Midtrans in IDR. Global traffic defaults to Polar in USD. No weird split-brain pricing story.",
+    "detectedLabel": "Detected country",
+    "indiaNotSupportedHint": "If your team sells in both Indonesia and global markets, keep the same plan logic and let the checkout provider switch by geography instead of forking your product story.",
+    "gatewayLabel": "Checkout provider",
     "currencyLabel": "Currency",
-    "cta": "Open billing workspace",
-    "perMonth": "per month",
+    "monthlyLabel": "per month",
+    "recommended": "Most popular",
+    "startCta": "Open billing workspace",
+    "contactCta": "Need procurement context first?",
+    "regionIndonesia": "Indonesia",
+    "regionGlobal": "Global",
+    "regionIndonesiaBody": "Use this view when the buyer should pay locally in IDR through Midtrans. It matches the phase-12 checkout behavior already implemented in the app.",
+    "regionGlobalBody": "Use this view for non-Indonesia traffic. Polar keeps the pricing story in USD and fits the global purchase flow.",
+    "included": "Included every month",
     "seats": "Seats",
     "aiTokens": "AI tokens",
-    "outboundMessages": "Outbound messages"
+    "outboundMessages": "Outbound messages",
+    "trustedLabel": "Routing notes",
+    "trustedBody": "Geo-aware routing uses Cloudflare or Vercel country headers when available, while the page keeps a clear region preview so sales and ops can validate the path before checkout.",
+    "docsCta": "Read policy docs",
+    "compareTitle": "One pricing story, two checkout rails.",
+    "compareBody": "This page is intentionally tied to the real billing logic already running in the product instead of pretending pricing is universal everywhere."
+  },
+  "DocsMarketing": {
+    "seo": {
+      "title": "Docs | Wabrix",
+      "description": "Read operator-ready documentation for WhatsApp setup, WABA lifecycle, template approval, and service-window rules."
+    },
+    "badge": "Public docs",
+    "title": "The practical docs new operators actually need first.",
+    "description": "These pages are designed for the moments where a new teammate asks, “wait, which value goes where?” or “why is freeform blocked right now?”",
+    "cardFootnote": "Short, public, and operational. Deep implementation detail still lives in the phase docs.",
+    "readMore": "Read document",
+    "back": "Back to docs"
   },
   "Billing": {
     "eyebrow": "Phase 12",
@@ -358,6 +552,17 @@
     "failed": "Failed",
     "delivered": "Delivered",
     "read": "Read",
-    "noRuns": "No AI runs have been logged yet."
+    "noRuns": "No AI runs have been logged yet.",
+    "currentPeriod": "Current period",
+    "dailySeries": "Daily series",
+    "last7Days": "Last 7 days",
+    "activityBreakdown": "Activity breakdown",
+    "queueBreakdown": "Queue breakdown",
+    "deliveryBreakdown": "Delivery breakdown",
+    "used": "Used",
+    "limit": "Limit",
+    "provider": "Provider",
+    "model": "Model",
+    "totalTokens": "Total tokens"
   }
 }
