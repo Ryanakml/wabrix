@@ -60,6 +60,7 @@ export function sanitizeWhatsAppIntegrationForFrontend(
         hasAppSecret: false,
         hasVerifyToken: false,
       }),
+    webhookStatus: integration?.webhookStatus ?? "pending",
     hasAccessToken: Boolean(integration?.accessTokenEncrypted),
     hasAppSecret: Boolean(integration?.appSecretEncrypted),
     hasVerifyToken: Boolean(integration?.verifyTokenHash),

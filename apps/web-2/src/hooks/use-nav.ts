@@ -49,6 +49,11 @@ export function useFilteredNavItems(items: NavItem[]) {
   const filteredItems = useMemo(() => {
     return items
       .filter((item) => {
+        // Hidden items are never shown
+        if (item.hidden) {
+          return false;
+        }
+
         // No access restrictions
         if (!item.access) {
           return true;

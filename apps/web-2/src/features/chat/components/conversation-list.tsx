@@ -77,7 +77,6 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
         ) : null}
         {filtered.map((conversation) => {
           const isActive = conversation.id === selectedId;
-          const lastMessage = conversation.messages[conversation.messages.length - 1];
           return (
             <motion.button
               key={conversation.id}
@@ -112,15 +111,15 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                     <p className='text-foreground text-sm font-semibold'>{conversation.name}</p>
                     <p className='text-muted-foreground text-xs'>{conversation.title}</p>
                   </div>
-                  {lastMessage && (
+                  {conversation.lastMessageTimestamp && (
                     <span className='text-muted-foreground shrink-0 text-[0.65rem]'>
-                      {lastMessage.timestamp}
+                      {conversation.lastMessageTimestamp}
                     </span>
                   )}
                 </div>
-                {lastMessage ? (
+                {conversation.lastMessagePreview ? (
                   <p className='text-muted-foreground line-clamp-2 text-xs'>
-                    {lastMessage.author}: {lastMessage.text}
+                    {conversation.lastMessagePreview}
                   </p>
                 ) : (
                   <p className='text-muted-foreground text-xs'>No messages yet</p>

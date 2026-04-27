@@ -48,6 +48,21 @@ export default function AppSidebar() {
     // Side effects based on sidebar state changes
   }, [isOpen]);
 
+  const isItemActive = React.useCallback(
+    (url: string) => {
+      if (url === '/dashboard') {
+        return pathname === '/dashboard' || pathname.startsWith('/dashboard/overview');
+      }
+
+      if (url !== '/' && pathname.startsWith(`${url}/`)) {
+        return true;
+      }
+
+      return pathname === url;
+    },
+    [pathname]
+  );
+
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader className='group-data-[collapsible=icon]:pt-4'>
@@ -69,7 +84,7 @@ export default function AppSidebar() {
                   >
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.title} isActive={pathname === item.url}>
+                        <SidebarMenuButton tooltip={item.title} isActive={isItemActive(item.url)}>
                           {item.icon && <Icon />}
                           <span>{item.title}</span>
                           <Icons.chevronRight className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
@@ -79,7 +94,7 @@ export default function AppSidebar() {
                         <SidebarMenuSub>
                           {item.items?.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
+                              <SidebarMenuSubButton asChild isActive={isItemActive(subItem.url)}>
                                 <Link href={subItem.url}>
                                   <span>{subItem.title}</span>
                                 </Link>
@@ -95,7 +110,7 @@ export default function AppSidebar() {
                     <SidebarMenuButton
                       asChild
                       tooltip={item.title}
-                      isActive={pathname === item.url}
+                      isActive={isItemActive(item.url)}
                     >
                       <Link href={item.url}>
                         <Icon />
@@ -144,16 +159,16 @@ export default function AppSidebar() {
                     <Icons.account className='mr-2 h-4 w-4' />
                     Profile
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/dashboard/notifications')}>
+                    <Icons.notification className='mr-2 h-4 w-4' />
+                    Notifications
+                  </DropdownMenuItem>
                   {organization && (
                     <DropdownMenuItem onClick={() => router.push('/dashboard/billing')}>
                       <Icons.creditCard className='mr-2 h-4 w-4' />
                       Billing
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => router.push('/dashboard/notifications')}>
-                    <Icons.notification className='mr-2 h-4 w-4' />
-                    Notifications
-                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>

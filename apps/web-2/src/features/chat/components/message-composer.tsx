@@ -16,6 +16,8 @@ interface MessageComposerProps {
   attachments: Attachment[];
   onAddAttachments: (files: FileList) => void;
   onRemoveAttachment: (id: string) => void;
+  disabled?: boolean;
+  isSending?: boolean;
 }
 
 export function MessageComposer({
@@ -26,7 +28,9 @@ export function MessageComposer({
   quickReplies,
   attachments,
   onAddAttachments,
-  onRemoveAttachment
+  onRemoveAttachment,
+  disabled = false,
+  isSending = false
 }: MessageComposerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,7 +59,7 @@ export function MessageComposer({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                if (draft.trim() || attachments.length > 0) {
+                if (draft.trim()) {
                   const form = e.currentTarget.closest('form');
                   form?.requestSubmit();
                 }
@@ -63,6 +67,7 @@ export function MessageComposer({
             }}
             placeholder={'Message ' + contactName + ' (Enter to send, Shift+Enter for newline)'}
             rows={2}
+            disabled={disabled || isSending}
             className='text-foreground placeholder:text-muted-foreground/70 min-h-[3rem] w-full resize-none border-none bg-transparent text-xs focus-visible:ring-0 focus-visible:outline-none sm:min-h-[4rem] sm:text-sm'
             aria-label={'Message ' + contactName}
           />
@@ -99,6 +104,7 @@ export function MessageComposer({
             size='icon'
             className='border-border/40 bg-background/70 text-muted-foreground hover:bg-muted/50 focus-visible:ring-primary/40 focus-visible:ring-offset-background size-8 rounded-full border transition focus-visible:ring-2 focus-visible:ring-offset-2 sm:size-10'
             aria-label='Attach a file'
+            disabled={disabled || isSending}
             onClick={() => fileInputRef.current?.click()}
           >
             <Icons.paperclip className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
@@ -107,7 +113,8 @@ export function MessageComposer({
             type='submit'
             size='icon'
             className='bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary/40 focus-visible:ring-offset-background size-8 rounded-full shadow-lg transition focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:size-10'
-            disabled={!draft.trim() && attachments.length === 0}
+            disabled={disabled || isSending || !draft.trim()}
+            isLoading={isSending}
             aria-label='Send message'
           >
             <Icons.send className='h-3.5 w-3.5 sm:h-4 sm:w-4' aria-hidden='true' />

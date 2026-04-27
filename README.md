@@ -1,78 +1,86 @@
-# wabrix
+# Wabrix
 
-`wabrix` is a production-oriented WhatsApp AI SaaS built as a `pnpm` monorepo with Turborepo.
+Wabrix is a production-oriented WhatsApp AI SaaS designed to streamline customer communication with intelligent automated bots, comprehensive analytics, and a seamless operator workspace.
 
-Phase 0 is approved. Phase 1 established the monorepo foundation, phase 2 established auth and tenancy, phase 3 shipped the configurable bot runtime, phase 4 added the Knowledge Base and retrieval layer, phase 5 added tenant-scoped WhatsApp integration setup, phase 6 added production-safe webhook ingress, phase 7 added inbound normalization plus conversation mapping, phase 8 added bot orchestration plus the first durable outbound queue, phase 9 added outbound sending plus delivery-status reconciliation, phase 10 added the operator inbox plus handoff controls, phase 11 added production WhatsApp templates plus media handling, and phase 12 now adds analytics, billing, and usage limits.
+---
 
-- `apps/web`: Next.js App Router shell with Tailwind and `next-intl`
-- `apps/ingress`: Hono Cloudflare Worker shell with Wrangler placeholders
-- `packages/backend`: Convex backend with auth sync, RBAC, and Bot Studio runtime
-- `packages/config`: shared product and locale config
-- `packages/ui`: shared UI primitives
+## 👥 For Users: What is Wabrix?
 
-## Setup
+Wabrix helps businesses scale their WhatsApp operations by integrating powerful AI with an intuitive human-in-the-loop dashboard. 
+
+### Key Features
+- **AI Bot Studio**: Configure bots with specific instructions, languages, and custom AI models. Test interactions directly in the dashboard before going live.
+- **Knowledge Base Integration**: Upload documents or provide website URLs. Wabrix parses them automatically so your AI bot can answer questions accurately based on your proprietary business data.
+- **Unified Inbox & Agent Handoff**: A multi-panel operator workspace where human agents can monitor conversations and take over seamlessly when the bot needs help. Includes real-time translation toggles, internal notes, and assignment tools.
+- **Analytics & Billing**: Comprehensive dashboards to track AI token usage, messaging volume, and user subscriptions transparently.
+- **WhatsApp Native**: Full support for WhatsApp message templates, rich media handling (images, voice notes), contact opt-in/opt-out flows, and strict compliance with the Meta 24-hour service window.
+
+---
+
+## 💻 For Developers: Technical Overview
+
+Wabrix is built as a `pnpm` monorepo using Turborepo, optimizing for scalability, robust type safety, and a distinct separation of concerns.
+
+### Architecture & Tech Stack
+- **`apps/web`**: Next.js App Router shell with Tailwind CSS and `next-intl` for localized routing (English & Bahasa Indonesia).
+- **`apps/ingress`**: Hono Cloudflare Worker shell optimized for fast, edge-based webhook ingestion directly from Meta.
+- **`packages/backend`**: Convex backend powering real-time data, synchronization, authentication (via Clerk), RBAC, and the core Bot Studio runtime.
+- **`packages/config`**: Shared product and locale configurations.
+- **`packages/ui`**: Shared UI primitives based on modern React design patterns.
+
+### Quick Setup
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Core commands:
+**Core Commands:**
+- `pnpm lint` — Run linters across the workspace
+- `pnpm typecheck` — Run TypeScript compiler checks
+- `pnpm test` — Execute test suites
+- `pnpm build` — Build all applications and packages
 
-- `pnpm lint`
-- `pnpm typecheck`
-- `pnpm test`
-- `pnpm build`
-
-## Documentation
-
-- [Phase 0 Index](./docs/phase-0/README.md)
-- [Phase 2 Summary](./docs/phase-2/README.md)
-- [Phase 3 Summary](./docs/phase-3/README.md)
-- [Phase 4 Summary](./docs/phase-4/README.md)
-- [Phase 5 Summary](./docs/phase-5/README.md)
-- [Phase 6 Summary](./docs/phase-6/README.md)
-- [Phase 7 Summary](./docs/phase-7/README.md)
-- [Phase 8 Summary](./docs/phase-8/README.md)
-- [Phase 9 Summary](./docs/phase-9/README.md)
-- [Phase 10 Summary](./docs/phase-10/README.md)
-- [Phase 11 Summary](./docs/phase-11/README.md)
-- [Phase 12 Summary](./docs/phase-12/README.md)
+### Documentation & Guides
 - [Environment And Deployment Guide](./environment-and-deployment-guide.md)
-- [Local Setup](./docs/local-setup.md)
+- [Local Setup Guide](./docs/local-setup.md)
 - [Contributing](./CONTRIBUTING.md)
 
-## Current State
+*Detailed phase-by-phase project summaries are available in the `./docs/` directory.*
 
-Current implemented state:
+### Current Implementation State
 
+Wabrix is built via a phased development approach. The current production state includes:
+
+**Core Infrastructure & Auth**
 - Clerk auth, organization sync, RBAC, and audit logging are in place.
-- Locale routing is live for English and Bahasa Indonesia.
-- Bot Studio exists in the dashboard with tenant-scoped prompt, language, provider, and emulator configuration.
-- Knowledge Base exists with inline and website ingestion, markdown normalization, embeddings, and scoped retrieval.
-- WhatsApp setup exists with encrypted token storage, hashed verify token storage, webhook URL visibility, and audit-ready connection state.
-- Ingress now verifies Meta GET and POST requests, rate limits per phone number, and durably stores raw webhook events before returning `200`.
-- Inbound WhatsApp events now normalize into contacts, conversations, transcript rows, transport rows, and media-debug records.
-- Bot orchestration now claims eligible inbound conversations, debounces bursts, drafts one AI reply, and creates one durable outbound queue row.
-- Outbound queue workers now send WhatsApp text replies to Meta with idempotency, retry backoff, and service-window rechecks right before send.
-- Status webhook events now reconcile transcript delivery state, transport delivery state, and queue visibility for sent, delivered, read, and failed outcomes.
-- The inbox is now a multi-panel operator workspace with assignment, handoff, bot pause, internal notes, lifecycle visibility, manual replies, and translation toggle support.
-- WhatsApp admin ops now include lifecycle refresh, template sync, template CRUD, rejection visibility, and OTP verification from the dashboard.
-- Approved WhatsApp templates can now be queued from the inbox when the 24-hour service window is closed.
-- Inbound WhatsApp media now downloads asynchronously, can be stored in S3-compatible object storage, and patches summaries or transcripts back into the conversation context.
-- Contact opt-out and opt-in keywords now affect bot orchestration so automatic replies stay compliant.
-- Pricing now routes Indonesia to Midtrans with IDR and non-Indonesia countries to Polar with USD.
-- Billing webhooks now normalize into provider-agnostic subscriptions plus audited billing events.
-- Usage counters now track AI tokens, inbound and outbound messaging, queue failures, delivery state, and processed media.
-- Backend usage checks now block over-limit AI and outbound traffic from direct backend flows, not just from the UI.
-- The dashboard now includes dedicated billing and analytics surfaces.
-- Service-window warnings and bot-reply failures now surface as dashboard notifications.
-- Outbound send failures now surface as dashboard notifications with retry visibility.
-- Gemini 2.5 Flash is wired as the default draft-generation model path.
-- `gemini-embedding-001` is wired for knowledge embeddings.
+- Pricing routes Indonesia to Midtrans (IDR) and non-Indonesia countries to Polar (USD).
 - Web and ingress health/build surfaces are in place.
 
-Still intentionally deferred to later phases:
+**Bot & AI Engine**
+- Bot Studio exists in the dashboard with tenant-scoped prompt, language, provider, and emulator configuration.
+- Knowledge Base handles inline and website ingestion, markdown normalization, embeddings, and scoped retrieval.
+- Gemini 2.5 Flash is wired as the default draft-generation model, and `gemini-embedding-001` is wired for knowledge embeddings.
+- Usage counters track AI tokens, messaging, queue failures, delivery state, and processed media (with hard backend limits).
 
-- Landing page, SEO, docs, and growth surfaces
-- CI/CD, monitoring, and production hardening
+**WhatsApp Ingress & Routing**
+- Secure tenant-scoped WhatsApp setup with encrypted token storage, hashed verify token storage, and audit-ready connection state.
+- Ingress verifies Meta GET and POST requests, rate limits per phone number, and durably stores raw webhook events before returning `200`.
+- Inbound events normalize into contacts, conversations, transcript rows, transport rows, and media-debug records.
+- Inbound WhatsApp media downloads asynchronously and is stored in S3-compatible object storage.
+
+**Orchestration & Outbound queues**
+- Bot orchestration claims eligible inbound conversations, debounces bursts, drafts AI replies, and manages durable outbound queue rows.
+- Outbound queue workers send WhatsApp text replies to Meta with idempotency, retry backoff, and strict service-window rechecks.
+- Status webhooks reconcile transcript/transport delivery states and update visibility for sent, delivered, read, and failed outcomes.
+- Contact opt-out/opt-in keywords affect bot orchestration to maintain compliance.
+
+**Operator & Admin Tools**
+- The inbox provides a multi-panel operator workspace with assignment, handoff, bot pause, internal notes, lifecycle visibility, and manual replies.
+- WhatsApp admin ops include lifecycle refresh, template sync/CRUD, rejection visibility, and OTP verification directly from the dashboard.
+- Approved WhatsApp templates can be queued from the inbox when the standard 24-hour service window is closed.
+- Dashboard notifications alert operators of service-window warnings, bot-reply failures, and outbound send failures.
+
+### Future Roadmap
+- Landing page, SEO, public documentation, and growth surfaces.
+- CI/CD pipelines, advanced monitoring, and production hardening.

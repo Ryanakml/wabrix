@@ -9,9 +9,49 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { Icons } from '@/components/icons';
+import { getConvexServerOptions } from '@/lib/convex-server';
+import { formatCurrency, formatSignedPercent, formatWholeNumber } from '@/features/overview/lib/formatters';
+import { api } from '@wabrix/backend/convex/_generated/api';
+import { fetchQuery } from 'convex/nextjs';
 import React from 'react';
 
-export default function OverViewLayout({
+function TrendBadge({ changePercent }: { changePercent: number }) {
+  const isPositive = changePercent >= 0;
+  const TrendIcon = isPositive ? Icons.trendingUp : Icons.trendingDown;
+
+  return (
+    <Badge variant='outline'>
+      <TrendIcon />
+      {formatSignedPercent(changePercent)}
+    </Badge>
+  );
+}
+
+function TrendFooter({
+  changePercent,
+  positiveLabel,
+  negativeLabel,
+  comparisonLabel
+}: {
+  changePercent: number;
+  positiveLabel: string;
+  negativeLabel: string;
+  comparisonLabel: string;
+}) {
+  const isPositive = changePercent >= 0;
+  const TrendIcon = isPositive ? Icons.trendingUp : Icons.trendingDown;
+
+  return (
+    <CardFooter className='flex-col items-start gap-1.5 text-sm'>
+      <div className='line-clamp-1 flex gap-2 font-medium'>
+        {isPositive ? positiveLabel : negativeLabel} <TrendIcon className='size-4' />
+      </div>
+      <div className='text-muted-foreground'>Compared with {comparisonLabel}</div>
+    </CardFooter>
+  );
+}
+
+export default async function OverViewLayout({
   sales,
   pie_stats,
   bar_stats,
@@ -22,6 +62,9 @@ export default function OverViewLayout({
   bar_stats: React.ReactNode;
   area_stats: React.ReactNode;
 }) {
+  const convexOptions = await getConvexServerOptions();
+  const summary = await fetchQuery(api.billing.getOverviewSummaryState, {}, convexOptions);
+
   return (
     <PageContainer>
       <div className='flex flex-1 flex-col space-y-2'>
@@ -34,89 +77,74 @@ export default function OverViewLayout({
             <CardHeader>
               <CardDescription>Total Revenue</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                $1,250.00
+                {formatCurrency(summary.revenue.amount, summary.revenue.currency)}
               </CardTitle>
               <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingUp />
-                  +12.5%
-                </Badge>
+                <TrendBadge changePercent={summary.revenue.changePercent} />
               </CardAction>
             </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Trending up this month <Icons.trendingUp className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Visitors for the last 6 months</div>
-            </CardFooter>
+            <TrendFooter
+              changePercent={summary.revenue.changePercent}
+              positiveLabel='Revenue increased this month'
+              negativeLabel='Revenue slowed this month'
+              comparisonLabel={summary.comparisonPeriodLabel}
+            />
           </Card>
           <Card className='@container/card'>
             <CardHeader>
               <CardDescription>New Customers</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                1,234
+                {formatWholeNumber(summary.newCustomers.value)}
               </CardTitle>
               <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingDown />
-                  -20%
-                </Badge>
+                <TrendBadge changePercent={summary.newCustomers.changePercent} />
               </CardAction>
             </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Down 20% this period <Icons.trendingDown className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Acquisition needs attention</div>
-            </CardFooter>
+            <TrendFooter
+              changePercent={summary.newCustomers.changePercent}
+              positiveLabel='More inbound customer activity'
+              negativeLabel='Fewer inbound customer messages'
+              comparisonLabel={summary.comparisonPeriodLabel}
+            />
           </Card>
           <Card className='@container/card'>
             <CardHeader>
               <CardDescription>Active Accounts</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                45,678
+                {formatWholeNumber(summary.activeAccounts.value)}
               </CardTitle>
               <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingUp />
-                  +12.5%
-                </Badge>
+                <TrendBadge changePercent={summary.activeAccounts.changePercent} />
               </CardAction>
             </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Strong user retention <Icons.trendingUp className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Engagement exceed targets</div>
-            </CardFooter>
+            <TrendFooter
+              changePercent={summary.activeAccounts.changePercent}
+              positiveLabel='Workspace access is expanding'
+              negativeLabel='Workspace access is holding steady'
+              comparisonLabel={summary.comparisonPeriodLabel}
+            />
           </Card>
           <Card className='@container/card'>
             <CardHeader>
               <CardDescription>Growth Rate</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                4.5%
+                {formatSignedPercent(summary.growthRate.value)}
               </CardTitle>
               <CardAction>
-                <Badge variant='outline'>
-                  <Icons.trendingUp />
-                  +4.5%
-                </Badge>
+                <TrendBadge changePercent={summary.growthRate.changePercent} />
               </CardAction>
             </CardHeader>
-            <CardFooter className='flex-col items-start gap-1.5 text-sm'>
-              <div className='line-clamp-1 flex gap-2 font-medium'>
-                Steady performance increase <Icons.trendingUp className='size-4' />
-              </div>
-              <div className='text-muted-foreground'>Meets growth projections</div>
-            </CardFooter>
+            <TrendFooter
+              changePercent={summary.growthRate.changePercent}
+              positiveLabel='Activity grew across AI and messaging'
+              negativeLabel='Activity cooled versus last month'
+              comparisonLabel={summary.comparisonPeriodLabel}
+            />
           </Card>
         </div>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'>
           <div className='col-span-4'>{bar_stats}</div>
-          <div className='col-span-4 md:col-span-3'>
-            {/* sales arallel routes */}
-            {sales}
-          </div>
+          <div className='col-span-4 md:col-span-3'>{sales}</div>
           <div className='col-span-4'>{area_stats}</div>
           <div className='col-span-4 min-h-0 md:col-span-3'>{pie_stats}</div>
         </div>

@@ -1,129 +1,273 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'motion/react';
-import { useChatStore } from '../utils/store';
-import type { Attachment, Message } from '../utils/types';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '@wabrix/backend/convex/_generated/api';
+import { toast } from 'sonner';
+import type { Attachment } from '../utils/types';
+import { mapConversationDetails, mapConversationSummary, mapSelectedConversation } from '../utils/mappers';
 import { ConversationList } from './conversation-list';
 import { ConversationSelect } from './conversation-select';
 import { ChatArea } from './chat-area';
+import { ConversationDetailsDrawer } from './conversation-details-drawer';
+import { MessengerSkeleton } from './messenger-skeleton';
 
 export function Messenger() {
-  const {
-    conversations,
-    selectedConversationId,
-    draft,
-    replyCursor,
-    selectConversation,
-    setDraft,
-    sendMessage,
-    addIncomingMessage,
-    advanceReplyCursor,
-    getActiveConversation
-  } = useChatStore();
-
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(undefined);
+  const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const shouldReduceMotion = useReducedMotion();
-  const replyTimeoutRef = useRef<number | null>(null);
-  const selectedRef = useRef(selectedConversationId);
+  const [isSending, setIsSending] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isUpdatingConversation, setIsUpdatingConversation] = useState(false);
+  const [noteBody, setNoteBody] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  const workspaceData = useQuery(api.inbox.getInboxChatWorkspace, {
+    selectedConversationId: selectedConversationId as never
+  });
+  const [cachedWorkspace, setCachedWorkspace] = useState(workspaceData);
 
   useEffect(() => {
-    selectedRef.current = selectedConversationId;
+    if (workspaceData !== undefined) {
+      setCachedWorkspace(workspaceData);
+    }
+  }, [workspaceData]);
+
+  const workspace = workspaceData ?? cachedWorkspace;
+
+  const drawerStateData = useQuery(
+    api.inbox.getInboxConversationDrawerState,
+    isDetailsOpen && selectedConversationId
+      ? { selectedConversationId: selectedConversationId as never }
+      : 'skip'
+  );
+  const [cachedDrawerState, setCachedDrawerState] = useState(drawerStateData);
+
+  useEffect(() => {
+    if (drawerStateData !== undefined) {
+      setCachedDrawerState(drawerStateData);
+    }
+  }, [drawerStateData]);
+
+  const drawerState = drawerStateData ?? cachedDrawerState;
+
+  const sendManualReply = useMutation(api.inbox.sendManualReply);
+  const setConversationBotPause = useMutation(api.inbox.setConversationBotPause);
+  const setConversationHandoff = useMutation(api.inbox.setConversationHandoff);
+  const assignConversation = useMutation(api.inbox.assignConversation);
+  const setConversationStatus = useMutation(api.inbox.setConversationStatus);
+  const addConversationNote = useMutation(api.inbox.addConversationNote);
+
+  useEffect(() => {
+    if (!selectedConversationId && workspace?.selectedConversation?.id) {
+      setSelectedConversationId(String(workspace.selectedConversation.id));
+    }
+  }, [selectedConversationId, workspace?.selectedConversation?.id]);
+
+  useEffect(() => {
     setAttachments([]);
+    setDraft('');
+    setNoteBody('');
   }, [selectedConversationId]);
 
-  useEffect(() => {
-    return () => {
-      if (replyTimeoutRef.current) {
-        window.clearTimeout(replyTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleAddAttachments = useCallback((files: FileList) => {
-    const newAttachments: Attachment[] = Array.from(files).map((file) => ({
-      id: 'file-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-      name: file.name,
-      size: file.size,
-      type: file.type
-    }));
-    setAttachments((prev) => [...prev, ...newAttachments]);
-  }, []);
-
-  const handleRemoveAttachment = useCallback((id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
-  }, []);
-
-  const handleSubmit = useCallback(
-    (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      const active = getActiveConversation();
-      if ((!draft.trim() && attachments.length === 0) || !active) return;
-
-      const conversationId = active.id;
-      sendMessage(draft, attachments.length > 0 ? attachments : undefined);
-      setAttachments([]);
-
-      const autoReplies = active.autoReplies;
-      if (!autoReplies.length) return;
-
-      const cursor = replyCursor[conversationId] ?? 0;
-      const nextReply = autoReplies[cursor % autoReplies.length];
-      const delay = shouldReduceMotion ? 0 : 900;
-
-      replyTimeoutRef.current = window.setTimeout(() => {
-        const timestamp = new Date().toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        const incoming: Message = {
-          id: 'incoming-' + Date.now().toString(),
-          sender: 'contact',
-          author: active.name,
-          text: nextReply,
-          timestamp
-        };
-
-        addIncomingMessage(conversationId, incoming);
-        advanceReplyCursor(conversationId);
-      }, delay);
-    },
-    [
-      draft,
-      attachments,
-      replyCursor,
-      shouldReduceMotion,
-      getActiveConversation,
-      sendMessage,
-      addIncomingMessage,
-      advanceReplyCursor
-    ]
+  const conversations = useMemo(
+    () => (workspace?.conversations ?? []).map((conversation) => mapConversationSummary(conversation as never)),
+    [workspace?.conversations]
   );
 
-  const activeConversation = getActiveConversation();
-  if (!activeConversation) return null;
+  const activeConversation = useMemo(
+    () => mapSelectedConversation((workspace?.selectedConversation ?? null) as never),
+    [workspace?.selectedConversation]
+  );
+
+  const rawConversationDetails = useMemo(
+    () => mapConversationDetails(drawerState as never),
+    [drawerState]
+  );
+  const activeConversationId = selectedConversationId ?? activeConversation?.id;
+  const conversationDetails =
+    rawConversationDetails?.selectedConversation?.id === activeConversationId
+      ? rawConversationDetails
+      : null;
+
+  const handleAddAttachments = (_files: FileList) => {
+    toast.info('Attachments are not supported for inbox replies yet.');
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((current) => current.filter((attachment) => attachment.id !== id));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!activeConversation || !draft.trim()) {
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      await sendManualReply({
+        conversationId: activeConversation.id as never,
+        body: draft.trim()
+      });
+      setDraft('');
+      setAttachments([]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send reply.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const runConversationMutation = async (operation: () => Promise<unknown>) => {
+    setIsUpdatingConversation(true);
+    try {
+      await operation();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update conversation.');
+    } finally {
+      setIsUpdatingConversation(false);
+    }
+  };
+
+  const handleAssignmentChange = async (value: string) => {
+    if (!selectedConversationId) {
+      return;
+    }
+
+    await runConversationMutation(() =>
+      assignConversation({
+        conversationId: selectedConversationId as never,
+        assignedUserId: value ? (value as never) : undefined
+      })
+    );
+  };
+
+  const handlePauseToggle = async () => {
+    const selectedConversation = conversationDetails?.selectedConversation;
+
+    if (!selectedConversation) {
+      return;
+    }
+
+    await runConversationMutation(() =>
+      setConversationBotPause({
+        conversationId: selectedConversation.id as never,
+        botPaused: !selectedConversation.botPaused
+      })
+    );
+  };
+
+  const handleHandoffToggle = async () => {
+    const selectedConversation = conversationDetails?.selectedConversation;
+
+    if (!selectedConversation) {
+      return;
+    }
+
+    await runConversationMutation(() =>
+      setConversationHandoff({
+        conversationId: selectedConversation.id as never,
+        handoffRequested: !selectedConversation.handoffRequested
+      })
+    );
+  };
+
+  const handleStatusToggle = async () => {
+    const selectedConversation = conversationDetails?.selectedConversation;
+
+    if (!selectedConversation) {
+      return;
+    }
+
+    await runConversationMutation(() =>
+      setConversationStatus({
+        conversationId: selectedConversation.id as never,
+        status: selectedConversation.status === 'open' ? 'closed' : 'open'
+      })
+    );
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedConversationId || !noteBody.trim()) {
+      return;
+    }
+
+    setIsSavingNote(true);
+    try {
+      await addConversationNote({
+        conversationId: selectedConversationId as never,
+        body: noteBody.trim()
+      });
+      setNoteBody('');
+      toast.success('Note saved.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save note.');
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  if (workspace === undefined) {
+    return <MessengerSkeleton />;
+  }
+
+  if (!activeConversation) {
+    return (
+      <div className='border-border/50 bg-background/70 flex h-[calc(100dvh-5.5rem)] w-full items-center justify-center rounded-2xl border p-6 text-sm backdrop-blur-xl lg:rounded-3xl'>
+        No conversations available.
+      </div>
+    );
+  }
 
   return (
-    <div className='border-border/50 bg-background/70 relative grid h-[calc(100dvh-5.5rem)] w-full grid-rows-[auto,1fr] gap-3 overflow-hidden rounded-2xl border p-3 backdrop-blur-xl sm:gap-4 sm:p-4 lg:[grid-template-columns:30%_1fr] lg:grid-rows-[1fr] lg:gap-4 lg:rounded-3xl lg:p-5'>
-      <ConversationSelect
-        conversations={conversations}
-        selectedId={selectedConversationId}
-        onSelect={selectConversation}
-      />
-      <ConversationList
-        conversations={conversations}
-        selectedId={selectedConversationId}
-        onSelect={selectConversation}
-      />
-      <ChatArea
+    <>
+      <div className='border-border/50 bg-background/70 relative grid h-[calc(100dvh-5.5rem)] w-full grid-rows-[auto,1fr] gap-3 overflow-hidden rounded-2xl border p-3 backdrop-blur-xl sm:gap-4 sm:p-4 lg:[grid-template-columns:30%_1fr] lg:grid-rows-[1fr] lg:gap-4 lg:rounded-3xl lg:p-5'>
+        <ConversationSelect
+          conversations={conversations}
+          selectedId={selectedConversationId ?? activeConversation.id}
+          onSelect={setSelectedConversationId}
+        />
+        <ConversationList
+          conversations={conversations}
+          selectedId={selectedConversationId ?? activeConversation.id}
+          onSelect={setSelectedConversationId}
+        />
+        <ChatArea
+          conversation={activeConversation}
+          draft={draft}
+          onDraftChange={setDraft}
+          onSubmit={handleSubmit}
+          attachments={attachments}
+          onAddAttachments={handleAddAttachments}
+          onRemoveAttachment={handleRemoveAttachment}
+          onOpenDetails={() => setIsDetailsOpen(true)}
+          composerDisabled={!activeConversation.canReply}
+          isSending={isSending}
+        />
+      </div>
+
+      <ConversationDetailsDrawer
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
         conversation={activeConversation}
-        draft={draft}
-        onDraftChange={setDraft}
-        onSubmit={handleSubmit}
-        attachments={attachments}
-        onAddAttachments={handleAddAttachments}
-        onRemoveAttachment={handleRemoveAttachment}
+        details={conversationDetails}
+        isLoading={Boolean(
+          isDetailsOpen &&
+            (drawerState === undefined ||
+              rawConversationDetails?.selectedConversation?.id !== activeConversationId)
+        )}
+        noteBody={noteBody}
+        onNoteBodyChange={setNoteBody}
+        onSaveNote={handleSaveNote}
+        onAssignmentChange={handleAssignmentChange}
+        onPauseToggle={handlePauseToggle}
+        onHandoffToggle={handleHandoffToggle}
+        onStatusToggle={handleStatusToggle}
+        isSavingNote={isSavingNote}
+        isUpdatingConversation={isUpdatingConversation}
       />
-    </div>
+    </>
   );
 }

@@ -885,3 +885,372 @@ export const getAnalyticsDashboardState = query({
     };
   },
 });
+
+type BillingEventLike = Doc<"billingEvents">;
+type UsageCounterLike = Doc<"usageCounters">;
+
+function startOfUtcMonth(timestamp: number) {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1);
+}
+
+function shiftUtcMonth(timestamp: number, delta: number) {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + delta, 1);
+}
+
+function buildMonthStarts(count: number, now: number) {
+  const currentMonthStart = startOfUtcMonth(now);
+  return Array.from({ length: count }, (_, index) =>
+    shiftUtcMonth(currentMonthStart, index - (count - 1)),
+  );
+}
+
+function formatMonthLabel(timestamp: number, format: "short" | "long" = "long") {
+  return new Intl.DateTimeFormat("en-US", {
+    month: format,
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+}
+
+function formatMonthYearLabel(timestamp: number) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+}
+
+function formatMonthRangeLabel(starts: number[]) {
+  if (starts.length === 0) {
+    return "";
+  }
+
+  const first = starts[0] ?? 0;
+  const last = starts[starts.length - 1] ?? first;
+
+  if (first === last) {
+    return formatMonthYearLabel(first);
+  }
+
+  return `${formatMonthLabel(first)} - ${formatMonthYearLabel(last)}`;
+}
+
+function calculateTrendPercent(current: number, previous: number) {
+  if (previous <= 0) {
+    return current > 0 ? 100 : 0;
+  }
+
+  return Number((((current - previous) / previous) * 100).toFixed(1));
+}
+
+function buildUsageCounterMap(counters: UsageCounterLike[]) {
+  return new Map(counters.map((counter) => [counter.periodStart, counter]));
+}
+
+function getCounterCount(counter: UsageCounterLike | null | undefined, field: keyof UsageCounterLike) {
+  const value = counter?.[field];
+  return typeof value === "number" ? value : 0;
+}
+
+function isRevenueEvent(event: BillingEventLike, currency: "USD" | "IDR") {
+  return (
+    event.currency === currency &&
+    typeof event.amount === "number" &&
+    event.amount > 0 &&
+    (event.status === "active" || event.status === "trialing")
+  );
+}
+
+function formatBillingEventTitle(eventType: string) {
+  return eventType
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+function buildSalesFallbackLabel(event: BillingEventLike) {
+  return `${event.gateway.toUpperCase()} · ${event.status}`;
+}
+
+function buildInitials(value: string) {
+  const parts = value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (parts.length === 0) {
+    return "NA";
+  }
+
+  return parts.map((part) => part.charAt(0).toUpperCase()).join("");
+}
+
+async function listRecentUsageCounters(
+  ctx: Pick<QueryCtx, "db">,
+  organizationId: Id<"organizations">,
+  limit: number,
+) {
+  return ctx.db
+    .query("usageCounters")
+    .withIndex("by_org_period_start", (q) => q.eq("organizationId", organizationId))
+    .order("desc")
+    .take(limit);
+}
+
+async function listRecentBillingEvents(
+  ctx: Pick<QueryCtx, "db">,
+  organizationId: Id<"organizations">,
+  limit: number,
+) {
+  return ctx.db
+    .query("billingEvents")
+    .withIndex("by_org_created_at", (q) => q.eq("organizationId", organizationId))
+    .order("desc")
+    .take(limit);
+}
+
+export const getOverviewSummaryState = query({
+  args: {},
+  handler: async (ctx) => {
+    const access = await requireOrgContext(ctx);
+    const now = Date.now();
+    const snapshot = await getEntitlementSnapshot(ctx, access.organizationId, now);
+    const monthStarts = buildMonthStarts(2, now);
+    const previousMonthStart = monthStarts[0] ?? shiftUtcMonth(now, -1);
+    const currentMonthStart = monthStarts[1] ?? startOfUtcMonth(now);
+    const nextMonthStart = shiftUtcMonth(currentMonthStart, 1);
+    const recentUsageCounters = await listRecentUsageCounters(ctx, access.organizationId, 2);
+    const usageCounterMap = buildUsageCounterMap(recentUsageCounters);
+    const currentCounter = usageCounterMap.get(currentMonthStart) ?? null;
+    const previousCounter = usageCounterMap.get(previousMonthStart) ?? null;
+    const recentBillingEvents = await listRecentBillingEvents(ctx, access.organizationId, 48);
+    const revenueCurrency =
+      snapshot.subscription?.currency ??
+      recentBillingEvents.find((event) => event.currency === "IDR" || event.currency === "USD")
+        ?.currency ??
+      "USD";
+
+    const currentRevenue = recentBillingEvents
+      .filter(
+        (event) =>
+          isRevenueEvent(event, revenueCurrency) &&
+          event.createdAt >= currentMonthStart &&
+          event.createdAt < nextMonthStart,
+      )
+      .reduce((sum, event) => sum + (event.amount ?? 0), 0);
+    const previousRevenue = recentBillingEvents
+      .filter(
+        (event) =>
+          isRevenueEvent(event, revenueCurrency) &&
+          event.createdAt >= previousMonthStart &&
+          event.createdAt < currentMonthStart,
+      )
+      .reduce((sum, event) => sum + (event.amount ?? 0), 0);
+
+    const effectiveCurrentRevenue =
+      currentRevenue === 0 &&
+      snapshot.subscription &&
+      ["active", "trialing", "past_due"].includes(snapshot.subscription.status)
+        ? snapshot.subscription.amount
+        : currentRevenue;
+
+    const inboundCurrent = getCounterCount(currentCounter, "inboundMessageCount");
+    const inboundPrevious = getCounterCount(previousCounter, "inboundMessageCount");
+    const activityCurrent =
+      getCounterCount(currentCounter, "aiRunCount") +
+      inboundCurrent +
+      getCounterCount(currentCounter, "outboundMessageCount");
+    const activityPrevious =
+      getCounterCount(previousCounter, "aiRunCount") +
+      inboundPrevious +
+      getCounterCount(previousCounter, "outboundMessageCount");
+
+    const memberships = await ctx.db
+      .query("orgMembers")
+      .withIndex("by_org", (q) => q.eq("orgId", access.organizationId))
+      .collect();
+    const activeSeats = memberships.length;
+    const previousSeats = memberships.filter(
+      (membership) => membership.createdAt < currentMonthStart,
+    ).length;
+    const growthRate = calculateTrendPercent(activityCurrent, activityPrevious);
+
+    return {
+      currentPeriodLabel: formatMonthYearLabel(currentMonthStart),
+      comparisonPeriodLabel: formatMonthYearLabel(previousMonthStart),
+      revenue: {
+        amount: effectiveCurrentRevenue,
+        currency: revenueCurrency,
+        changePercent: calculateTrendPercent(effectiveCurrentRevenue, previousRevenue),
+      },
+      newCustomers: {
+        value: inboundCurrent,
+        changePercent: calculateTrendPercent(inboundCurrent, inboundPrevious),
+      },
+      activeAccounts: {
+        value: activeSeats,
+        changePercent: calculateTrendPercent(activeSeats, previousSeats),
+      },
+      growthRate: {
+        value: growthRate,
+        changePercent: growthRate,
+      },
+    };
+  },
+});
+
+export const getOverviewBarChartState = query({
+  args: {},
+  handler: async (ctx) => {
+    const access = await requireOrgContext(ctx);
+    const now = Date.now();
+    const monthStarts = buildMonthStarts(6, now);
+    const earliestMonthStart = monthStarts[0] ?? startOfUtcMonth(now);
+    const counters = (
+      await listRecentUsageCounters(ctx, access.organizationId, 6)
+    ).filter((counter) => counter.periodStart >= earliestMonthStart);
+    const counterMap = buildUsageCounterMap(counters);
+    const series = monthStarts.map((monthStart) => {
+      const counter = counterMap.get(monthStart) ?? null;
+      return {
+        month: formatMonthLabel(monthStart),
+        inbound: getCounterCount(counter, "inboundMessageCount"),
+        outbound: getCounterCount(counter, "outboundMessageCount"),
+      };
+    });
+    const currentPoint = series[series.length - 1] ?? { inbound: 0, outbound: 0 };
+    const previousPoint = series[series.length - 2] ?? { inbound: 0, outbound: 0 };
+
+    return {
+      rangeLabel: formatMonthRangeLabel(monthStarts),
+      trendPercent: calculateTrendPercent(
+        currentPoint.inbound + currentPoint.outbound,
+        previousPoint.inbound + previousPoint.outbound,
+      ),
+      series,
+    };
+  },
+});
+
+export const getOverviewAreaChartState = query({
+  args: {},
+  handler: async (ctx) => {
+    const access = await requireOrgContext(ctx);
+    const now = Date.now();
+    const monthStarts = buildMonthStarts(12, now);
+    const earliestMonthStart = monthStarts[0] ?? startOfUtcMonth(now);
+    const counters = (
+      await listRecentUsageCounters(ctx, access.organizationId, 12)
+    ).filter((counter) => counter.periodStart >= earliestMonthStart);
+    const counterMap = buildUsageCounterMap(counters);
+    const series = monthStarts.map((monthStart) => {
+      const counter = counterMap.get(monthStart) ?? null;
+      return {
+        month: formatMonthLabel(monthStart),
+        aiRuns: getCounterCount(counter, "aiRunCount"),
+        delivered: getCounterCount(counter, "deliveryDeliveredCount"),
+      };
+    });
+    const currentPoint = series[series.length - 1] ?? { aiRuns: 0, delivered: 0 };
+    const previousPoint = series[series.length - 2] ?? { aiRuns: 0, delivered: 0 };
+
+    return {
+      trendPercent: calculateTrendPercent(
+        currentPoint.aiRuns + currentPoint.delivered,
+        previousPoint.aiRuns + previousPoint.delivered,
+      ),
+      series,
+    };
+  },
+});
+
+export const getOverviewPieChartState = query({
+  args: {},
+  handler: async (ctx) => {
+    const access = await requireOrgContext(ctx);
+    const now = Date.now();
+    const monthStarts = buildMonthStarts(2, now);
+    const previousMonthStart = monthStarts[0] ?? shiftUtcMonth(now, -1);
+    const currentMonthStart = monthStarts[1] ?? startOfUtcMonth(now);
+    const recentMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+      .order("desc")
+      .take(200);
+    const contentMix = recentMessages.reduce(
+      (acc, message) => {
+        if (message.contentType === "text") acc.text += 1;
+        else if (message.contentType === "image") acc.image += 1;
+        else if (message.contentType === "document") acc.document += 1;
+        else if (message.contentType === "audio") acc.audio += 1;
+        else acc.other += 1;
+        return acc;
+      },
+      { text: 0, image: 0, document: 0, audio: 0, other: 0 },
+    );
+    const recentUsageCounters = await listRecentUsageCounters(ctx, access.organizationId, 2);
+    const usageCounterMap = buildUsageCounterMap(recentUsageCounters);
+    const currentCounter = usageCounterMap.get(currentMonthStart) ?? null;
+    const previousCounter = usageCounterMap.get(previousMonthStart) ?? null;
+    const currentMessages =
+      getCounterCount(currentCounter, "inboundMessageCount") +
+      getCounterCount(currentCounter, "outboundMessageCount");
+    const previousMessages =
+      getCounterCount(previousCounter, "inboundMessageCount") +
+      getCounterCount(previousCounter, "outboundMessageCount");
+
+    return {
+      periodLabel: formatMonthYearLabel(currentMonthStart),
+      trendPercent: calculateTrendPercent(currentMessages, previousMessages),
+      segments: [
+        { type: "text" as const, value: contentMix.text },
+        { type: "image" as const, value: contentMix.image },
+        { type: "document" as const, value: contentMix.document },
+        { type: "audio" as const, value: contentMix.audio },
+        { type: "other" as const, value: contentMix.other },
+      ],
+    };
+  },
+});
+
+export const getOverviewRecentSalesState = query({
+  args: {},
+  handler: async (ctx) => {
+    const access = await requireOrgContext(ctx);
+    const now = Date.now();
+    const currentMonthStart = startOfUtcMonth(now);
+    const nextMonthStart = shiftUtcMonth(currentMonthStart, 1);
+    const recentBillingEvents = await listRecentBillingEvents(ctx, access.organizationId, 24);
+    const recentSales = recentBillingEvents.filter(
+      (event) =>
+        (event.currency === "USD" || event.currency === "IDR") &&
+        typeof event.amount === "number" &&
+        event.amount > 0 &&
+        (event.status === "active" || event.status === "trialing"),
+    );
+
+    return {
+      currentMonthSalesCount: recentSales.filter(
+        (event) => event.createdAt >= currentMonthStart && event.createdAt < nextMonthStart,
+      ).length,
+      sales: recentSales.slice(0, 5).map((event) => {
+        const name = formatBillingEventTitle(event.eventType);
+
+        return {
+          id: event._id.toString(),
+          name,
+          email:
+            event.externalReferenceId ??
+            event.providerCustomerId ??
+            buildSalesFallbackLabel(event),
+          avatar: null,
+          fallback: buildInitials(name),
+          amount: event.amount ?? 0,
+          currency: event.currency ?? "USD",
+        };
+      }),
+    };
+  },
+});

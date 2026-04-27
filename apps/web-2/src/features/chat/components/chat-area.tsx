@@ -15,6 +15,9 @@ interface ChatAreaProps {
   attachments: Attachment[];
   onAddAttachments: (files: FileList) => void;
   onRemoveAttachment: (id: string) => void;
+  onOpenDetails: () => void;
+  composerDisabled?: boolean;
+  isSending?: boolean;
 }
 
 export function ChatArea({
@@ -24,7 +27,10 @@ export function ChatArea({
   onSubmit,
   attachments,
   onAddAttachments,
-  onRemoveAttachment
+  onRemoveAttachment,
+  onOpenDetails,
+  composerDisabled = false,
+  isSending = false
 }: ChatAreaProps) {
   const shouldReduceMotion = useReducedMotion();
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -62,10 +68,10 @@ export function ChatArea({
           initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
           animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
           exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
-          transition={{ duration: 0.32, ease: 'easeOut' }}
-          className='border-border/40 bg-background/80 flex min-h-0 flex-col gap-3 overflow-hidden rounded-2xl border p-3 backdrop-blur sm:gap-4 sm:p-4 lg:col-start-2 lg:col-end-3 lg:rounded-3xl'
-        >
-          <ChatHeader conversation={conversation} />
+        transition={{ duration: 0.32, ease: 'easeOut' }}
+        className='border-border/40 bg-background/80 flex min-h-0 flex-col gap-3 overflow-hidden rounded-2xl border p-3 backdrop-blur sm:gap-4 sm:p-4 lg:col-start-2 lg:col-end-3 lg:rounded-3xl'
+      >
+          <ChatHeader conversation={conversation} onOpenDetails={onOpenDetails} />
 
           <div
             ref={messagesContainerRef}
@@ -89,6 +95,8 @@ export function ChatArea({
             attachments={attachments}
             onAddAttachments={onAddAttachments}
             onRemoveAttachment={onRemoveAttachment}
+            disabled={composerDisabled}
+            isSending={isSending}
           />
         </motion.div>
       </AnimatePresence>

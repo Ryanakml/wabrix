@@ -13,9 +13,10 @@ const statusDotColor = {
 
 interface ChatHeaderProps {
   conversation: Conversation;
+  onOpenDetails: () => void;
 }
 
-export function ChatHeader({ conversation }: ChatHeaderProps) {
+export function ChatHeader({ conversation, onOpenDetails }: ChatHeaderProps) {
   return (
     <header className='flex flex-wrap items-center justify-between gap-3 sm:gap-4'>
       <div className='flex items-center gap-2 sm:gap-3'>
@@ -62,8 +63,9 @@ export function ChatHeader({ conversation }: ChatHeaderProps) {
           type='button'
           variant='ghost'
           size='icon'
+          onClick={onOpenDetails}
           className='border-border/40 bg-background/60 text-muted-foreground hover:bg-muted/60 focus-visible:ring-primary/40 focus-visible:ring-offset-background size-8 rounded-full border transition focus-visible:ring-2 focus-visible:ring-offset-2 sm:size-10'
-          aria-label='Open conversation menu'
+          aria-label='Open conversation details'
         >
           <Icons.ellipsis className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
         </Button>

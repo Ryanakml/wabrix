@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel.js";
-import { mutation, query, type MutationCtx } from "./_generated/server.js";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import {
   buildOutboundQueueIdempotencyKey,
@@ -116,6 +116,213 @@ async function getConversationForOrg(
   }
 
   return conversation;
+}
+
+async function listConversationsForOrganization(
+  ctx: Pick<QueryCtx, "db">,
+  organizationId: Id<"organizations">,
+) {
+  return ctx.db
+    .query("conversations")
+    .withIndex("by_org_last_message_at", (q) => q.eq("organizationId", organizationId))
+    .order("desc")
+    .take(50);
+}
+
+function resolveSelectedConversation<T extends { _id: Id<"conversations"> }>(
+  conversations: T[],
+  selectedConversationId?: Id<"conversations">,
+) {
+  return (
+    (selectedConversationId
+      ? conversations.find((conversation) => conversation._id === selectedConversationId) ?? null
+      : null) ??
+    conversations[0] ??
+    null
+  );
+}
+
+async function buildConversationSummaries(
+  ctx: Pick<QueryCtx, "db">,
+  conversations: Awaited<ReturnType<typeof listConversationsForOrganization>>,
+) {
+  return Promise.all(
+    conversations.map(async (conversation) => {
+      const contact = conversation.contactId ? await ctx.db.get(conversation.contactId) : null;
+
+      return {
+        id: conversation._id,
+        status: conversation.status,
+        channelLabel: "WhatsApp",
+        waId: contact?.waId ?? null,
+        profileName: contact?.profileName ?? null,
+        assignedUserName: conversation.assignedUserName ?? null,
+        lastMessageAt: conversation.lastMessageAt,
+        lastMessagePreview: conversation.lastMessagePreview ?? null,
+        serviceWindowOpen: isServiceWindowOpen(conversation.serviceWindowExpiresAt, Date.now()),
+      };
+    }),
+  );
+}
+
+async function buildSelectedConversationCore(
+  ctx: Pick<QueryCtx, "db">,
+  selectedConversation: Awaited<ReturnType<typeof listConversationsForOrganization>>[number] | null,
+) {
+  if (!selectedConversation) {
+    return null;
+  }
+
+  const selectedContact =
+    selectedConversation.contactId != null ? await ctx.db.get(selectedConversation.contactId) : null;
+  const selectedMessages = await ctx.db
+    .query("messages")
+    .withIndex("by_conversation_created_at", (q) =>
+      q.eq("conversationId", selectedConversation._id),
+    )
+    .order("desc")
+    .take(50);
+
+  return {
+    id: selectedConversation._id,
+    status: selectedConversation.status,
+    channelLabel: "WhatsApp",
+    waId: selectedContact?.waId ?? null,
+    profileName: selectedContact?.profileName ?? null,
+    assignedUserName: selectedConversation.assignedUserName ?? null,
+    serviceWindowOpen: isServiceWindowOpen(
+      selectedConversation.serviceWindowExpiresAt,
+      Date.now(),
+    ),
+    messages: selectedMessages
+      .reverse()
+      .filter((message) => message.role !== "system")
+      .map((message) => ({
+        id: message._id,
+        role: message.role,
+        content: message.content,
+        contentType: message.contentType,
+        deliveryState: message.deliveryState,
+        createdAt: message.createdAt,
+      })),
+  };
+}
+
+async function buildSelectedConversationDetails(
+  ctx: Pick<QueryCtx, "db">,
+  {
+    organizationId,
+    selectedConversation,
+  }: {
+    organizationId: Id<"organizations">;
+    selectedConversation: Awaited<ReturnType<typeof listConversationsForOrganization>>[number] | null;
+  },
+) {
+  if (!selectedConversation) {
+    return {
+      teamMembers: [],
+      wabaLifecycle: {
+        connectionStatus: "not_connected" as const,
+        webhookStatus: "pending" as const,
+        phoneNumberId: null,
+        businessAccountId: null,
+        ...deriveWabaLifecycleState(null),
+      },
+      selectedConversation: null,
+    };
+  }
+
+  const selectedContact =
+    selectedConversation.contactId != null ? await ctx.db.get(selectedConversation.contactId) : null;
+  const selectedIntegration = selectedContact
+    ? await ctx.db.get(selectedContact.integrationId)
+    : null;
+  const teamMemberships = await ctx.db
+    .query("orgMembers")
+    .withIndex("by_org", (q) => q.eq("orgId", organizationId))
+    .collect();
+  const teamMembers = await Promise.all(
+    teamMemberships.map(async (membership) => {
+      const user = await ctx.db.get(membership.userId);
+
+      return {
+        userId: membership.userId,
+        role: membership.role,
+        displayName: formatUserDisplayName({
+          firstName: user?.firstName,
+          lastName: user?.lastName,
+          email: user?.email,
+        }),
+      };
+    }),
+  );
+
+  const selectedNotes = await ctx.db
+    .query("conversationNotes")
+    .withIndex("by_conversation_created_at", (q) =>
+      q.eq("conversationId", selectedConversation._id),
+    )
+    .order("desc")
+    .take(20);
+  const selectedQueue = (
+    await ctx.db
+      .query("outboundQueue")
+      .withIndex("by_org_created_at", (q) => q.eq("organizationId", organizationId))
+      .order("desc")
+      .take(20)
+  ).filter((queueJob) => queueJob.conversationId === selectedConversation._id);
+
+  return {
+    teamMembers,
+    wabaLifecycle: {
+      connectionStatus: selectedIntegration?.connectionStatus ?? "not_connected",
+      webhookStatus: selectedIntegration?.webhookStatus ?? "pending",
+      phoneNumberId: selectedIntegration?.phoneNumberId ?? null,
+      businessAccountId: selectedIntegration?.businessAccountId ?? null,
+      ...deriveWabaLifecycleState(selectedIntegration),
+    },
+    selectedConversation: {
+      id: selectedConversation._id,
+      status: selectedConversation.status,
+      profileName: selectedContact?.profileName ?? null,
+      waId: selectedContact?.waId ?? null,
+      assignedUserId: selectedConversation.assignedUserId ?? null,
+      assignedUserName: selectedConversation.assignedUserName ?? null,
+      botPaused: selectedConversation.botPaused,
+      handoffRequested: selectedConversation.handoffRequested,
+      botReplyState: selectedConversation.botReplyState,
+      botReplyError: selectedConversation.botReplyError ?? null,
+      serviceWindowExpiresAt: selectedConversation.serviceWindowExpiresAt ?? null,
+      serviceWindowExpiringSoon: selectedConversation.serviceWindowExpiringSoon,
+      serviceWindowOpen: isServiceWindowOpen(
+        selectedConversation.serviceWindowExpiresAt,
+        Date.now(),
+      ),
+      lastInboundAt: selectedConversation.lastInboundAt,
+      lastMessageAt: selectedConversation.lastMessageAt,
+      replyPolicy: isServiceWindowOpen(selectedConversation.serviceWindowExpiresAt, Date.now())
+        ? "freeform"
+        : "template_only",
+      notes: selectedNotes.reverse().map((note) => ({
+        id: note._id,
+        authorDisplayName: note.authorDisplayName,
+        body: note.body,
+        createdAt: note.createdAt,
+      })),
+      queue: selectedQueue.map((job) => ({
+        id: job._id,
+        status: job.status,
+        attemptCount: job.attemptCount,
+        nextAttemptAt: job.nextAttemptAt,
+        failureCode: job.failureCode ?? null,
+        failureMessage: job.failureMessage ?? null,
+        providerMessageId: job.providerMessageId ?? null,
+        payloadType: job.payloadType,
+        templateName: job.templateName ?? null,
+        createdAt: job.createdAt,
+      })),
+    },
+  };
 }
 
 export async function queueManualReply(
@@ -645,6 +852,46 @@ export const getInboxWorkspace = query({
           }
         : null,
     };
+  },
+});
+
+export const getInboxChatWorkspace = query({
+  args: {
+    selectedConversationId: v.optional(v.id("conversations")),
+  },
+  handler: async (ctx, args) => {
+    const access = await requireOrgContext(ctx);
+    const conversations = await listConversationsForOrganization(ctx, access.organizationId);
+    const selectedConversation = resolveSelectedConversation(
+      conversations,
+      args.selectedConversationId,
+    );
+
+    return {
+      role: access.role,
+      canManageInbox: access.role === "org:admin" || access.role === "org:member",
+      conversations: await buildConversationSummaries(ctx, conversations),
+      selectedConversation: await buildSelectedConversationCore(ctx, selectedConversation),
+    };
+  },
+});
+
+export const getInboxConversationDrawerState = query({
+  args: {
+    selectedConversationId: v.optional(v.id("conversations")),
+  },
+  handler: async (ctx, args) => {
+    const access = await requireOrgContext(ctx);
+    const conversations = await listConversationsForOrganization(ctx, access.organizationId);
+    const selectedConversation = resolveSelectedConversation(
+      conversations,
+      args.selectedConversationId,
+    );
+
+    return buildSelectedConversationDetails(ctx, {
+      organizationId: access.organizationId,
+      selectedConversation,
+    });
   },
 });
 
