@@ -1,21 +1,28 @@
-```txt
-npm install
-npm run dev
+# Ingress Worker
+
+Phase 11 worker scope is live.
+
+## Commands
+
+```bash
+pnpm --filter @wabrix/ingress dev
+pnpm --filter @wabrix/ingress test
+pnpm --filter @wabrix/ingress build
 ```
 
-```txt
-npm run deploy
-```
+## Current Scope
 
-[For generating/synchronizing types based on your Worker configuration run](https://developers.cloudflare.com/workers/wrangler/commands/#types):
+- `GET /webhooks/whatsapp` validates the Meta challenge token.
+- `POST /webhooks/whatsapp` validates `X-Hub-Signature-256` using the exact raw request body.
+- Requests are rate-limited by `phoneNumberId`.
+- Accepted events are durably written to Convex before the worker returns `200`.
+- Media webhook events are marked for high-priority download work without calling AI inline.
+- Delivery-status webhook events are durably written and routed to async status reconciliation in Convex.
+- Template approval webhook events are durably written and routed to async template-state processing in Convex.
+- WABA lifecycle webhook events are durably written and routed to async lifecycle-state processing in Convex.
 
-```txt
-npm run cf-typegen
-```
+## Config
 
-Pass the `CloudflareBindings` as generics when instantiation `Hono`:
-
-```ts
-// src/index.ts
-const app = new Hono<{ Bindings: CloudflareBindings }>()
-```
+- Set `META_APP_SECRET`, `META_VERIFY_TOKEN`, `CONVEX_HTTP_URL`, and `CONVEX_SHARED_SECRET`.
+- Replace the placeholder `WHATSAPP_WEBHOOK_RATE_LIMITER` `namespace_id` in [wrangler.toml](/Users/ryanakmalpasya/Documents/BS/Freelance/PROJECTS/SKEM PROJECT/SAAS/wabrix/apps/ingress/wrangler.toml) before staging or production deployment.
+- Run `pnpm --filter @wabrix/ingress cf-typegen` if you want generated binding typings from Wrangler.
