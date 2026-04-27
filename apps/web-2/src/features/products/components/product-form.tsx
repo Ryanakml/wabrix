@@ -21,7 +21,7 @@ export default function ProductForm({
 }) {
   const router = useRouter();
   const isEdit = !!initialData;
-  const [isPending, setIsPending] = useState(false);
+  const [_isPending, setIsPending] = useState(false);
 
   const form = useAppForm({
     defaultValues: {
