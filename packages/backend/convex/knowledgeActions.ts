@@ -17,10 +17,13 @@ type KnowledgeActionAccessState = {
 };
 
 type IngestKnowledgeSourceArgs = {
-  sourceType: "inline" | "website" | "pdf";
+  sourceType: "inline" | "website" | "pdf" | "document";
   title?: string;
   content?: string;
   url?: string;
+  storageId?: Id<"_storage">;
+  fileName?: string;
+  mimeType?: string;
 };
 
 type IngestKnowledgeSourceResult = {
@@ -32,7 +35,8 @@ type IngestKnowledgeSourceResult = {
     | "jina_reader"
     | "firecrawl"
     | "cheerio"
-    | "pdf_deferred";
+    | "pdf_deferred"
+    | "markitdown";
   status: "ready" | "deferred";
   pdfDeferred: boolean;
 };
@@ -62,14 +66,23 @@ async function ingestKnowledgeSourceHandler(
   const providerApiKey = runtimeState?.provider.apiKeyEncrypted
     ? await decryptSecret(runtimeState.provider.apiKeyEncrypted)
     : null;
+  
+  // Use the provider's API key only if it's a Google provider,
+  // otherwise fallback to the system's Google API key for embeddings.
   const embeddingApiKey =
-    providerApiKey ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    runtimeState?.provider.providerType === "google" && providerApiKey
+      ? providerApiKey
+      : process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
   const sourceDraft = await prepareKnowledgeSourceDraft({
     sourceType: args.sourceType,
     title: args.title,
     content: args.content,
     url: args.url,
+    storageId: args.storageId,
+    fileName: args.fileName,
+    mimeType: args.mimeType,
+    storage: ctx.storage,
     embeddingApiKey,
     firecrawlApiKey: process.env.FIRECRAWL_API_KEY,
   });
@@ -112,10 +125,14 @@ export const ingestKnowledgeSource = action({
       v.literal("inline"),
       v.literal("website"),
       v.literal("pdf"),
+      v.literal("document"),
     ),
     title: v.optional(v.string()),
     content: v.optional(v.string()),
     url: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
+    fileName: v.optional(v.string()),
+    mimeType: v.optional(v.string()),
   },
   handler: ingestKnowledgeSourceHandler,
 });

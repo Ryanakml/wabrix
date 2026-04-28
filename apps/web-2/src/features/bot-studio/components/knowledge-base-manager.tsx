@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { FileUploader } from '@/components/file-uploader';
 
-type SourceType = 'inline' | 'website' | 'pdf';
+type SourceType = 'inline' | 'website' | 'document';
 
 type FormState = {
   sourceType: SourceType;
@@ -45,7 +45,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
 const sourceTypeOptions = [
   { value: 'inline', label: 'Inline Text' },
   { value: 'website', label: 'Website URL' },
-  { value: 'pdf', label: 'Document Upload' }
+  { value: 'document', label: 'Document Upload' }
 ] as const;
 
 const blockedPrivateOrInternalUrl = (error: unknown) =>
@@ -56,6 +56,7 @@ export function KnowledgeBaseManager() {
   const knowledgeState = useQuery(api.knowledge.getKnowledgeBaseState, {});
   const ingestKnowledgeSource = useAction(api.knowledgeActions.ingestKnowledgeSource);
   const deleteKnowledgeSource = useMutation(api.knowledge.deleteKnowledgeSource);
+  const generateKnowledgeUploadUrl = useMutation(api.knowledge.generateKnowledgeUploadUrl);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
@@ -92,7 +93,7 @@ export function KnowledgeBaseManager() {
       return form.url.trim().length === 0;
     }
 
-    if (form.sourceType === 'pdf') {
+    if (form.sourceType === 'document') {
       return form.files.length === 0;
     }
 
@@ -106,20 +107,48 @@ export function KnowledgeBaseManager() {
     }));
   };
 
+  const uploadKnowledgeDocument = async (file: File) => {
+    const uploadUrl = await generateKnowledgeUploadUrl({});
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream'
+      },
+      body: file
+    });
+
+    const payload = (await response.json()) as {
+      storageId?: string;
+    };
+
+    if (!response.ok || !payload.storageId) {
+      throw new Error('Failed to upload document for ingestion.');
+    }
+
+    return payload.storageId;
+  };
+
   const handleSave = () => {
     startSaving(async () => {
       try {
         const fileTitle = form.files[0]?.name.replace(/\.[^/.]+$/, '') ?? '';
+        const uploadedStorageId =
+          form.sourceType === 'document' && form.files[0]
+            ? await uploadKnowledgeDocument(form.files[0])
+            : undefined;
         const result = await ingestKnowledgeSource({
           sourceType: form.sourceType,
-          title: form.title.trim() || (form.sourceType === 'pdf' ? fileTitle : undefined),
+          title: form.title.trim() || (form.sourceType === 'document' ? fileTitle : undefined),
           content: form.sourceType === 'inline' ? form.content : undefined,
-          url: form.sourceType === 'website' ? form.url.trim() : undefined
+          url: form.sourceType === 'website' ? form.url.trim() : undefined,
+          storageId: uploadedStorageId as never,
+          fileName: form.sourceType === 'document' ? form.files[0]?.name : undefined,
+          mimeType: form.sourceType === 'document' ? form.files[0]?.type : undefined
         });
 
         toast.success(
           result.pdfDeferred
-            ? 'Document queued. PDF ingestion is currently deferred.'
+            ? 'Document queued for later processing.'
             : `Knowledge source saved (${result.chunkCount} chunks).`
         );
         setForm((current) => ({
@@ -157,7 +186,7 @@ export function KnowledgeBaseManager() {
       <CardHeader>
         <CardTitle className='text-2xl font-bold'>Knowledge Base</CardTitle>
         <p className='text-muted-foreground text-sm'>
-          Manage inline notes, website sources, and deferred document uploads for retrieval.
+          Manage inline notes, website sources, and document uploads for retrieval.
         </p>
       </CardHeader>
       <CardContent className='space-y-6'>
@@ -225,7 +254,7 @@ export function KnowledgeBaseManager() {
           </div>
         ) : null}
 
-        {form.sourceType === 'pdf' ? (
+        {form.sourceType === 'document' ? (
           <div className='space-y-2'>
             <Label>Document Upload</Label>
             <FileUploader
@@ -235,7 +264,12 @@ export function KnowledgeBaseManager() {
                   typeof nextValue === 'function' ? nextValue(form.files) : nextValue;
                 handleFieldChange('files', nextFiles);
               }}
-              accept={{ 'application/pdf': ['.pdf'] }}
+              accept={{
+                'application/pdf': ['.pdf'],
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+                'text/csv': ['.csv']
+              }}
               maxFiles={1}
               maxSize={10 * 1024 * 1024}
             />

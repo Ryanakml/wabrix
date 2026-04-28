@@ -1,10 +1,33 @@
 "use node";
 
+// Polyfill for DOM types that pdfjs-dist expects even in Node environments
+if (typeof globalThis.DOMMatrix === "undefined") {
+  (globalThis as any).DOMMatrix = class DOMMatrix {};
+}
+if (typeof globalThis.ImageData === "undefined") {
+  (globalThis as any).ImageData = class ImageData {};
+}
+if (typeof globalThis.Path2D === "undefined") {
+  (globalThis as any).Path2D = class Path2D {};
+}
+if (typeof globalThis.CharacterData === "undefined") {
+  (globalThis as any).CharacterData = class CharacterData {};
+}
+if (typeof globalThis.Node === "undefined") {
+  (globalThis as any).Node = class Node {};
+}
+
+import { dirname, extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { lookup } from "node:dns/promises";
 import { GoogleGenAI } from "@google/genai";
 import * as cheerio from "cheerio";
 import TurndownService from "turndown";
 import ipaddr from "ipaddr.js";
+import pdf from "pdf-parse/lib/pdf-parse.js";
+import mammoth from "mammoth";
+import * as XLSX from "xlsx";
+import type { Id } from "../_generated/dataModel.js";
 
 export const KNOWLEDGE_EMBEDDING_MODEL = "gemini-embedding-001";
 
@@ -42,15 +65,23 @@ export type WebsiteMarkdownResult = {
 
 export type PreparedKnowledgeSourceDraft = {
   title: string;
-  sourceType: "inline" | "website" | "pdf";
+  sourceType: "inline" | "website" | "pdf" | "document";
   sourceUrl?: string;
   sourceVendor:
     | "inline"
     | "jina_reader"
     | "firecrawl"
     | "cheerio"
-    | "pdf_deferred";
-  originalFormat: "markdown" | "html" | "plain_text" | "pdf";
+    | "pdf_deferred"
+    | "markitdown";
+  originalFormat:
+    | "markdown"
+    | "html"
+    | "plain_text"
+    | "pdf"
+    | "docx"
+    | "xlsx"
+    | "csv";
   markdownContent: string;
   chunkCount: number;
   embeddingModel?: string;
@@ -59,12 +90,114 @@ export type PreparedKnowledgeSourceDraft = {
   chunks: KnowledgeDraftChunk[];
 };
 
+type StorageLike = {
+  get(storageId: Id<"_storage">): Promise<Blob | null>;
+  delete(storageId: Id<"_storage">): Promise<void>;
+};
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 export function normalizeMarkdown(input: string): string {
   return input
     .replace(/\r\n/g, "\n")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function inferDocumentFormat(fileName?: string, mimeType?: string) {
+  const extension = extname(fileName ?? "").toLowerCase();
+
+  if (extension === ".pdf" || mimeType === "application/pdf") {
+    return "pdf" as const;
+  }
+
+  if (
+    extension === ".docx" ||
+    mimeType ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return "docx" as const;
+  }
+
+  if (
+    extension === ".xlsx" ||
+    mimeType ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
+    return "xlsx" as const;
+  }
+
+  if (
+    extension === ".csv" ||
+    mimeType === "text/csv" ||
+    mimeType === "application/csv" ||
+    mimeType === "application/vnd.ms-excel"
+  ) {
+    return "csv" as const;
+  }
+
+  throw new Error(
+    "Validation Error: supported document types are PDF, DOCX, XLSX, and CSV.",
+  );
+}
+
+async function convertDocumentBufferToMarkdown({
+  buffer,
+  fileName,
+  mimeType,
+}: {
+  buffer: Buffer;
+  fileName: string;
+  mimeType?: string;
+}) {
+  const format = inferDocumentFormat(fileName, mimeType);
+
+  if (format === "pdf") {
+    try {
+      const data = await pdf(buffer);
+      return normalizeMarkdown(data.text);
+    } catch (error) {
+      throw new Error(
+        `PDF parsing failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  if (format === "docx") {
+    try {
+      const result = await mammoth.extractRawText({ buffer });
+      return normalizeMarkdown(result.value);
+    } catch (error) {
+      throw new Error(
+        `DOCX parsing failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  if (format === "xlsx" || format === "csv") {
+    try {
+      const workbook = XLSX.read(buffer, { type: "buffer" });
+      let markdown = "";
+      for (const sheetName of workbook.SheetNames) {
+        const worksheet = workbook.Sheets[sheetName];
+        if (worksheet) {
+          markdown += `## Sheet: ${sheetName}\n\n`;
+          // sheet_to_csv is safe and gives good context for RAG
+          markdown += XLSX.utils.sheet_to_csv(worksheet);
+          markdown += "\n\n";
+        }
+      }
+      return normalizeMarkdown(markdown);
+    } catch (error) {
+      throw new Error(
+        `Spreadsheet parsing failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  throw new Error(`Unsupported document format: ${format}`);
 }
 
 export function estimateTokenCount(text: string): number {
@@ -492,16 +625,24 @@ export async function prepareKnowledgeSourceDraft({
   title,
   content,
   url,
+  storageId,
+  fileName,
+  mimeType,
+  storage,
   embeddingApiKey,
   firecrawlApiKey,
   fetchImpl,
   lookupFn,
   embeddingClient,
 }: {
-  sourceType: "inline" | "website" | "pdf";
+  sourceType: "inline" | "website" | "pdf" | "document";
   title?: string;
   content?: string;
   url?: string;
+  storageId?: Id<"_storage">;
+  fileName?: string;
+  mimeType?: string;
+  storage?: StorageLike;
   embeddingApiKey?: string;
   firecrawlApiKey?: string;
   fetchImpl?: WebsiteFetch;
@@ -555,6 +696,37 @@ export async function prepareKnowledgeSourceDraft({
     sourceUrl = validated.url;
     sourceVendor = websiteResult.sourceVendor;
     originalFormat = websiteResult.originalFormat;
+  }
+
+  if (sourceType === "document") {
+    if (!storageId || !storage || !fileName) {
+      throw new Error("Validation Error: uploaded document is required.");
+    }
+
+    const originalFileFormat = inferDocumentFormat(fileName, mimeType);
+    const blob = await storage.get(storageId);
+
+    if (!blob) {
+      throw new Error("Uploaded document could not be found.");
+    }
+
+    try {
+      const buffer = Buffer.from(await blob.arrayBuffer());
+      markdownContent = await convertDocumentBufferToMarkdown({
+        buffer,
+        fileName,
+        mimeType,
+      });
+    } finally {
+      await storage.delete(storageId).catch(() => undefined);
+    }
+
+    if (!markdownContent) {
+      throw new Error("Document parsing produced empty Markdown content.");
+    }
+
+    sourceVendor = "markitdown";
+    originalFormat = originalFileFormat;
   }
 
   if (!embeddingApiKey) {

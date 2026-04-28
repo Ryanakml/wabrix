@@ -12,7 +12,7 @@ import { assertHasRole, requireOrgContext } from "./rbac.js";
 function mapKnowledgeSource(source: {
   _id: Id<"knowledgeSources">;
   title: string;
-  sourceType: "inline" | "website" | "pdf";
+  sourceType: "inline" | "website" | "pdf" | "document";
   status: "ready" | "processing" | "failed" | "deferred";
   sourceUrl?: string;
   sourceVendor:
@@ -20,8 +20,16 @@ function mapKnowledgeSource(source: {
     | "jina_reader"
     | "firecrawl"
     | "cheerio"
-    | "pdf_deferred";
-  originalFormat: "markdown" | "html" | "plain_text" | "pdf";
+    | "pdf_deferred"
+    | "markitdown";
+  originalFormat:
+    | "markdown"
+    | "html"
+    | "plain_text"
+    | "pdf"
+    | "docx"
+    | "xlsx"
+    | "csv";
   markdownContent: string;
   chunkCount: number;
   embeddingModel?: string;
@@ -124,6 +132,7 @@ export const storeKnowledgeSource = internalMutation({
       v.literal("inline"),
       v.literal("website"),
       v.literal("pdf"),
+      v.literal("document"),
     ),
     status: v.union(
       v.literal("ready"),
@@ -138,12 +147,16 @@ export const storeKnowledgeSource = internalMutation({
       v.literal("firecrawl"),
       v.literal("cheerio"),
       v.literal("pdf_deferred"),
+      v.literal("markitdown"),
     ),
     originalFormat: v.union(
       v.literal("markdown"),
       v.literal("html"),
       v.literal("plain_text"),
       v.literal("pdf"),
+      v.literal("docx"),
+      v.literal("xlsx"),
+      v.literal("csv"),
     ),
     markdownContent: v.string(),
     chunkCount: v.number(),
@@ -210,6 +223,14 @@ export const storeKnowledgeSource = internalMutation({
     });
 
     return sourceId;
+  },
+});
+
+export const generateKnowledgeUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    await assertHasRole(ctx, "org:admin");
+    return ctx.storage.generateUploadUrl();
   },
 });
 
