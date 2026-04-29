@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function SignUpViewPage() {
   return (
-    <div className='relative flex min-h-screen flex-col items-center justify-center overflow-hidden md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
+    <div className='light relative flex min-h-screen flex-col items-center justify-center overflow-hidden md:grid lg:max-w-none lg:grid-cols-2 lg:px-0' data-theme="light">
       <Link
         href='/auth/sign-in'
         className={cn(
@@ -28,14 +28,13 @@ export default function SignUpViewPage() {
         <div className='absolute inset-0 bg-sidebar' />
         <div className='text-sidebar-foreground relative z-20 flex items-center text-lg font-medium'>
           <Image
-            src='/logo.svg'
+            src='/logo.png'
             alt='Wabrix logo'
-            width={24}
-            height={24}
-            className='mr-2 h-6 w-6'
+            width={120}
+            height={40}
+            className='mr-2 h-auto w-32'
             priority
           />
-          Wabrix
         </div>
         <InteractiveGridPattern
           className={cn(
