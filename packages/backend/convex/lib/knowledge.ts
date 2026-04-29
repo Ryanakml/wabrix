@@ -2,28 +2,29 @@
 
 // Polyfill for DOM types that pdfjs-dist expects even in Node environments
 if (typeof globalThis.DOMMatrix === "undefined") {
-  (globalThis as any).DOMMatrix = class DOMMatrix {};
+  (globalThis as unknown as Record<string, unknown>).DOMMatrix = class DOMMatrix {};
 }
 if (typeof globalThis.ImageData === "undefined") {
-  (globalThis as any).ImageData = class ImageData {};
+  (globalThis as unknown as Record<string, unknown>).ImageData = class ImageData {};
 }
 if (typeof globalThis.Path2D === "undefined") {
-  (globalThis as any).Path2D = class Path2D {};
+  (globalThis as unknown as Record<string, unknown>).Path2D = class Path2D {};
 }
 if (typeof globalThis.CharacterData === "undefined") {
-  (globalThis as any).CharacterData = class CharacterData {};
+  (globalThis as unknown as Record<string, unknown>).CharacterData = class CharacterData {};
 }
 if (typeof globalThis.Node === "undefined") {
-  (globalThis as any).Node = class Node {};
+  (globalThis as unknown as Record<string, unknown>).Node = class Node {};
 }
 
-import { dirname, extname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { extname } from "node:path";
+
 import { lookup } from "node:dns/promises";
 import { GoogleGenAI } from "@google/genai";
 import * as cheerio from "cheerio";
 import TurndownService from "turndown";
 import ipaddr from "ipaddr.js";
+// @ts-expect-error - internal path for pdf-parse to avoid unwanted dependencies
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";
@@ -95,8 +96,7 @@ type StorageLike = {
   delete(storageId: Id<"_storage">): Promise<void>;
 };
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+
 
 export function normalizeMarkdown(input: string): string {
   return input

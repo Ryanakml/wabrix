@@ -34,13 +34,6 @@ function formatMonthYearLabel(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
-function formatMonthRangeLabel(starts: number[]) {
-  if (starts.length === 0) return "";
-  const first = starts[0] ?? 0;
-  const last = starts[starts.length - 1] ?? first;
-  if (first === last) return formatMonthYearLabel(first);
-  return `${formatMonthLabel(first)} - ${formatMonthYearLabel(last)}`;
-}
 
 function calculateTrendPercent(current: number, previous: number) {
   if (previous <= 0) return current > 0 ? 100 : 0;

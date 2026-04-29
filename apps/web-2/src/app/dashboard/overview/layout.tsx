@@ -128,7 +128,7 @@ export default async function OverViewLayout({
             <CardHeader>
               <CardDescription>AI Cost Estimator</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                {formatCurrency(summary.aiCostEstimator.value, summary.aiCostEstimator.currency)}
+                {formatCurrency(summary.aiCostEstimator.value, summary.aiCostEstimator.currency as 'USD' | 'IDR')}
               </CardTitle>
               <CardAction>
                 <TrendBadge changePercent={summary.aiCostEstimator.changePercent} />
