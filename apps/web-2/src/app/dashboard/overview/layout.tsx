@@ -63,7 +63,7 @@ export default async function OverViewLayout({
   area_stats: React.ReactNode;
 }) {
   const convexOptions = await getConvexServerOptions();
-  const summary = await fetchQuery(api.billing.getOverviewSummaryState, {}, convexOptions);
+  const summary = await fetchQuery(api.dashboard.getOverviewSummaryState, {}, convexOptions);
 
   return (
     <PageContainer>
@@ -75,69 +75,69 @@ export default async function OverViewLayout({
         <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs md:grid-cols-2 lg:grid-cols-4'>
           <Card className='@container/card'>
             <CardHeader>
-              <CardDescription>Total Revenue</CardDescription>
+              <CardDescription>Active Conversations</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                {formatCurrency(summary.revenue.amount, summary.revenue.currency)}
+                {formatWholeNumber(summary.activeConversations.value)}
               </CardTitle>
               <CardAction>
-                <TrendBadge changePercent={summary.revenue.changePercent} />
+                <TrendBadge changePercent={summary.activeConversations.changePercent} />
               </CardAction>
             </CardHeader>
             <TrendFooter
-              changePercent={summary.revenue.changePercent}
-              positiveLabel='Revenue increased this month'
-              negativeLabel='Revenue slowed this month'
+              changePercent={summary.activeConversations.changePercent}
+              positiveLabel='More active conversations'
+              negativeLabel='Fewer active conversations'
               comparisonLabel={summary.comparisonPeriodLabel}
             />
           </Card>
           <Card className='@container/card'>
             <CardHeader>
-              <CardDescription>New Customers</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                {formatWholeNumber(summary.newCustomers.value)}
+              <CardDescription>Needs Attention</CardDescription>
+              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-amber-500'>
+                {formatWholeNumber(summary.needsAttention.value)}
               </CardTitle>
               <CardAction>
-                <TrendBadge changePercent={summary.newCustomers.changePercent} />
+                <TrendBadge changePercent={summary.needsAttention.changePercent} />
               </CardAction>
             </CardHeader>
             <TrendFooter
-              changePercent={summary.newCustomers.changePercent}
-              positiveLabel='More inbound customer activity'
-              negativeLabel='Fewer inbound customer messages'
+              changePercent={summary.needsAttention.changePercent}
+              positiveLabel='More conversations need attention'
+              negativeLabel='Fewer conversations need attention'
               comparisonLabel={summary.comparisonPeriodLabel}
             />
           </Card>
           <Card className='@container/card'>
             <CardHeader>
-              <CardDescription>Active Accounts</CardDescription>
+              <CardDescription>Messages Processed</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                {formatWholeNumber(summary.activeAccounts.value)}
+                {formatWholeNumber(summary.messagesProcessed.value)}
               </CardTitle>
               <CardAction>
-                <TrendBadge changePercent={summary.activeAccounts.changePercent} />
+                <TrendBadge changePercent={summary.messagesProcessed.changePercent} />
               </CardAction>
             </CardHeader>
             <TrendFooter
-              changePercent={summary.activeAccounts.changePercent}
-              positiveLabel='Workspace access is expanding'
-              negativeLabel='Workspace access is holding steady'
+              changePercent={summary.messagesProcessed.changePercent}
+              positiveLabel='More messages processed'
+              negativeLabel='Fewer messages processed'
               comparisonLabel={summary.comparisonPeriodLabel}
             />
           </Card>
           <Card className='@container/card'>
             <CardHeader>
-              <CardDescription>Growth Rate</CardDescription>
+              <CardDescription>AI Cost Estimator</CardDescription>
               <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
-                {formatSignedPercent(summary.growthRate.value)}
+                {formatCurrency(summary.aiCostEstimator.value, summary.aiCostEstimator.currency as 'USD' | 'IDR')}
               </CardTitle>
               <CardAction>
-                <TrendBadge changePercent={summary.growthRate.changePercent} />
+                <TrendBadge changePercent={summary.aiCostEstimator.changePercent} />
               </CardAction>
             </CardHeader>
             <TrendFooter
-              changePercent={summary.growthRate.changePercent}
-              positiveLabel='Activity grew across AI and messaging'
-              negativeLabel='Activity cooled versus last month'
+              changePercent={summary.aiCostEstimator.changePercent}
+              positiveLabel='Estimated AI cost increased'
+              negativeLabel='Estimated AI cost decreased'
               comparisonLabel={summary.comparisonPeriodLabel}
             />
           </Card>

@@ -1,6 +1,10 @@
-import { create } from 'zustand';
-// import { persist } from 'zustand/middleware';
-import type { NotificationStatus, NotificationAction } from '@/components/ui/notification-card';
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '@wabrix/backend/convex/_generated/api';
+import type { NotificationAction, NotificationStatus } from '@/components/ui/notification-card';
+import { toast } from 'sonner';
 
 export type Notification = {
   id: string;
@@ -9,129 +13,117 @@ export type Notification = {
   status: NotificationStatus;
   createdAt: string;
   actions?: NotificationAction[];
+  actionUrl?: string | null;
 };
 
-type NotificationState = {
+type NotificationStore = {
   notifications: Notification[];
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  removeNotification: (id: string) => void;
-  addNotification: (notification: Omit<Notification, 'status'>) => void;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
   unreadCount: () => number;
 };
 
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'New team member joined',
-    body: 'Sarah Connor has joined the Engineering workspace.',
-    status: 'unread',
-    createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    actions: [
-      {
-        id: 'view',
-        label: 'View workspace',
-        type: 'redirect',
-        style: 'primary'
-      }
-    ]
-  },
-  {
-    id: '2',
-    title: 'New product added',
-    body: 'A new product "Dashboard Pro" has been added to the catalog.',
-    status: 'unread',
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    actions: [
-      {
-        id: 'view-product',
-        label: 'View products',
-        type: 'redirect',
-        style: 'primary'
-      }
-    ]
-  },
-  {
-    id: '3',
-    title: 'Billing cycle updated',
-    body: 'Your Pro plan has been renewed. Next invoice on April 24, 2026.',
-    status: 'unread',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    actions: [
-      {
-        id: 'billing',
-        label: 'View billing',
-        type: 'redirect',
-        style: 'primary'
-      }
-    ]
-  },
-  {
-    id: '4',
-    title: 'Task assigned to you',
-    body: 'You have been assigned "Update dashboard analytics" on the Kanban board.',
-    status: 'read',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    actions: [
-      {
-        id: 'open',
-        label: 'Open kanban',
-        type: 'redirect',
-        style: 'primary'
-      }
-    ]
-  },
-  {
-    id: '5',
-    title: 'New message from Alex',
-    body: 'Alex sent you a message: "Hey, can we sync on the overview dashboard?"',
-    status: 'read',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-    actions: [
-      {
-        id: 'open-chat',
-        label: 'Open chat',
-        type: 'redirect',
-        style: 'primary'
-      }
-    ]
-  }
-];
+const NOTIFICATION_LIMIT = 100;
 
-export const useNotificationStore = create<NotificationState>()(
-  // To enable persistence across refreshes, uncomment the persist wrapper below:
-  // persist(
-  (set, get) => ({
-    notifications: mockNotifications,
+export function useNotificationStore(): NotificationStore {
+  const notificationStateData = useQuery(api.notifications.getNotificationsState, {
+    limit: NOTIFICATION_LIMIT
+  });
+  const [cachedNotificationState, setCachedNotificationState] = useState(notificationStateData);
+  const [optimisticReadIds, setOptimisticReadIds] = useState<string[]>([]);
+  const [optimisticMarkAllAt, setOptimisticMarkAllAt] = useState<number | null>(null);
 
-    markAsRead: (id) =>
-      set((state) => ({
-        notifications: state.notifications.map((n) =>
-          n.id === id ? { ...n, status: 'read' as const } : n
-        )
-      })),
+  useEffect(() => {
+    if (notificationStateData !== undefined) {
+      setCachedNotificationState(notificationStateData);
+    }
+  }, [notificationStateData]);
 
-    markAllAsRead: () =>
-      set((state) => ({
-        notifications: state.notifications.map((n) => ({
-          ...n,
-          status: 'read' as const
-        }))
-      })),
+  useEffect(() => {
+    if (!notificationStateData) {
+      return;
+    }
 
-    removeNotification: (id) =>
-      set((state) => ({
-        notifications: state.notifications.filter((n) => n.id !== id)
-      })),
+    setOptimisticReadIds((current) =>
+      current.filter((id) => {
+        const notification = notificationStateData.notifications.find((item) => String(item.id) === id);
+        return notification ? !notification.read : false;
+      })
+    );
+  }, [notificationStateData]);
 
-    addNotification: (notification) =>
-      set((state) => ({
-        notifications: [{ ...notification, status: 'unread' as const }, ...state.notifications]
-      })),
+  const notificationState = notificationStateData ?? cachedNotificationState;
+  const markNotificationRead = useMutation(api.notifications.markNotificationRead);
+  const markAllNotificationsRead = useMutation(api.notifications.markAllNotificationsRead);
 
-    unreadCount: () => get().notifications.filter((n) => n.status === 'unread').length
-  })
-  //   ,
-  //   { name: 'notifications' }
-  // )
-);
+  const notifications = useMemo(() => {
+    return (notificationState?.notifications ?? []).map((notification) => {
+      const isRead =
+        notification.read ||
+        optimisticReadIds.includes(String(notification.id)) ||
+        (optimisticMarkAllAt !== null && notification.updatedAt <= optimisticMarkAllAt);
+
+      return {
+        id: String(notification.id),
+        title: notification.title,
+        body: notification.description,
+        status: isRead ? ('read' as const) : ('unread' as const),
+        createdAt: new Date(notification.createdAt).toISOString(),
+        actionUrl: notification.actionUrl,
+        actions:
+          notification.actionUrl && notification.actionLabel
+            ? [
+                {
+                  id: 'open-notification',
+                  label: notification.actionLabel,
+                  type: 'redirect' as const,
+                  style: 'primary' as const
+                }
+              ]
+            : undefined
+      };
+    });
+  }, [notificationState?.notifications, optimisticMarkAllAt, optimisticReadIds]);
+
+  const markAsRead = async (id: string) => {
+    const notification = notifications.find((item) => item.id === id);
+
+    if (!notification || notification.status === 'read') {
+      return;
+    }
+
+    setOptimisticReadIds((current) => (current.includes(id) ? current : [...current, id]));
+
+    try {
+      await markNotificationRead({
+        notificationId: id as never
+      });
+    } catch {
+      setOptimisticReadIds((current) => current.filter((value) => value !== id));
+      toast.error('Failed to mark notification as read.');
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (notifications.length === 0) {
+      return;
+    }
+
+    const now = Date.now();
+    setOptimisticMarkAllAt(now);
+
+    try {
+      await markAllNotificationsRead({});
+    } catch {
+      setOptimisticMarkAllAt(null);
+      toast.error('Failed to mark all notifications as read.');
+    }
+  };
+
+  return {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    unreadCount: () => notifications.filter((notification) => notification.status === 'unread').length
+  };
+}

@@ -136,6 +136,7 @@ export default defineSchema({
       v.literal("inline"),
       v.literal("website"),
       v.literal("pdf"),
+      v.literal("document"),
     ),
     status: v.union(
       v.literal("ready"),
@@ -150,12 +151,16 @@ export default defineSchema({
       v.literal("firecrawl"),
       v.literal("cheerio"),
       v.literal("pdf_deferred"),
+      v.literal("markitdown"),
     ),
     originalFormat: v.union(
       v.literal("markdown"),
       v.literal("html"),
       v.literal("plain_text"),
       v.literal("pdf"),
+      v.literal("docx"),
+      v.literal("xlsx"),
+      v.literal("csv"),
     ),
     markdownContent: v.string(),
     chunkCount: v.number(),
@@ -579,6 +584,7 @@ export default defineSchema({
     body: v.string(),
     recommendation: v.optional(v.string()),
     dedupeKey: v.string(),
+    readByUserIds: v.optional(v.array(v.id("users"))),
     status: v.union(v.literal("open"), v.literal("resolved")),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -586,6 +592,14 @@ export default defineSchema({
     .index("by_org_created_at", ["organizationId", "createdAt"])
     .index("by_dedupe_key", ["dedupeKey"])
     .index("by_conversation", ["conversationId"]),
+
+  dashboardNotificationFeedStates: defineTable({
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    lastReadAllAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_org_user", ["organizationId", "userId"]),
 
   whatsappTemplates: defineTable({
     organizationId: v.id("organizations"),

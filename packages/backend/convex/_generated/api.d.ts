@@ -11,6 +11,7 @@
 import type * as ai from "../ai.js";
 import type * as billing from "../billing.js";
 import type * as configuration from "../configuration.js";
+import type * as dashboard from "../dashboard.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
 import type * as inbox from "../inbox.js";
@@ -24,6 +25,7 @@ import type * as lib_knowledge from "../lib/knowledge.js";
 import type * as lib_observability from "../lib/observability.js";
 import type * as media from "../media.js";
 import type * as mediaAction from "../mediaAction.js";
+import type * as notifications from "../notifications.js";
 import type * as orchestrator from "../orchestrator.js";
 import type * as orchestratorAction from "../orchestratorAction.js";
 import type * as outbound from "../outbound.js";
@@ -44,6 +46,7 @@ declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   billing: typeof billing;
   configuration: typeof configuration;
+  dashboard: typeof dashboard;
   http: typeof http;
   inbound: typeof inbound;
   inbox: typeof inbox;
@@ -57,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   "lib/observability": typeof lib_observability;
   media: typeof media;
   mediaAction: typeof mediaAction;
+  notifications: typeof notifications;
   orchestrator: typeof orchestrator;
   orchestratorAction: typeof orchestratorAction;
   outbound: typeof outbound;

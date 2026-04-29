@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@wabrix/backend/convex/_generated/api';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import type { Attachment } from '../utils/types';
 import { mapConversationDetails, mapConversationSummary, mapSelectedConversation } from '../utils/mappers';
@@ -13,6 +14,8 @@ import { ConversationDetailsDrawer } from './conversation-details-drawer';
 import { MessengerSkeleton } from './messenger-skeleton';
 
 export function Messenger() {
+  const searchParams = useSearchParams();
+  const conversationIdFromQuery = searchParams.get('conversationId') ?? undefined;
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(undefined);
   const [draft, setDraft] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -57,6 +60,12 @@ export function Messenger() {
   const assignConversation = useMutation(api.inbox.assignConversation);
   const setConversationStatus = useMutation(api.inbox.setConversationStatus);
   const addConversationNote = useMutation(api.inbox.addConversationNote);
+
+  useEffect(() => {
+    if (!selectedConversationId && conversationIdFromQuery) {
+      setSelectedConversationId(conversationIdFromQuery);
+    }
+  }, [conversationIdFromQuery, selectedConversationId]);
 
   useEffect(() => {
     if (!selectedConversationId && workspace?.selectedConversation?.id) {

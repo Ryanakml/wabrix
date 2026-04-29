@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       }
     ]
   },
-  transpilePackages: ['geist']
+  transpilePackages: ['geist', '@wabrix/config']
 };
 
 export default nextConfig;
