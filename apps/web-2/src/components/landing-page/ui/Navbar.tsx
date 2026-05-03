@@ -1,6 +1,7 @@
 "use client"
 
 import { siteConfig } from "@/app/siteConfig"
+import { captureAnalyticsEvent } from "@/lib/analytics"
 import useScroll from "@/lib/useScroll"
 import { cx } from "@/lib/utils"
 import { RiCloseFill, RiMenuFill } from "@remixicon/react"
@@ -12,6 +13,25 @@ import { Button } from "../Button"
 export function NavBar() {
   const [open, setOpen] = React.useState(false)
   const scrolled = useScroll(15)
+  const navLinks = [
+    { label: "Features", href: "#solutions" },
+    { label: "Solutions", href: "#agent-orchestration" },
+    {
+      label: "Docs",
+      href: siteConfig.baseLinks.docs,
+      onClick: () => captureAnalyticsEvent("nav_docs_clicked"),
+    },
+    {
+      label: "Setup",
+      href: siteConfig.baseLinks.setup,
+      onClick: () => captureAnalyticsEvent("nav_setup_clicked"),
+    },
+    {
+      label: "Pricing",
+      href: siteConfig.baseLinks.pricing,
+      onClick: () => captureAnalyticsEvent("nav_pricing_clicked"),
+    },
+  ]
 
   return (
     <header
@@ -29,23 +49,29 @@ export function NavBar() {
             <WabrixLogo />
           </Link>
           <nav className="hidden sm:block md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:transform">
-            <div className="flex items-center gap-10 font-medium">
-              <Link className="px-2 py-1 text-gray-900" href="#features">
-                Features
-              </Link>
-              <Link className="px-2 py-1 text-gray-900" href="#solutions">
-                Solutions
-              </Link>
-              <Link className="px-2 py-1 text-gray-900" href="#pricing">
-                Pricing
-              </Link>
+            <div className="flex items-center gap-6 text-sm font-medium">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.label}
+                  className="px-2 py-1 text-gray-900"
+                  href={link.href}
+                  onClick={link.onClick}
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           </nav>
           <Button asChild
             variant="secondary"
             className="hidden h-10 font-semibold sm:block"
           >
-            <Link href="/auth/sign-in">Get started</Link>
+            <Link
+              href="/auth/sign-in"
+              onClick={() => captureAnalyticsEvent("cta_get_started_clicked")}
+            >
+              Get started
+            </Link>
           </Button>
           <Button
             onClick={() => setOpen(!open)}
@@ -73,18 +99,24 @@ export function NavBar() {
           )}
         >
           <ul className="space-y-4 font-medium">
-            <li onClick={() => setOpen(false)}>
-              <Link href="#features">Features</Link>
-            </li>
-            <li onClick={() => setOpen(false)}>
-              <Link href="#solutions">Solutions</Link>
-            </li>
-            <li onClick={() => setOpen(false)}>
-              <Link href="#pricing">Pricing</Link>
-            </li>
+            {navLinks.map((link) => (
+              <li key={link.label} onClick={() => setOpen(false)}>
+                <Link href={link.href} onClick={link.onClick}>
+                  {link.label}
+                </Link>
+              </li>
+            ))}
           </ul>
           <Button asChild variant="secondary" className="text-lg">
-            <Link href="/auth/sign-in">Get started</Link>
+            <Link
+              href="/auth/sign-in"
+              onClick={() => {
+                setOpen(false)
+                captureAnalyticsEvent("cta_get_started_clicked")
+              }}
+            >
+              Get started
+            </Link>
           </Button>
 
         </nav>

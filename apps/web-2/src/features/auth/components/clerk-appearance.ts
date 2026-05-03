@@ -1,21 +1,19 @@
-import { dark } from '@clerk/themes';
+import { dark, shadcn } from '@clerk/themes';
 
 const sharedClerkVariables = {
   colorPrimary: 'var(--primary)',
-  colorTextOnPrimaryBackground: 'var(--primary-foreground)',
-  colorText: 'var(--foreground)',
-  colorTextSecondary: 'var(--muted-foreground)',
-  colorBackground: 'var(--background)',
-  colorInputBackground: 'var(--input)',
-  colorInputText: 'var(--foreground)',
-  colorShimmer: 'var(--accent)',
-  colorNeutral: 'var(--muted)',
+  colorPrimaryForeground: 'var(--primary-foreground)',
+  colorForeground: 'var(--foreground)',
+  colorBackground: 'var(--card)',
+  colorInput: 'var(--input)',
+  colorInputForeground: 'var(--foreground)',
   colorMuted: 'var(--muted)',
   colorMutedForeground: 'var(--muted-foreground)',
-  colorAlphaShade: 'var(--border)',
+  colorNeutral: 'var(--foreground)',
   colorDanger: 'var(--destructive)',
-  colorSuccess: 'var(--primary)',
-  colorWarning: 'var(--primary)',
+  colorRing: 'var(--ring)',
+  colorInputBackground: 'var(--input)',
+  colorInputText: 'var(--foreground)',
   borderRadius: 'calc(var(--radius) * 1)',
   fontFamily: 'var(--font-sans)'
 } as const;
@@ -33,11 +31,19 @@ const sharedClerkElements = {
   formFieldHintText: 'text-muted-foreground',
   formFieldErrorText: 'text-destructive',
   formFieldInput:
-      'border-border bg-input text-foreground placeholder:text-muted-foreground focus-visible:ring-ring',
+    'border-border bg-input text-foreground placeholder:text-muted-foreground focus-visible:ring-ring',
   formButtonPrimary: 'bg-primary text-primary-foreground shadow-none hover:bg-primary/90',
   socialButtonsBlockButton:
-      'border-border bg-background text-foreground shadow-none hover:bg-accent',
-  socialButtonsBlockButtonText: 'text-foreground',
+    'border-border bg-background text-foreground shadow-none opacity-100 hover:bg-accent hover:text-foreground [&_*]:!text-foreground [&_*]:opacity-100',
+  socialButtonsBlockButtonText: '!text-foreground !opacity-100',
+  socialButtonsIconButton:
+    'border-border bg-background text-foreground shadow-none hover:bg-accent hover:text-foreground',
+  socialButtonsProviderIcon: 'opacity-100',
+  socialButtonsBlockButtonArrow: '!text-muted-foreground opacity-100',
+  providerIcon__apple: 'invert-0 dark:invert-0',
+  providerIcon__github: 'invert-0 dark:invert-0',
+  providerIcon__okx_wallet: 'invert-0 dark:invert-0',
+  providerIcon__vercel: 'invert-0 dark:invert-0',
   dividerLine: 'bg-border',
   dividerText: 'text-muted-foreground',
   footerActionText: 'text-muted-foreground',
@@ -81,8 +87,11 @@ const sharedClerkElements = {
 
 export function getClerkAppearance(theme: 'dark' | 'light') {
   return {
-    baseTheme: theme === 'dark' ? dark : undefined,
+    baseTheme: theme === 'dark' ? [shadcn, dark] : shadcn,
     variables: sharedClerkVariables,
-    elements: sharedClerkElements
-  };
+    elements: sharedClerkElements,
+    layout: {
+      socialButtonsVariant: 'blockButton'
+    }
+  } as const;
 }

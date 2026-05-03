@@ -1,6 +1,6 @@
-import Image from "next/image"
-import Link from "next/link"
-import { Button } from "../Button"
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "../Button";
 
 export function CallToAction() {
   return (
@@ -18,7 +18,10 @@ export function CallToAction() {
             sales with Wabrix. Start your 14-day free trial today.
           </p>
           <div className="flex flex-wrap gap-4">
-            <Button asChild className="text-md bg-violet-600 hover:bg-violet-700">
+            <Button
+              asChild
+              className="text-md bg-violet-600 hover:bg-violet-700"
+            >
               <Link href="/auth/sign-in">Get Started for Free</Link>
             </Button>
             <Button asChild className="text-md" variant="secondary">
@@ -26,24 +29,26 @@ export function CallToAction() {
             </Button>
           </div>
         </div>
-        <div className="relative isolate rounded-xl sm:col-span-4 sm:h-full aspect-[16/9] sm:aspect-auto overflow-hidden">
+        <div className="relative isolate h-64 rounded-xl overflow-hidden sm:col-span-4 sm:h-80 md:h-96">
           <Image
             aria-hidden
             alt="AI Data Network"
-            src="/images/wabrix_cta_landscape.png"
+            src="/images/wabrix_cta_landscape_20260503.png"
             fill
+            sizes="(min-width: 640px) 66vw, 100vw"
             className="absolute inset-0 -z-10 rounded-2xl blur-xl object-cover"
           />
           <Image
             alt="AI Data Network"
-            src="/images/wabrix_cta_landscape.png"
+            src="/images/wabrix_cta_landscape_20260503.png"
             fill
-            className="relative z-10 rounded-2xl object-cover"
+            sizes="(min-width: 640px) 66vw, 100vw"
+            className="relative z-10 rounded-2xl object-contain"
           />
         </div>
       </div>
     </section>
-  )
+  );
 }
 
-export default CallToAction
+export default CallToAction;

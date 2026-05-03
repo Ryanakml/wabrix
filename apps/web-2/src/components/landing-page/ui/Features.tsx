@@ -19,17 +19,15 @@ import {
   RiTranslate2,
   RiTruckFill,
   RiWhatsappFill,
-} from "@remixicon/react"
+} from "@remixicon/react";
 
-
-import { SolarMark } from "../SolarMark"
-import { Icons } from "../Icons"
-import { Orbit } from "../Orbit"
-import ChipViz from "./ChipViz"
-import Image from "next/image"
+import { SolarMark } from "../SolarMark";
+import { Icons } from "../Icons";
+import { Orbit } from "../Orbit";
+import ChipViz from "./ChipViz";
+import Image from "next/image";
 
 export default function Features() {
-
   return (
     <section
       aria-label="Solar Technologies Features for Farms"
@@ -148,18 +146,16 @@ export default function Features() {
             <div className="absolute top-1 -left-[8px] h-5 w-[3px] rounded-r-sm bg-violet-500" />
           </h2>
           <p className="mt-2 text-3xl font-semibold tracking-tighter text-balance text-gray-900 md:text-4xl">
-            A network of intelligent agents for 24/7 business automation
+            Unified control plane for WhatsApp AI agents
           </p>
           <p className="mt-4 text-balance text-gray-700">
-            Deploy autonomous AI agents across your WhatsApp channels, sync your
-            proprietary knowledge base, and orchestrate complex customer
-            workflows with our integrated platform.
+            Run multiple WhatsApp numbers, route conversations, sync knowledge
+            (SOP/FAQ), and automate customer workflows—while keeping logs clear
+            and performance visible.
           </p>
         </div>
         <div className="relative col-span-2 flex items-center justify-center overflow-hidden">
-          <svg
-            className="absolute size-full mask-[linear-gradient(transparent,white_10rem)]"
-          >
+          <svg className="absolute size-full mask-[linear-gradient(transparent,white_10rem)]">
             <defs>
               <pattern
                 id="diagonal-feature-pattern"
@@ -168,7 +164,7 @@ export default function Features() {
                 height="64"
               >
                 {Array.from({ length: 17 }, (_, i) => {
-                  const offset = i * 8
+                  const offset = i * 8;
                   return (
                     <path
                       key={i}
@@ -176,7 +172,7 @@ export default function Features() {
                       className="stroke-gray-200/70"
                       strokeWidth="1"
                     />
-                  )
+                  );
                 })}
               </pattern>
             </defs>
@@ -205,7 +201,7 @@ export default function Features() {
                           <RiCircleLine className="size-3 shrink-0 text-white" />
                         </div>
                         <div className="rounded-r-full bg-white/50 py-0.5 pr-1.5 pl-1 text-xs whitespace-nowrap ring-1 ring-gray-200">
-                          Agent Busy
+                          Routing
                         </div>
                       </div>
                     </div>
@@ -229,7 +225,7 @@ export default function Features() {
                           <RiLoaderFill className="size-3 shrink-0 animate-spin text-white" />
                         </div>
                         <div className="rounded-r-full bg-white/50 py-0.5 pr-1.5 pl-1 text-xs ring-1 ring-gray-200">
-                          Learning
+                          Syncing KB
                         </div>
                       </div>
                     </div>
@@ -266,7 +262,7 @@ export default function Features() {
                           <RiCheckLine className="size-3 shrink-0 text-white" />
                         </div>
                         <div className="rounded-r-full bg-white/50 py-0.5 pr-1.5 pl-1 text-xs ring-1 ring-gray-200">
-                          Answering
+                          Replying
                         </div>
                       </div>
                     </div>
@@ -296,7 +292,12 @@ export default function Features() {
                 <div className="relative flex h-48 w-48 items-center justify-center">
                   <div className="rounded-full p-1 ring-1 ring-black/10">
                     <div className="relative z-10 flex size-20 items-center justify-center rounded-full bg-white ring-1 shadow-[inset_0px_-15px_20px_rgba(0,0,0,0.1),0_7px_10px_0_rgba(0,0,0,0.15)] ring-black/20 overflow-hidden">
-                      <Image src="/icon.png" alt="Wabrix Icon" width={48} height={48} />
+                      <Image
+                        src="/icon.png"
+                        alt="Wabrix Icon"
+                        width={48}
+                        height={48}
+                      />
                     </div>
                     <div className="absolute inset-12 animate-[spin_8s_linear_infinite] rounded-full bg-linear-to-t from-transparent via-violet-400 to-transparent blur-lg" />
                   </div>
@@ -305,7 +306,6 @@ export default function Features() {
             </div>
           </div>
         </div>
-
 
         <div className="col-span-2 my-auto px-2">
           <h2 className="relative text-lg font-semibold tracking-tight text-violet-500">
@@ -316,9 +316,12 @@ export default function Features() {
             Turn your business data into a data-driven AI powerhouse
           </p>
           <p className="mt-4 text-balance text-gray-700">
-            Revolutionize your customer support with RAG-powered AI that
-            transforms raw documents into actionable knowledge in real-time.
-            Make informed decisions faster and reduce manual support load.
+            Connect your SOPs, FAQs, web pages, and customer data to power
+            accurate, context-aware answers in WhatsApp. Wabrix retrieves the
+            most relevant knowledge per conversation via RAG
+            (Retrieval-Augmented Generation). “Top Match” shows the best-matched
+            context, and “Cited Answer” means the response is grounded in your
+            sources — so your agents can move faster with fewer manual lookups.
           </p>
         </div>
         <div className="relative col-span-2 flex items-center justify-center overflow-hidden">
@@ -331,7 +334,7 @@ export default function Features() {
                 height="64"
               >
                 {Array.from({ length: 17 }, (_, i) => {
-                  const offset = i * 8
+                  const offset = i * 8;
                   return (
                     <path
                       key={i}
@@ -339,7 +342,7 @@ export default function Features() {
                       className="stroke-gray-200/70"
                       strokeWidth="1"
                     />
-                  )
+                  );
                 })}
               </pattern>
             </defs>
@@ -365,7 +368,12 @@ export default function Features() {
             <div className="pointer-events-none relative h-full select-none">
               <div className="absolute top-[192px] left-[191.8px]">
                 <div className="flex h-12 w-12 items-center justify-center bg-white ring-1 shadow-sm ring-black/15 overflow-hidden">
-                  <Image src="/icon.png" alt="Wabrix Icon" width={32} height={32} />
+                  <Image
+                    src="/icon.png"
+                    alt="Wabrix Icon"
+                    width={32}
+                    height={32}
+                  />
                 </div>
               </div>
               <div className="absolute top-[144px] left-[48px]">
@@ -373,7 +381,7 @@ export default function Features() {
                   <div className="absolute inset-0 size-12 animate-pulse bg-violet-200 blur-[3px]"></div>
                   <div className="relative flex h-12 w-12 items-center justify-center bg-white ring-1 shadow-sm ring-black/15">
                     <span className="text-xs font-medium text-gray-500">
-                      PDF
+                      SOP
                     </span>
                   </div>
                 </div>
@@ -383,8 +391,9 @@ export default function Features() {
                 <div className="relative">
                   <div className="absolute inset-0 size-12 animate-pulse bg-violet-200 blur-[3px]"></div>
                   <div className="relative flex h-12 w-12 items-center justify-center bg-white ring-1 shadow-sm ring-black/15">
-                    <span className="text-xs font-medium text-gray-500">
-                      98%
+                    <span className="text-[10px] leading-tight font-medium text-center text-gray-500">
+                      <span className="block">Top</span>
+                      <span className="block">Match</span>
                     </span>
                   </div>
                 </div>
@@ -395,7 +404,7 @@ export default function Features() {
                   <div className="absolute inset-0 size-12 animate-pulse bg-violet-200 blur-[3px]"></div>
                   <div className="relative flex h-12 w-12 items-center justify-center bg-white ring-1 shadow-sm ring-black/15">
                     <span className="text-xs font-medium text-gray-500">
-                      DOCX
+                      FAQ
                     </span>
                   </div>
                 </div>
@@ -406,7 +415,7 @@ export default function Features() {
                   <div className="absolute inset-0 size-12 animate-pulse bg-violet-200 blur-[3px]"></div>
                   <div className="relative flex h-12 w-12 items-center justify-center bg-white ring-1 shadow-sm ring-black/15">
                     <span className="text-xs font-medium text-gray-500">
-                      URL
+                      Web
                     </span>
                   </div>
                 </div>
@@ -417,7 +426,7 @@ export default function Features() {
                   <div className="absolute inset-0 size-12 animate-pulse bg-violet-200 blur-[3px]"></div>
                   <div className="relative flex h-12 w-12 items-center justify-center bg-white ring-1 shadow-sm ring-black/15">
                     <span className="text-xs font-medium text-gray-500">
-                      CSV
+                      CRM
                     </span>
                   </div>
                 </div>
@@ -427,8 +436,9 @@ export default function Features() {
                 <div className="relative">
                   <div className="absolute inset-0 size-12 animate-pulse bg-violet-200 blur-[3px]"></div>
                   <div className="relative flex h-12 w-12 items-center justify-center bg-white ring-1 shadow-sm ring-black/15">
-                    <span className="text-xs font-medium text-gray-500">
-                      94%
+                    <span className="text-[10px] leading-tight font-medium text-center text-gray-500">
+                      <span className="block">Cited</span>
+                      <span className="block">Answer</span>
                     </span>
                   </div>
                 </div>
@@ -452,9 +462,7 @@ export default function Features() {
           </p>
         </div>
         <div className="relative col-span-2 flex items-center justify-center overflow-hidden">
-          <svg
-            className="absolute size-full mask-[linear-gradient(white_10rem,transparent)]"
-          >
+          <svg className="absolute size-full mask-[linear-gradient(white_10rem,transparent)]">
             <defs>
               <pattern
                 id="diagonal-feature-pattern"
@@ -463,7 +471,7 @@ export default function Features() {
                 height="64"
               >
                 {Array.from({ length: 17 }, (_, i) => {
-                  const offset = i * 8
+                  const offset = i * 8;
                   return (
                     <path
                       key={i}
@@ -471,7 +479,7 @@ export default function Features() {
                       className="stroke-gray-200/70"
                       strokeWidth="1"
                     />
-                  )
+                  );
                 })}
               </pattern>
             </defs>
@@ -544,15 +552,18 @@ export default function Features() {
                 </div>
               ))}
               <div className="absolute top-1/2 left-1/2 z-30 flex size-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white p-2 ring-1 shadow-2xl ring-black/10 overflow-hidden">
-                <Image src="/icon.png" alt="Wabrix Icon" width={56} height={56} className="object-contain" />
+                <Image
+                  src="/icon.png"
+                  alt="Wabrix Icon"
+                  width={56}
+                  height={56}
+                  className="object-contain"
+                />
               </div>
-
-
             </div>
           </div>
         </div>
-
       </div>
     </section>
-  )
+  );
 }

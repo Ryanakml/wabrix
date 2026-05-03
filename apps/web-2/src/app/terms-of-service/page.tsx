@@ -1,12 +1,11 @@
-import type { Metadata } from 'next';
 import { legalDocuments } from '@/features/auth/components/auth-legal-content';
+import { createPageMetadata } from '@/lib/metadata';
 
-export const metadata: Metadata = {
-  title: 'Terms of Service | Wabrix',
-  robots: {
-    index: false
-  }
-};
+export const metadata = createPageMetadata({
+  title: 'Terms of Service',
+  description: legalDocuments.terms.summary,
+  path: '/terms-of-service'
+});
 
 export default function TermsOfServicePage() {
   const termsDocument = legalDocuments.terms;

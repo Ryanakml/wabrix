@@ -3,8 +3,8 @@ import {
   RiDatabase2Fill,
   RiMessage3Fill,
   RiRobotFill,
-} from "@remixicon/react"
-import Image from "next/image"
+} from "@remixicon/react";
+import Image from "next/image";
 
 export const Map = () => {
   return (
@@ -29,7 +29,7 @@ export const Map = () => {
               height="64"
             >
               {Array.from({ length: 17 }, (_, i) => {
-                const offset = i * 8
+                const offset = i * 8;
                 return (
                   <path
                     key={i}
@@ -37,7 +37,7 @@ export const Map = () => {
                     stroke=""
                     strokeWidth="1"
                   />
-                )
+                );
               })}
             </pattern>
           </defs>
@@ -64,7 +64,7 @@ export const Map = () => {
               height="64"
             >
               {Array.from({ length: 17 }, (_, i) => {
-                const offset = i * 8
+                const offset = i * 8;
                 return (
                   <path
                     key={i}
@@ -72,7 +72,7 @@ export const Map = () => {
                     stroke=""
                     strokeWidth="1"
                   />
-                )
+                );
               })}
             </pattern>
           </defs>
@@ -85,25 +85,25 @@ export const Map = () => {
       </div>
 
       <div className="pt-12 text-base font-semibold tracking-tight text-violet-400 sm:pt-20 sm:text-lg">
-        Agent Orchestration
+        WhatsApp Orchestration
       </div>
       <h2
         id="management-title"
         className="mt-6 max-w-[700px] text-center text-2xl font-semibold tracking-tight text-balance text-white md:text-5xl"
       >
-        Global Network for Autonomous AI Agents
+        Unified Control Plane for WhatsApp AI Agents
       </h2>
       <p className="mt-4 max-w-2xl text-center text-base text-balance text-gray-400 sm:mt-8 sm:text-xl">
-        Orchestrate your AI workforce across multiple regions and channels.
-        Monitor message flows, knowledge indexing, and agent activities in
-        real-time on our unified cloud infrastructure.
+        Orchestrate agents across multiple WhatsApp numbers and teams. Monitor
+        inbox traffic, workflow routing, and knowledge sync in real time—so
+        every reply stays consistent and auditable.
       </p>
 
       <div className="relative mt-20 mb-10 flex w-full scale-90 items-center justify-center sm:mb-16 md:mt-24 md:scale-100">
         <div className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/10">
           <Image
             src="/images/wabrix_global_map.png"
-            alt="Global Agent Network"
+            alt="WhatsApp agent operations overview"
             fill
             className="object-cover opacity-90"
           />
@@ -114,7 +114,7 @@ export const Map = () => {
             <div className="relative flex items-center justify-center">
               <div className="absolute size-10 rounded-full bg-gray-950/80 shadow-xl ring-1 ring-white/15 backdrop-blur-sm"></div>
               <div className="absolute -top-7 left-1/2 flex w-fit -translate-x-1/2 items-center justify-center rounded-full bg-gray-950 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-white ring-1 ring-white/20">
-                Analyzing
+                Inbox
               </div>
               <RiMessage3Fill className="relative size-4 text-white" />
               <div
@@ -129,7 +129,7 @@ export const Map = () => {
             <div className="relative flex items-center justify-center">
               <div className="absolute size-10 rounded-full bg-gray-950/80 shadow-xl ring-1 ring-white/15 backdrop-blur-sm"></div>
               <div className="absolute -top-7 left-1/2 flex w-fit -translate-x-1/2 items-center justify-center rounded-full bg-gray-950 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-white ring-1 ring-white/20">
-                Indexing
+                Workflow
               </div>
               <RiRobotFill className="relative size-4 text-white" />
               <div
@@ -144,7 +144,7 @@ export const Map = () => {
             <div className="relative flex items-center justify-center">
               <div className="absolute size-10 rounded-full bg-gray-950/80 shadow-xl ring-1 ring-white/15 backdrop-blur-sm"></div>
               <div className="absolute -top-7 left-1/2 flex w-fit -translate-x-1/2 items-center justify-center rounded-full bg-gray-950 px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-white ring-1 ring-white/20">
-                Live
+                Knowledge
               </div>
               <RiDatabase2Fill className="relative size-4 text-white" />
               <div
@@ -164,5 +164,5 @@ export const Map = () => {
         </div>
       </div>
     </section>
-  )
-}
+  );
+};
