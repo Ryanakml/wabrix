@@ -1,11 +1,11 @@
-import { RiArrowRightUpLine } from "@remixicon/react"
-import { FadeContainer, FadeDiv, FadeSpan } from "../Fade"
-import GameOfLife from "./HeroBackground"
+import { RiArrowRightUpLine } from "@remixicon/react";
+import { FadeContainer, FadeDiv, FadeSpan } from "../Fade";
+import GameOfLife from "./HeroBackground";
 
 export function Hero() {
   return (
     <section aria-label="hero">
-      <FadeContainer className="relative flex flex-col items-center justify-center">
+      <FadeContainer className="relative flex flex-col items-center justify-center pb-10 sm:pb-12">
         <FadeDiv className="mx-auto">
           <a
             aria-label="View latest update the changelog page"
@@ -31,11 +31,14 @@ export function Hero() {
         <h1 className="mt-8 text-center text-5xl font-semibold tracking-tighter text-gray-900 sm:text-8xl sm:leading-22">
           <FadeSpan>Scale</FadeSpan> <FadeSpan>your</FadeSpan>
           <br />
-          <FadeSpan>WhatsApp</FadeSpan> <FadeSpan>with</FadeSpan> <FadeSpan>AI</FadeSpan>
+          <FadeSpan>WhatsApp</FadeSpan> <FadeSpan>with</FadeSpan>{" "}
+          <FadeSpan>AI</FadeSpan>
         </h1>
         <p className="mt-5 max-w-xl text-center text-base text-balance text-gray-700 sm:mt-8 sm:text-xl">
           <FadeSpan>Empower your business with intelligent bots,</FadeSpan>{" "}
-          <FadeSpan>real-time analytics, and seamless human-in-the-loop</FadeSpan>{" "}
+          <FadeSpan>
+            real-time analytics, and seamless human-in-the-loop
+          </FadeSpan>{" "}
           <FadeSpan>collaboration for every customer interaction.</FadeSpan>
         </p>
         <FadeDiv>
@@ -47,11 +50,10 @@ export function Hero() {
           </a>
         </FadeDiv>
 
-
         <div className="absolute inset-0 -z-10 flex items-center justify-center">
           <GameOfLife />
         </div>
       </FadeContainer>
     </section>
-  )
+  );
 }

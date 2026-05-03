@@ -1,4 +1,4 @@
-import Image from "next/image"
+import Image from "next/image";
 
 export default function Testimonial() {
   return (
@@ -6,8 +6,9 @@ export default function Testimonial() {
       <div className="absolute inset-0 object-cover">
         <Image
           alt="tech background"
-          src="/images/wabrix_testimonial_bg.png"
+          src="/images/wabrix_testimonial_bg_20260503.png"
           fill
+          sizes="100vw"
           className="object-cover"
         />
         <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent z-10" />
@@ -16,7 +17,7 @@ export default function Testimonial() {
       <div className="absolute top-76 -right-14 w-76 sm:top-48 sm:right-3 sm:w-92 md:top-48 md:right-0 md:w-100 lg:top-32 lg:-right-4 lg:w-120">
         <Image
           alt="Wabrix 3D Icon"
-          src="/images/wabrix_icon_3d_v2.png"
+          src="/images/wabrix_icon_3d_20260503.png"
           width={1024}
           height={1024}
           className="animate-hover mix-blend-screen drop-shadow-2xl"
@@ -57,11 +58,7 @@ export default function Testimonial() {
             </div>
           </div>
         </div>
-
       </div>
-
-
     </section>
-  )
+  );
 }
-
