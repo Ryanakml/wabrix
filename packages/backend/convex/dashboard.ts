@@ -19,7 +19,10 @@ function buildMonthStarts(count: number, now: number) {
   );
 }
 
-function formatMonthLabel(timestamp: number, format: "short" | "long" = "long") {
+function formatMonthLabel(
+  timestamp: number,
+  format: "short" | "long" = "long",
+) {
   return new Intl.DateTimeFormat("en-US", {
     month: format,
     timeZone: "UTC",
@@ -34,13 +37,15 @@ function formatMonthYearLabel(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
-
 function calculateTrendPercent(current: number, previous: number) {
   if (previous <= 0) return current > 0 ? 100 : 0;
   return Number((((current - previous) / previous) * 100).toFixed(1));
 }
 
-function getCounterCount(counter: Doc<"usageCounters"> | null | undefined, field: keyof Doc<"usageCounters">) {
+function getCounterCount(
+  counter: Doc<"usageCounters"> | null | undefined,
+  field: keyof Doc<"usageCounters">,
+) {
   const value = counter?.[field];
   return typeof value === "number" ? value : 0;
 }
@@ -57,23 +62,33 @@ export const getOverviewSummaryState = query({
 
     const usageCounters = await ctx.db
       .query("usageCounters")
-      .withIndex("by_org_period_start", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_period_start", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(2);
 
-    const currentCounter = usageCounters.find((c) => c.periodStart === currentMonthStart) ?? null;
-    const previousCounter = usageCounters.find((c) => c.periodStart === previousMonthStart) ?? null;
+    const currentCounter =
+      usageCounters.find((c) => c.periodStart === currentMonthStart) ?? null;
+    const previousCounter =
+      usageCounters.find((c) => c.periodStart === previousMonthStart) ?? null;
 
     const conversations = await ctx.db
       .query("conversations")
-      .withIndex("by_org_last_message_at", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_last_message_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .collect();
 
-    const activeConversationsCurrent = conversations.filter(c => c.status === "open").length;
+    const activeConversationsCurrent = conversations.filter(
+      (c) => c.status === "open",
+    ).length;
     // We don't have historical active conversations state, so we just use current for both
     const activeConversationsPrevious = activeConversationsCurrent;
 
-    const needsAttentionCurrent = conversations.filter(c => c.handoffRequested).length;
+    const needsAttentionCurrent = conversations.filter(
+      (c) => c.handoffRequested,
+    ).length;
     const needsAttentionPrevious = needsAttentionCurrent;
 
     const messagesProcessedCurrent =
@@ -84,22 +99,34 @@ export const getOverviewSummaryState = query({
       getCounterCount(previousCounter, "outboundMessageCount");
 
     const aiCostCurrent = getCounterCount(currentCounter, "aiEstimatedCostUsd");
-    const aiCostPrevious = getCounterCount(previousCounter, "aiEstimatedCostUsd");
+    const aiCostPrevious = getCounterCount(
+      previousCounter,
+      "aiEstimatedCostUsd",
+    );
 
     return {
       currentPeriodLabel: formatMonthYearLabel(currentMonthStart),
       comparisonPeriodLabel: formatMonthYearLabel(previousMonthStart),
       activeConversations: {
         value: activeConversationsCurrent,
-        changePercent: calculateTrendPercent(activeConversationsCurrent, activeConversationsPrevious),
+        changePercent: calculateTrendPercent(
+          activeConversationsCurrent,
+          activeConversationsPrevious,
+        ),
       },
       needsAttention: {
         value: needsAttentionCurrent,
-        changePercent: calculateTrendPercent(needsAttentionCurrent, needsAttentionPrevious),
+        changePercent: calculateTrendPercent(
+          needsAttentionCurrent,
+          needsAttentionPrevious,
+        ),
       },
       messagesProcessed: {
         value: messagesProcessedCurrent,
-        changePercent: calculateTrendPercent(messagesProcessedCurrent, messagesProcessedPrevious),
+        changePercent: calculateTrendPercent(
+          messagesProcessedCurrent,
+          messagesProcessedPrevious,
+        ),
       },
       aiCostEstimator: {
         value: aiCostCurrent,
@@ -117,15 +144,19 @@ export const getOverviewAreaChartState = query({
     const now = Date.now();
     const monthStarts = buildMonthStarts(12, now);
     const earliestMonthStart = monthStarts[0] ?? startOfUtcMonth(now);
-    
+
     const counters = await ctx.db
       .query("usageCounters")
-      .withIndex("by_org_period_start", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_period_start", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(12);
-      
-    const validCounters = counters.filter((counter) => counter.periodStart >= earliestMonthStart);
-    const counterMap = new Map(validCounters.map(c => [c.periodStart, c]));
+
+    const validCounters = counters.filter(
+      (counter) => counter.periodStart >= earliestMonthStart,
+    );
+    const counterMap = new Map(validCounters.map((c) => [c.periodStart, c]));
 
     const series = monthStarts.map((monthStart) => {
       const counter = counterMap.get(monthStart) ?? null;
@@ -136,8 +167,14 @@ export const getOverviewAreaChartState = query({
       };
     });
 
-    const currentPoint = series[series.length - 1] ?? { inbound: 0, outbound: 0 };
-    const previousPoint = series[series.length - 2] ?? { inbound: 0, outbound: 0 };
+    const currentPoint = series[series.length - 1] ?? {
+      inbound: 0,
+      outbound: 0,
+    };
+    const previousPoint = series[series.length - 2] ?? {
+      inbound: 0,
+      outbound: 0,
+    };
 
     return {
       trendPercent: calculateTrendPercent(
@@ -154,19 +191,23 @@ export const getOverviewPieChartState = query({
   handler: async (ctx) => {
     const access = await requireOrgContext(ctx);
     const now = Date.now();
-    
+
     const monthStarts = buildMonthStarts(2, now);
     const previousMonthStart = monthStarts[0] ?? shiftUtcMonth(now, -1);
     const currentMonthStart = monthStarts[1] ?? startOfUtcMonth(now);
-    
+
     const usageCounters = await ctx.db
       .query("usageCounters")
-      .withIndex("by_org_period_start", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_period_start", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(2);
 
-    const currentCounter = usageCounters.find((c) => c.periodStart === currentMonthStart) ?? null;
-    const previousCounter = usageCounters.find((c) => c.periodStart === previousMonthStart) ?? null;
+    const currentCounter =
+      usageCounters.find((c) => c.periodStart === currentMonthStart) ?? null;
+    const previousCounter =
+      usageCounters.find((c) => c.periodStart === previousMonthStart) ?? null;
 
     const currentMessages =
       getCounterCount(currentCounter, "inboundMessageCount") +
@@ -193,42 +234,49 @@ export const getOverviewPieChartState = query({
   },
 });
 
-export const getOverviewRecentConversationsState = query({
+export const getOverviewRecentMessagesState = query({
   args: {},
   handler: async (ctx) => {
     const access = await requireOrgContext(ctx);
-    
+
     const conversations = await ctx.db
       .query("conversations")
-      .withIndex("by_org_last_message_at", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_last_inbound_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(5);
 
-    const recentConversations = [];
+    const recentMessages = [];
     for (const conv of conversations) {
       let contactName = "Unknown";
       let initials = "UN";
-      
+      let phone = null;
+
       if (conv.contactId) {
         const contact = await ctx.db.get(conv.contactId);
         if (contact) {
           contactName = contact.profileName || contact.waId || "Unknown";
-          initials = (contact.profileName || contact.waId || "U").slice(0, 2).toUpperCase();
+          initials = (contact.profileName || contact.waId || "U")
+            .slice(0, 2)
+            .toUpperCase();
+          phone = contact.waId;
         }
       }
 
-      recentConversations.push({
+      recentMessages.push({
         id: conv._id,
         contactName,
+        phone,
         initials,
-        lastMessagePreview: conv.lastMessagePreview ?? "No messages yet",
-        lastMessageAt: conv.lastMessageAt,
-        handoffRequested: conv.handoffRequested,
+        latestIncomingPreview: conv.lastMessagePreview ?? "No messages yet",
+        latestIncomingAt: conv.lastInboundAt,
+        conversationId: conv._id,
       });
     }
 
     return {
-      recentConversations
+      recentMessages,
     };
   },
 });

@@ -1,15 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@wabrix/backend/convex/_generated/api';
-import type { NotificationAction, NotificationStatus } from '@/components/ui/notification-card';
-import { toast } from 'sonner';
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@wabrix/backend/convex/_generated/api";
+import type {
+  NotificationAction,
+  NotificationStatus,
+} from "@/components/ui/notification-card";
+import { toast } from "sonner";
 
 export type Notification = {
   id: string;
   title: string;
   body: string;
+  severity: "info" | "warning" | "error";
+  recommendation?: string | null;
   status: NotificationStatus;
   createdAt: string;
   actions?: NotificationAction[];
@@ -26,12 +31,34 @@ type NotificationStore = {
 const NOTIFICATION_LIMIT = 100;
 
 export function useNotificationStore(): NotificationStore {
-  const notificationStateData = useQuery(api.notifications.getNotificationsState, {
-    limit: NOTIFICATION_LIMIT
-  });
-  const [cachedNotificationState, setCachedNotificationState] = useState(notificationStateData);
+  const notificationStateData = useQuery(
+    api.notifications.getNotificationsState,
+    {
+      limit: NOTIFICATION_LIMIT,
+    },
+  ) as
+    | {
+        notifications: Array<{
+          id: string;
+          title: string;
+          description: string;
+          severity: "info" | "warning" | "error";
+          recommendation?: string | null;
+          read: boolean;
+          createdAt: number;
+          updatedAt: number;
+          actionUrl?: string | null;
+          actionLabel?: string | null;
+        }>;
+      }
+    | undefined;
+  const [cachedNotificationState, setCachedNotificationState] = useState(
+    notificationStateData,
+  );
   const [optimisticReadIds, setOptimisticReadIds] = useState<string[]>([]);
-  const [optimisticMarkAllAt, setOptimisticMarkAllAt] = useState<number | null>(null);
+  const [optimisticMarkAllAt, setOptimisticMarkAllAt] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     if (notificationStateData !== undefined) {
@@ -46,61 +73,93 @@ export function useNotificationStore(): NotificationStore {
 
     setOptimisticReadIds((current) =>
       current.filter((id) => {
-        const notification = notificationStateData.notifications.find((item) => String(item.id) === id);
+        const notification = notificationStateData.notifications.find(
+          (item: { id: string; read: boolean }) => String(item.id) === id,
+        );
         return notification ? !notification.read : false;
-      })
+      }),
     );
   }, [notificationStateData]);
 
   const notificationState = notificationStateData ?? cachedNotificationState;
-  const markNotificationRead = useMutation(api.notifications.markNotificationRead);
-  const markAllNotificationsRead = useMutation(api.notifications.markAllNotificationsRead);
+  const markNotificationRead = useMutation(
+    api.notifications.markNotificationRead,
+  );
+  const markAllNotificationsRead = useMutation(
+    api.notifications.markAllNotificationsRead,
+  );
 
   const notifications = useMemo(() => {
-    return (notificationState?.notifications ?? []).map((notification) => {
-      const isRead =
-        notification.read ||
-        optimisticReadIds.includes(String(notification.id)) ||
-        (optimisticMarkAllAt !== null && notification.updatedAt <= optimisticMarkAllAt);
+    return (notificationState?.notifications ?? []).map(
+      (notification: {
+        id: string;
+        title: string;
+        description: string;
+        severity: "info" | "warning" | "error";
+        recommendation?: string | null;
+        read: boolean;
+        createdAt: number;
+        updatedAt: number;
+        actionUrl?: string | null;
+        actionLabel?: string | null;
+      }) => {
+        const isRead =
+          notification.read ||
+          optimisticReadIds.includes(String(notification.id)) ||
+          (optimisticMarkAllAt !== null &&
+            notification.updatedAt <= optimisticMarkAllAt);
 
-      return {
-        id: String(notification.id),
-        title: notification.title,
-        body: notification.description,
-        status: isRead ? ('read' as const) : ('unread' as const),
-        createdAt: new Date(notification.createdAt).toISOString(),
-        actionUrl: notification.actionUrl,
-        actions:
-          notification.actionUrl && notification.actionLabel
-            ? [
-                {
-                  id: 'open-notification',
-                  label: notification.actionLabel,
-                  type: 'redirect' as const,
-                  style: 'primary' as const
-                }
-              ]
-            : undefined
-      };
-    });
-  }, [notificationState?.notifications, optimisticMarkAllAt, optimisticReadIds]);
+        return {
+          id: String(notification.id),
+          title: notification.title,
+          body: notification.description,
+          severity: notification.severity,
+          recommendation: notification.recommendation,
+          status: isRead ? ("read" as const) : ("unread" as const),
+          createdAt: new Date(notification.createdAt).toISOString(),
+          actionUrl: notification.actionUrl,
+          actions:
+            notification.actionUrl && notification.actionLabel
+              ? [
+                  {
+                    id: "open-notification",
+                    label: notification.actionLabel,
+                    type: "redirect" as const,
+                    style: "primary" as const,
+                  },
+                ]
+              : undefined,
+        };
+      },
+    );
+  }, [
+    notificationState?.notifications,
+    optimisticMarkAllAt,
+    optimisticReadIds,
+  ]);
 
   const markAsRead = async (id: string) => {
-    const notification = notifications.find((item) => item.id === id);
+    const notification = notifications.find(
+      (item: Notification) => item.id === id,
+    );
 
-    if (!notification || notification.status === 'read') {
+    if (!notification || notification.status === "read") {
       return;
     }
 
-    setOptimisticReadIds((current) => (current.includes(id) ? current : [...current, id]));
+    setOptimisticReadIds((current) =>
+      current.includes(id) ? current : [...current, id],
+    );
 
     try {
       await markNotificationRead({
-        notificationId: id as never
+        notificationId: id as never,
       });
     } catch {
-      setOptimisticReadIds((current) => current.filter((value) => value !== id));
-      toast.error('Failed to mark notification as read.');
+      setOptimisticReadIds((current) =>
+        current.filter((value) => value !== id),
+      );
+      toast.error("Failed to mark notification as read.");
     }
   };
 
@@ -116,7 +175,7 @@ export function useNotificationStore(): NotificationStore {
       await markAllNotificationsRead({});
     } catch {
       setOptimisticMarkAllAt(null);
-      toast.error('Failed to mark all notifications as read.');
+      toast.error("Failed to mark all notifications as read.");
     }
   };
 
@@ -124,6 +183,9 @@ export function useNotificationStore(): NotificationStore {
     notifications,
     markAsRead,
     markAllAsRead,
-    unreadCount: () => notifications.filter((notification) => notification.status === 'unread').length
+    unreadCount: () =>
+      notifications.filter(
+        (notification: Notification) => notification.status === "unread",
+      ).length,
   };
 }

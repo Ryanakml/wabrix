@@ -255,7 +255,9 @@ async function previewBotReplyHandler(
     );
   }
 
-  const embeddingApiKey = isGoogleProvider ? decryptedApiKey : fallbackGoogleKey;
+  const embeddingApiKey = isGoogleProvider
+    ? decryptedApiKey
+    : fallbackGoogleKey;
 
   const outputLanguage = resolveOutputLanguage(
     runtimeState.profile.defaultLanguage,
@@ -321,7 +323,9 @@ async function previewBotReplyHandler(
   const draft = await generateWithPrimaryModel({
     organizationId: runtimeState.organizationId,
     botId: runtimeState.profile._id.toString(),
-    providerType: runtimeState.provider.providerType as "google" | "digitalocean_reference",
+    providerType: runtimeState.provider.providerType as
+      | "google"
+      | "digitalocean_reference",
     endpointUrl: runtimeState.provider.endpointUrl,
     providerApiKey: decryptedApiKey,
     selectedModel: runtimeState.provider.modelId,
@@ -329,9 +333,7 @@ async function previewBotReplyHandler(
       ...(args.history ?? []),
       { role: "user", content: sanitizedLatestMessage },
     ],
-    systemPrompt:
-      runtimeState.profile.localizedPromptTemplates[outputLanguage] ??
-      runtimeState.profile.systemPrompt,
+    systemPrompt: runtimeState.profile.systemPrompt,
     ragContext,
     timeoutMs: 15_000,
     temperature: runtimeState.provider.temperature,

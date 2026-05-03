@@ -53,7 +53,9 @@ export function isServiceWindowOpen(
   serviceWindowExpiresAt: number | null | undefined,
   now: number,
 ) {
-  return typeof serviceWindowExpiresAt === "number" && serviceWindowExpiresAt > now;
+  return (
+    typeof serviceWindowExpiresAt === "number" && serviceWindowExpiresAt > now
+  );
 }
 
 export function isServiceWindowExpiringSoon(
@@ -90,6 +92,7 @@ async function upsertDashboardNotification(
   {
     organizationId,
     conversationId,
+    focusMessageId,
     dedupeKey,
     type,
     severity,
@@ -99,6 +102,7 @@ async function upsertDashboardNotification(
   }: {
     organizationId: Id<"organizations">;
     conversationId?: Id<"conversations">;
+    focusMessageId?: Id<"messages">;
     dedupeKey: string;
     type: "service_window_expiring" | "bot_reply_failed";
     severity: "info" | "warning" | "error";
@@ -119,6 +123,7 @@ async function upsertDashboardNotification(
       title,
       body,
       recommendation,
+      focusMessageId,
       status: "open",
       updatedAt: now,
     });
@@ -129,6 +134,7 @@ async function upsertDashboardNotification(
   return ctx.db.insert("dashboardNotifications", {
     organizationId,
     conversationId,
+    focusMessageId,
     type,
     severity,
     title,
@@ -141,13 +147,42 @@ async function upsertDashboardNotification(
   });
 }
 
+async function findLatestInboundMessageId(
+  ctx: Pick<MutationCtx, "db">,
+  {
+    conversationId,
+    claimedLastInboundAt,
+  }: {
+    conversationId: Id<"conversations">;
+    claimedLastInboundAt: number;
+  },
+) {
+  const recentMessages = await ctx.db
+    .query("messages")
+    .withIndex("by_conversation_created_at", (q) =>
+      q.eq("conversationId", conversationId),
+    )
+    .order("desc")
+    .take(50);
+
+  return (
+    recentMessages.find(
+      (message) =>
+        message.role === "user" && message.createdAt <= claimedLastInboundAt,
+    )?._id ?? null
+  );
+}
+
 async function flagServiceWindowExpiringSoonInternal(
   ctx: Pick<MutationCtx, "db">,
   conversation: Doc<"conversations">,
 ) {
   if (
     !conversation.serviceWindowExpiresAt ||
-    !isServiceWindowExpiringSoon(conversation.serviceWindowExpiresAt, Date.now())
+    !isServiceWindowExpiringSoon(
+      conversation.serviceWindowExpiresAt,
+      Date.now(),
+    )
   ) {
     return { flagged: false };
   }
@@ -167,8 +202,7 @@ async function flagServiceWindowExpiringSoonInternal(
     type: "service_window_expiring",
     severity: "warning",
     title: "Service window expires soon",
-    body:
-      "This WhatsApp conversation is approaching the 24-hour cutoff for freeform replies.",
+    body: "This WhatsApp conversation is approaching the 24-hour cutoff for freeform replies.",
     recommendation:
       "If the customer does not reply again, prepare a pre-approved re-engagement template.",
   });
@@ -238,7 +272,8 @@ export async function markConversationPendingBotReply(
     );
 
     if (serviceWindowExpiresAt) {
-      const expiringAt = serviceWindowExpiresAt - SERVICE_WINDOW_EXPIRING_SOON_MS;
+      const expiringAt =
+        serviceWindowExpiresAt - SERVICE_WINDOW_EXPIRING_SOON_MS;
       await ctx.scheduler.runAfter(
         Math.max(0, expiringAt - now),
         internal.orchestrator.flagServiceWindowExpiringSoon,
@@ -561,7 +596,8 @@ export async function finalizeBotReplyDraft(
     .query("outboundQueue")
     .withIndex("by_message_id", (q) => q.eq("messageId", assistantMessageId))
     .first();
-  const outboundIdempotencyKey = buildOutboundQueueIdempotencyKey(assistantMessageId);
+  const outboundIdempotencyKey =
+    buildOutboundQueueIdempotencyKey(assistantMessageId);
   const existingQueueJobByIdempotency = await ctx.db
     .query("outboundQueue")
     .withIndex("by_idempotency_key", (q) =>
@@ -630,9 +666,13 @@ export async function finalizeBotReplyDraft(
   }
 
   if (ctx.scheduler) {
-    await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {
-      queueJobId: outboundQueueId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.outboundAction.processOutboundQueueJob,
+      {
+        queueJobId: outboundQueueId,
+      },
+    );
   }
 
   return {
@@ -675,6 +715,11 @@ export async function markBotReplyFailure(
   const notificationId = await upsertDashboardNotification(ctx, {
     organizationId: conversation.organizationId,
     conversationId,
+    focusMessageId:
+      (await findLatestInboundMessageId(ctx, {
+        conversationId,
+        claimedLastInboundAt,
+      })) ?? undefined,
     dedupeKey: buildBotReplyFailureNotificationDedupeKey(
       conversationId,
       claimedLastInboundAt,
@@ -683,7 +728,8 @@ export async function markBotReplyFailure(
     severity: "error",
     title: "Bot reply generation failed",
     body: errorMessage,
-    recommendation: "Review the queue state, AI provider config, and recent inbound transcript.",
+    recommendation:
+      "Review the queue state, AI provider config, and recent inbound transcript.",
   });
 
   await ctx.db.insert("auditLogs", {

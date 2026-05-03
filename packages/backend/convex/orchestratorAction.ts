@@ -12,14 +12,8 @@ import {
 import type { ClaimBotReplyWorkResult } from "./orchestrator.js";
 import { buildUsageLimitErrorMessage } from "./lib/billing.js";
 import { decryptSecret } from "./lib/crypto.js";
-import {
-  applyPromptInjectionGuard,
-  detectLanguage,
-} from "./lib/guardrails.js";
-import {
-  embedTexts,
-  selectRelevantKnowledgeChunks,
-} from "./lib/knowledge.js";
+import { applyPromptInjectionGuard, detectLanguage } from "./lib/guardrails.js";
+import { embedTexts, selectRelevantKnowledgeChunks } from "./lib/knowledge.js";
 import {
   buildObservabilityPayload,
   emitObservabilityEvent,
@@ -134,7 +128,9 @@ export async function createBotReplyDraft({
   if (knowledgeCorpus.chunks.length > 0) {
     const resolvedEmbeddingApiKey = embeddingApiKey ?? providerApiKey;
     if (!resolvedEmbeddingApiKey) {
-      throw new Error("Knowledge retrieval requires a Google AI API key. Please configure GOOGLE_GENERATIVE_AI_API_KEY in the environment.");
+      throw new Error(
+        "Knowledge retrieval requires a Google AI API key. Please configure GOOGLE_GENERATIVE_AI_API_KEY in the environment.",
+      );
     }
     const queryEmbeddings = await embedQueryTexts({
       texts: [sanitizedLatestMessage],
@@ -142,7 +138,9 @@ export async function createBotReplyDraft({
     });
     const queryEmbedding = queryEmbeddings[0];
     if (!queryEmbedding) {
-      throw new Error("Knowledge retrieval could not generate a query embedding.");
+      throw new Error(
+        "Knowledge retrieval could not generate a query embedding.",
+      );
     }
 
     knowledgeMatches = selectRelevantKnowledgeChunks(
@@ -170,14 +168,14 @@ export async function createBotReplyDraft({
   const draft = await generateDraft({
     organizationId: runtimeState.organizationId,
     botId: runtimeState.profile._id.toString(),
-    providerType: runtimeState.provider.providerType as "google" | "digitalocean_reference",
+    providerType: runtimeState.provider.providerType as
+      | "google"
+      | "digitalocean_reference",
     endpointUrl: runtimeState.provider.endpointUrl,
     providerApiKey,
     selectedModel: runtimeState.provider.modelId,
     messages: [...history, { role: "user", content: sanitizedLatestMessage }],
-    systemPrompt:
-      runtimeState.profile.localizedPromptTemplates[outputLanguage] ??
-      runtimeState.profile.systemPrompt,
+    systemPrompt: runtimeState.profile.systemPrompt,
     ragContext,
     timeoutMs: 15_000,
     temperature: runtimeState.provider.temperature,
@@ -223,11 +221,11 @@ async function runBotReplyOrchestratorHandler(
   },
 ): Promise<unknown> {
   const claim = (await ctx.runMutation(
-      internal.orchestrator.claimBotReplyWorkMutation,
-      {
-        conversationId: args.conversationId,
-      },
-    )) as ClaimBotReplyWorkResult;
+    internal.orchestrator.claimBotReplyWorkMutation,
+    {
+      conversationId: args.conversationId,
+    },
+  )) as ClaimBotReplyWorkResult;
 
   if (claim.status !== "ready") {
     return claim;
@@ -245,7 +243,9 @@ async function runBotReplyOrchestratorHandler(
     );
 
     if (!runtimeState) {
-      throw new Error("Bot Studio runtime is not configured for this conversation.");
+      throw new Error(
+        "Bot Studio runtime is not configured for this conversation.",
+      );
     }
 
     const usageGuard = await ctx.runQuery(internal.billing.getUsageGuardState, {
@@ -274,7 +274,9 @@ async function runBotReplyOrchestratorHandler(
       );
     }
 
-    const embeddingApiKey = isGoogleProvider ? providerApiKey : fallbackGoogleKey;
+    const embeddingApiKey = isGoogleProvider
+      ? providerApiKey
+      : fallbackGoogleKey;
 
     const knowledgeCorpus = await ctx.runQuery(
       internal.knowledge.getKnowledgeRetrievalCorpusForOrganization,
@@ -339,15 +341,20 @@ async function runBotReplyOrchestratorHandler(
       responsePreview: draft.content,
     });
 
-    return ctx.runMutation(internal.orchestrator.finalizeBotReplyDraftMutation, {
-      conversationId: claim.conversationId,
-      generationToken: claim.generationToken,
-      claimedLastInboundAt: claim.claimedLastInboundAt,
-      content: draft.content,
-    });
+    return ctx.runMutation(
+      internal.orchestrator.finalizeBotReplyDraftMutation,
+      {
+        conversationId: claim.conversationId,
+        generationToken: claim.generationToken,
+        claimedLastInboundAt: claim.claimedLastInboundAt,
+        content: draft.content,
+      },
+    );
   } catch (error) {
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown bot reply generation error";
+      error instanceof Error
+        ? error.message
+        : "Unknown bot reply generation error";
 
     if (runtimeState) {
       await ctx.runMutation(internal.configuration.logAiRun, {

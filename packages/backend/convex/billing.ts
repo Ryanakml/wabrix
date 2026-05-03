@@ -151,7 +151,9 @@ async function getCurrentUsageCounter(
     counter = await ctx.db
       .query("usageCounters")
       .withIndex("by_org_period_key", (q) =>
-        q.eq("organizationId", organizationId).eq("periodKey", period.periodKey),
+        q
+          .eq("organizationId", organizationId)
+          .eq("periodKey", period.periodKey),
       )
       .first();
   } catch {
@@ -176,34 +178,45 @@ async function incrementUsageCounters(
     now?: number;
   },
 ) {
-  const { period, counter } = await getCurrentUsageCounter(ctx, organizationId, now);
+  const { period, counter } = await getCurrentUsageCounter(
+    ctx,
+    organizationId,
+    now,
+  );
   const nextValues = {
     aiRunCount: (counter?.aiRunCount ?? 0) + (increments.aiRunCount ?? 0),
-    aiPromptTokens: (counter?.aiPromptTokens ?? 0) + (increments.aiPromptTokens ?? 0),
+    aiPromptTokens:
+      (counter?.aiPromptTokens ?? 0) + (increments.aiPromptTokens ?? 0),
     aiCompletionTokens:
       (counter?.aiCompletionTokens ?? 0) + (increments.aiCompletionTokens ?? 0),
-    aiTotalTokens: (counter?.aiTotalTokens ?? 0) + (increments.aiTotalTokens ?? 0),
+    aiTotalTokens:
+      (counter?.aiTotalTokens ?? 0) + (increments.aiTotalTokens ?? 0),
     aiEstimatedCostUsd:
       (counter?.aiEstimatedCostUsd ?? 0) + (increments.aiEstimatedCostUsd ?? 0),
     inboundMessageCount:
-      (counter?.inboundMessageCount ?? 0) + (increments.inboundMessageCount ?? 0),
+      (counter?.inboundMessageCount ?? 0) +
+      (increments.inboundMessageCount ?? 0),
     outboundMessageCount:
-      (counter?.outboundMessageCount ?? 0) + (increments.outboundMessageCount ?? 0),
+      (counter?.outboundMessageCount ?? 0) +
+      (increments.outboundMessageCount ?? 0),
     outboundTemplateMessageCount:
       (counter?.outboundTemplateMessageCount ?? 0) +
       (increments.outboundTemplateMessageCount ?? 0),
     deliverySentCount:
       (counter?.deliverySentCount ?? 0) + (increments.deliverySentCount ?? 0),
     deliveryDeliveredCount:
-      (counter?.deliveryDeliveredCount ?? 0) + (increments.deliveryDeliveredCount ?? 0),
+      (counter?.deliveryDeliveredCount ?? 0) +
+      (increments.deliveryDeliveredCount ?? 0),
     deliveryReadCount:
       (counter?.deliveryReadCount ?? 0) + (increments.deliveryReadCount ?? 0),
     deliveryFailedCount:
-      (counter?.deliveryFailedCount ?? 0) + (increments.deliveryFailedCount ?? 0),
+      (counter?.deliveryFailedCount ?? 0) +
+      (increments.deliveryFailedCount ?? 0),
     queueFailureCount:
       (counter?.queueFailureCount ?? 0) + (increments.queueFailureCount ?? 0),
     mediaProcessedCount:
-      (counter?.mediaProcessedCount ?? 0) + (increments.mediaProcessedCount ?? 0),
+      (counter?.mediaProcessedCount ?? 0) +
+      (increments.mediaProcessedCount ?? 0),
     updatedAt: now,
   };
 
@@ -236,11 +249,33 @@ async function getActiveSubscription(
     subscriptions = [];
   }
 
-  return subscriptions
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .find((subscription) =>
-      ["active", "trialing", "past_due", "incomplete"].includes(subscription.status),
-    ) ?? null;
+  return (
+    subscriptions
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .find((subscription) =>
+        ["active", "trialing", "past_due", "incomplete"].includes(
+          subscription.status,
+        ),
+      ) ?? null
+  );
+}
+
+async function getLatestPersistedSubscription(
+  ctx: BillingCtx,
+  organizationId: Id<"organizations">,
+) {
+  let subscriptions: Doc<"subscriptions">[] = [];
+
+  try {
+    subscriptions = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_org", (q) => q.eq("organizationId", organizationId))
+      .collect();
+  } catch {
+    subscriptions = [];
+  }
+
+  return subscriptions.sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null;
 }
 
 async function getEntitlementSnapshot(
@@ -250,7 +285,11 @@ async function getEntitlementSnapshot(
 ) {
   const subscription = await getActiveSubscription(ctx, organizationId);
   const plan = await getPlanByKey(ctx, subscription?.planKey ?? "starter");
-  const { period, counter } = await getCurrentUsageCounter(ctx, organizationId, now);
+  const { period, counter } = await getCurrentUsageCounter(
+    ctx,
+    organizationId,
+    now,
+  );
 
   const entitlements = subscription?.entitlements ?? {
     aiTokens: plan.includedAiTokens,
@@ -298,7 +337,10 @@ export async function assertUsageAllowed(
 ) {
   const snapshot = await getEntitlementSnapshot(ctx, organizationId, now);
 
-  if (kind === "ai_tokens" && snapshot.usage.aiTokens >= snapshot.entitlements.aiTokens) {
+  if (
+    kind === "ai_tokens" &&
+    snapshot.usage.aiTokens >= snapshot.entitlements.aiTokens
+  ) {
     throw new Error(
       buildUsageLimitErrorMessage({
         kind,
@@ -400,7 +442,11 @@ export const getUsageGuardState = internalQuery({
     organizationId: v.id("organizations"),
   },
   handler: async (ctx, args) => {
-    const snapshot = await getEntitlementSnapshot(ctx, args.organizationId, Date.now());
+    const snapshot = await getEntitlementSnapshot(
+      ctx,
+      args.organizationId,
+      Date.now(),
+    );
 
     return {
       organizationId: args.organizationId,
@@ -512,7 +558,8 @@ export const recordCheckoutSessionMutation = internalMutation({
         billingCountry: args.billingCountry,
         currency: args.currency,
         amount: args.amount,
-        providerCheckoutId: args.providerCheckoutId ?? existing.providerCheckoutId,
+        providerCheckoutId:
+          args.providerCheckoutId ?? existing.providerCheckoutId,
         providerOrderId: args.providerOrderId ?? existing.providerOrderId,
         externalReferenceId: args.externalReferenceId,
         entitlements: toSubscriptionEntitlements(args.planKey),
@@ -524,7 +571,9 @@ export const recordCheckoutSessionMutation = internalMutation({
     const idempotencyKey = `${args.gateway}:checkout:${args.providerCheckoutId ?? args.providerOrderId ?? args.externalReferenceId}`;
     const existingEvent = await ctx.db
       .query("billingEvents")
-      .withIndex("by_idempotency_key", (q) => q.eq("idempotencyKey", idempotencyKey))
+      .withIndex("by_idempotency_key", (q) =>
+        q.eq("idempotencyKey", idempotencyKey),
+      )
       .first();
 
     if (!existingEvent) {
@@ -532,7 +581,10 @@ export const recordCheckoutSessionMutation = internalMutation({
         organizationId: args.organizationId,
         subscriptionId,
         gateway: args.gateway,
-        providerEventId: args.providerCheckoutId ?? args.providerOrderId ?? args.externalReferenceId,
+        providerEventId:
+          args.providerCheckoutId ??
+          args.providerOrderId ??
+          args.externalReferenceId,
         eventType: "checkout_session_created",
         externalReferenceId: args.externalReferenceId,
         providerCustomerId: undefined,
@@ -587,7 +639,9 @@ export const processBillingWebhookMutation = internalMutation({
     const idempotencyKey = `${args.gateway}:${args.providerEventId}`;
     const existingEvent = await ctx.db
       .query("billingEvents")
-      .withIndex("by_idempotency_key", (q) => q.eq("idempotencyKey", idempotencyKey))
+      .withIndex("by_idempotency_key", (q) =>
+        q.eq("idempotencyKey", idempotencyKey),
+      )
       .first();
 
     if (existingEvent) {
@@ -602,7 +656,9 @@ export const processBillingWebhookMutation = internalMutation({
     if (!organizationId && args.clerkOrgId) {
       const organization = await ctx.db
         .query("organizations")
-        .withIndex("by_clerk_org_id", (q) => q.eq("clerkOrgId", args.clerkOrgId!))
+        .withIndex("by_clerk_org_id", (q) =>
+          q.eq("clerkOrgId", args.clerkOrgId!),
+        )
         .first();
       organizationId = organization?._id;
     }
@@ -623,7 +679,9 @@ export const processBillingWebhookMutation = internalMutation({
     organizationId = organizationId ?? existingSubscription?.organizationId;
 
     if (!organizationId) {
-      throw new Error("Billing webhook could not be mapped to an organization.");
+      throw new Error(
+        "Billing webhook could not be mapped to an organization.",
+      );
     }
 
     const subscriptionId =
@@ -635,7 +693,8 @@ export const processBillingWebhookMutation = internalMutation({
         status: normalizedStatus,
         gateway: args.gateway,
         billingCountry: args.billingCountry ?? "US",
-        currency: args.currency ?? (args.gateway === "midtrans" ? "IDR" : "USD"),
+        currency:
+          args.currency ?? (args.gateway === "midtrans" ? "IDR" : "USD"),
         amount: args.amount ?? 0,
         providerCustomerId: args.providerCustomerId,
         providerSubscriptionId: args.providerSubscriptionId,
@@ -659,20 +718,25 @@ export const processBillingWebhookMutation = internalMutation({
         planKey,
         status: normalizedStatus,
         gateway: args.gateway,
-        billingCountry: args.billingCountry ?? existingSubscription.billingCountry,
+        billingCountry:
+          args.billingCountry ?? existingSubscription.billingCountry,
         currency: args.currency ?? existingSubscription.currency,
         amount: args.amount ?? existingSubscription.amount,
         providerCustomerId:
           args.providerCustomerId ?? existingSubscription.providerCustomerId,
         providerSubscriptionId:
-          args.providerSubscriptionId ?? existingSubscription.providerSubscriptionId,
-        providerCheckoutId: args.providerCheckoutId ?? existingSubscription.providerCheckoutId,
-        providerOrderId: args.providerOrderId ?? existingSubscription.providerOrderId,
+          args.providerSubscriptionId ??
+          existingSubscription.providerSubscriptionId,
+        providerCheckoutId:
+          args.providerCheckoutId ?? existingSubscription.providerCheckoutId,
+        providerOrderId:
+          args.providerOrderId ?? existingSubscription.providerOrderId,
         externalReferenceId:
           args.externalReferenceId ?? existingSubscription.externalReferenceId,
         currentPeriodStart:
           args.currentPeriodStart ?? existingSubscription.currentPeriodStart,
-        currentPeriodEnd: args.currentPeriodEnd ?? existingSubscription.currentPeriodEnd,
+        currentPeriodEnd:
+          args.currentPeriodEnd ?? existingSubscription.currentPeriodEnd,
         cancelAtPeriodEnd:
           args.cancelAtPeriodEnd ?? existingSubscription.cancelAtPeriodEnd,
         canceledAt: args.canceledAt ?? existingSubscription.canceledAt,
@@ -728,13 +792,28 @@ export const getBillingDashboardState = query({
   args: {},
   handler: async (ctx) => {
     const access = await assertHasRole(ctx, "org:admin");
-    const snapshot = await getEntitlementSnapshot(ctx, access.organizationId, Date.now());
+    const snapshot = await getEntitlementSnapshot(
+      ctx,
+      access.organizationId,
+      Date.now(),
+    );
     const plans = await listPlanCatalog(ctx);
     const recentEvents = await ctx.db
       .query("billingEvents")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(12);
+    const fallbackSubscription =
+      snapshot.subscription ??
+      (recentEvents.length > 0
+        ? await getLatestPersistedSubscription(ctx, access.organizationId)
+        : null);
+    const currentPlan = fallbackSubscription
+      ? (plans.find((plan) => plan.key === fallbackSubscription.planKey) ??
+        null)
+      : null;
 
     return {
       planCatalog: plans.map((plan) => ({
@@ -747,18 +826,25 @@ export const getBillingDashboardState = query({
         includedSeats: plan.includedSeats,
         tagline: plan.tagline,
       })),
-      currentSubscription: snapshot.subscription
+      currentSubscription: fallbackSubscription
         ? {
-            id: snapshot.subscription._id,
-            planKey: snapshot.subscription.planKey,
-            status: snapshot.subscription.status,
-            gateway: snapshot.subscription.gateway,
-            billingCountry: snapshot.subscription.billingCountry,
-            currency: snapshot.subscription.currency,
-            amount: snapshot.subscription.amount,
-            currentPeriodStart: snapshot.subscription.currentPeriodStart,
-            currentPeriodEnd: snapshot.subscription.currentPeriodEnd,
-            cancelAtPeriodEnd: snapshot.subscription.cancelAtPeriodEnd,
+            id: fallbackSubscription._id,
+            planKey: fallbackSubscription.planKey,
+            status: fallbackSubscription.status,
+            gateway: fallbackSubscription.gateway,
+            billingCountry: fallbackSubscription.billingCountry,
+            currency: fallbackSubscription.currency,
+            amount: fallbackSubscription.amount,
+            currentPeriodStart: fallbackSubscription.currentPeriodStart,
+            currentPeriodEnd: fallbackSubscription.currentPeriodEnd,
+            cancelAtPeriodEnd: fallbackSubscription.cancelAtPeriodEnd,
+          }
+        : null,
+      currentPlan: currentPlan
+        ? {
+            key: currentPlan.key,
+            name: currentPlan.name,
+            tagline: currentPlan.tagline,
           }
         : null,
       currentUsage: {
@@ -787,20 +873,30 @@ export const getAnalyticsDashboardState = query({
   args: {},
   handler: async (ctx) => {
     const access = await requireOrgContext(ctx);
-    const snapshot = await getEntitlementSnapshot(ctx, access.organizationId, Date.now());
+    const snapshot = await getEntitlementSnapshot(
+      ctx,
+      access.organizationId,
+      Date.now(),
+    );
     const recentAiRuns = await ctx.db
       .query("aiRuns")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(100);
     const recentMessages = await ctx.db
       .query("messages")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(200);
     const recentQueue = await ctx.db
       .query("outboundQueue")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(200);
 
@@ -826,7 +922,10 @@ export const getAnalyticsDashboardState = query({
       { sent: 0, delivered: 0, read: 0, failed: 0 },
     );
 
-    const dailyBuckets = new Map<string, { aiRuns: number; inbound: number; outbound: number }>();
+    const dailyBuckets = new Map<
+      string,
+      { aiRuns: number; inbound: number; outbound: number }
+    >();
     const bucketKeyFor = (timestamp: number) => {
       const date = new Date(timestamp);
       return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
@@ -834,14 +933,22 @@ export const getAnalyticsDashboardState = query({
 
     for (const run of recentAiRuns) {
       const key = bucketKeyFor(run.createdAt);
-      const bucket = dailyBuckets.get(key) ?? { aiRuns: 0, inbound: 0, outbound: 0 };
+      const bucket = dailyBuckets.get(key) ?? {
+        aiRuns: 0,
+        inbound: 0,
+        outbound: 0,
+      };
       bucket.aiRuns += 1;
       dailyBuckets.set(key, bucket);
     }
 
     for (const message of recentMessages) {
       const key = bucketKeyFor(message.createdAt);
-      const bucket = dailyBuckets.get(key) ?? { aiRuns: 0, inbound: 0, outbound: 0 };
+      const bucket = dailyBuckets.get(key) ?? {
+        aiRuns: 0,
+        inbound: 0,
+        outbound: 0,
+      };
       if (message.role === "user") {
         bucket.inbound += 1;
       }
@@ -860,7 +967,10 @@ export const getAnalyticsDashboardState = query({
         outboundMessagesLimit: snapshot.entitlements.outboundMessages,
       },
       utilization: {
-        aiTokensRatio: clampRatio(snapshot.usage.aiTokens, snapshot.entitlements.aiTokens),
+        aiTokensRatio: clampRatio(
+          snapshot.usage.aiTokens,
+          snapshot.entitlements.aiTokens,
+        ),
         outboundMessagesRatio: clampRatio(
           snapshot.usage.outboundMessages,
           snapshot.entitlements.outboundMessages,
@@ -906,7 +1016,10 @@ function buildMonthStarts(count: number, now: number) {
   );
 }
 
-function formatMonthLabel(timestamp: number, format: "short" | "long" = "long") {
+function formatMonthLabel(
+  timestamp: number,
+  format: "short" | "long" = "long",
+) {
   return new Intl.DateTimeFormat("en-US", {
     month: format,
     timeZone: "UTC",
@@ -948,7 +1061,10 @@ function buildUsageCounterMap(counters: UsageCounterLike[]) {
   return new Map(counters.map((counter) => [counter.periodStart, counter]));
 }
 
-function getCounterCount(counter: UsageCounterLike | null | undefined, field: keyof UsageCounterLike) {
+function getCounterCount(
+  counter: UsageCounterLike | null | undefined,
+  field: keyof UsageCounterLike,
+) {
   const value = counter?.[field];
   return typeof value === "number" ? value : 0;
 }
@@ -975,10 +1091,7 @@ function buildSalesFallbackLabel(event: BillingEventLike) {
 }
 
 function buildInitials(value: string) {
-  const parts = value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
+  const parts = value.split(/\s+/).filter(Boolean).slice(0, 2);
 
   if (parts.length === 0) {
     return "NA";
@@ -994,7 +1107,9 @@ async function listRecentUsageCounters(
 ) {
   return ctx.db
     .query("usageCounters")
-    .withIndex("by_org_period_start", (q) => q.eq("organizationId", organizationId))
+    .withIndex("by_org_period_start", (q) =>
+      q.eq("organizationId", organizationId),
+    )
     .order("desc")
     .take(limit);
 }
@@ -1006,7 +1121,9 @@ async function listRecentBillingEvents(
 ) {
   return ctx.db
     .query("billingEvents")
-    .withIndex("by_org_created_at", (q) => q.eq("organizationId", organizationId))
+    .withIndex("by_org_created_at", (q) =>
+      q.eq("organizationId", organizationId),
+    )
     .order("desc")
     .take(limit);
 }
@@ -1016,20 +1133,33 @@ export const getOverviewSummaryState = query({
   handler: async (ctx) => {
     const access = await requireOrgContext(ctx);
     const now = Date.now();
-    const snapshot = await getEntitlementSnapshot(ctx, access.organizationId, now);
+    const snapshot = await getEntitlementSnapshot(
+      ctx,
+      access.organizationId,
+      now,
+    );
     const monthStarts = buildMonthStarts(2, now);
     const previousMonthStart = monthStarts[0] ?? shiftUtcMonth(now, -1);
     const currentMonthStart = monthStarts[1] ?? startOfUtcMonth(now);
     const nextMonthStart = shiftUtcMonth(currentMonthStart, 1);
-    const recentUsageCounters = await listRecentUsageCounters(ctx, access.organizationId, 2);
+    const recentUsageCounters = await listRecentUsageCounters(
+      ctx,
+      access.organizationId,
+      2,
+    );
     const usageCounterMap = buildUsageCounterMap(recentUsageCounters);
     const currentCounter = usageCounterMap.get(currentMonthStart) ?? null;
     const previousCounter = usageCounterMap.get(previousMonthStart) ?? null;
-    const recentBillingEvents = await listRecentBillingEvents(ctx, access.organizationId, 48);
+    const recentBillingEvents = await listRecentBillingEvents(
+      ctx,
+      access.organizationId,
+      48,
+    );
     const revenueCurrency =
       snapshot.subscription?.currency ??
-      recentBillingEvents.find((event) => event.currency === "IDR" || event.currency === "USD")
-        ?.currency ??
+      recentBillingEvents.find(
+        (event) => event.currency === "IDR" || event.currency === "USD",
+      )?.currency ??
       "USD";
 
     const currentRevenue = recentBillingEvents
@@ -1056,8 +1186,14 @@ export const getOverviewSummaryState = query({
         ? snapshot.subscription.amount
         : currentRevenue;
 
-    const inboundCurrent = getCounterCount(currentCounter, "inboundMessageCount");
-    const inboundPrevious = getCounterCount(previousCounter, "inboundMessageCount");
+    const inboundCurrent = getCounterCount(
+      currentCounter,
+      "inboundMessageCount",
+    );
+    const inboundPrevious = getCounterCount(
+      previousCounter,
+      "inboundMessageCount",
+    );
     const activityCurrent =
       getCounterCount(currentCounter, "aiRunCount") +
       inboundCurrent +
@@ -1083,7 +1219,10 @@ export const getOverviewSummaryState = query({
       revenue: {
         amount: effectiveCurrentRevenue,
         currency: revenueCurrency,
-        changePercent: calculateTrendPercent(effectiveCurrentRevenue, previousRevenue),
+        changePercent: calculateTrendPercent(
+          effectiveCurrentRevenue,
+          previousRevenue,
+        ),
       },
       newCustomers: {
         value: inboundCurrent,
@@ -1120,8 +1259,14 @@ export const getOverviewBarChartState = query({
         outbound: getCounterCount(counter, "outboundMessageCount"),
       };
     });
-    const currentPoint = series[series.length - 1] ?? { inbound: 0, outbound: 0 };
-    const previousPoint = series[series.length - 2] ?? { inbound: 0, outbound: 0 };
+    const currentPoint = series[series.length - 1] ?? {
+      inbound: 0,
+      outbound: 0,
+    };
+    const previousPoint = series[series.length - 2] ?? {
+      inbound: 0,
+      outbound: 0,
+    };
 
     return {
       rangeLabel: formatMonthRangeLabel(monthStarts),
@@ -1153,8 +1298,14 @@ export const getOverviewAreaChartState = query({
         delivered: getCounterCount(counter, "deliveryDeliveredCount"),
       };
     });
-    const currentPoint = series[series.length - 1] ?? { aiRuns: 0, delivered: 0 };
-    const previousPoint = series[series.length - 2] ?? { aiRuns: 0, delivered: 0 };
+    const currentPoint = series[series.length - 1] ?? {
+      aiRuns: 0,
+      delivered: 0,
+    };
+    const previousPoint = series[series.length - 2] ?? {
+      aiRuns: 0,
+      delivered: 0,
+    };
 
     return {
       trendPercent: calculateTrendPercent(
@@ -1176,7 +1327,9 @@ export const getOverviewPieChartState = query({
     const currentMonthStart = monthStarts[1] ?? startOfUtcMonth(now);
     const recentMessages = await ctx.db
       .query("messages")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", access.organizationId),
+      )
       .order("desc")
       .take(200);
     const contentMix = recentMessages.reduce(
@@ -1190,7 +1343,11 @@ export const getOverviewPieChartState = query({
       },
       { text: 0, image: 0, document: 0, audio: 0, other: 0 },
     );
-    const recentUsageCounters = await listRecentUsageCounters(ctx, access.organizationId, 2);
+    const recentUsageCounters = await listRecentUsageCounters(
+      ctx,
+      access.organizationId,
+      2,
+    );
     const usageCounterMap = buildUsageCounterMap(recentUsageCounters);
     const currentCounter = usageCounterMap.get(currentMonthStart) ?? null;
     const previousCounter = usageCounterMap.get(previousMonthStart) ?? null;
@@ -1222,7 +1379,11 @@ export const getOverviewRecentSalesState = query({
     const now = Date.now();
     const currentMonthStart = startOfUtcMonth(now);
     const nextMonthStart = shiftUtcMonth(currentMonthStart, 1);
-    const recentBillingEvents = await listRecentBillingEvents(ctx, access.organizationId, 24);
+    const recentBillingEvents = await listRecentBillingEvents(
+      ctx,
+      access.organizationId,
+      24,
+    );
     const recentSales = recentBillingEvents.filter(
       (event) =>
         (event.currency === "USD" || event.currency === "IDR") &&
@@ -1233,7 +1394,9 @@ export const getOverviewRecentSalesState = query({
 
     return {
       currentMonthSalesCount: recentSales.filter(
-        (event) => event.createdAt >= currentMonthStart && event.createdAt < nextMonthStart,
+        (event) =>
+          event.createdAt >= currentMonthStart &&
+          event.createdAt < nextMonthStart,
       ).length,
       sales: recentSales.slice(0, 5).map((event) => {
         const name = formatBillingEventTitle(event.eventType);
