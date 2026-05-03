@@ -1,6 +1,11 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel.js";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server.js";
+import {
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import {
   buildOutboundQueueIdempotencyKey,
@@ -22,18 +27,36 @@ function formatUserDisplayName(user: {
   lastName?: string;
   email?: string;
 }) {
-  const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
+  const fullName = [user.firstName, user.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
   return fullName || user.email || "Team member";
+}
+
+function buildStoredMediaUrl(objectKey?: string) {
+  const endpoint = process.env.MEDIA_STORAGE_ENDPOINT?.replace(/\/$/, "");
+  const bucket = process.env.MEDIA_STORAGE_BUCKET;
+
+  if (!endpoint || !bucket || !objectKey) {
+    return null;
+  }
+
+  const baseUrl = new URL(endpoint);
+  const encodedKey = objectKey
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  const pathPrefix = baseUrl.pathname.replace(/\/$/, "");
+
+  return `${baseUrl.origin}${pathPrefix}/${encodeURIComponent(bucket)}/${encodedKey}`;
 }
 
 function buildConversationTemplateSuggestions() {
   return [];
 }
 
-function extractTemplatePreview(
-  components: unknown[],
-  fallbackName: string,
-) {
+function extractTemplatePreview(components: unknown[], fallbackName: string) {
   const bodyComponent = components.find((component) => {
     if (!component || typeof component !== "object") {
       return false;
@@ -50,7 +73,11 @@ function deriveWabaLifecycleState(
     | {
         connectionStatus: "not_connected" | "configured" | "disabled";
         webhookStatus?: "pending" | "verified" | "receiving";
-        approvalStatus?: "pending" | "approved" | "rejected" | "action_required";
+        approvalStatus?:
+          | "pending"
+          | "approved"
+          | "rejected"
+          | "action_required";
         phoneVerificationStatus?: "missing" | "pending" | "verified" | "failed";
         businessProfileStatus?: "pending" | "synced" | "failed";
       }
@@ -124,7 +151,9 @@ async function listConversationsForOrganization(
 ) {
   return ctx.db
     .query("conversations")
-    .withIndex("by_org_last_message_at", (q) => q.eq("organizationId", organizationId))
+    .withIndex("by_org_last_message_at", (q) =>
+      q.eq("organizationId", organizationId),
+    )
     .order("desc")
     .take(50);
 }
@@ -135,7 +164,9 @@ function resolveSelectedConversation<T extends { _id: Id<"conversations"> }>(
 ) {
   return (
     (selectedConversationId
-      ? conversations.find((conversation) => conversation._id === selectedConversationId) ?? null
+      ? (conversations.find(
+          (conversation) => conversation._id === selectedConversationId,
+        ) ?? null)
       : null) ??
     conversations[0] ??
     null
@@ -148,7 +179,9 @@ async function buildConversationSummaries(
 ) {
   return Promise.all(
     conversations.map(async (conversation) => {
-      const contact = conversation.contactId ? await ctx.db.get(conversation.contactId) : null;
+      const contact = conversation.contactId
+        ? await ctx.db.get(conversation.contactId)
+        : null;
 
       return {
         id: conversation._id,
@@ -157,31 +190,117 @@ async function buildConversationSummaries(
         waId: contact?.waId ?? null,
         profileName: contact?.profileName ?? null,
         assignedUserName: conversation.assignedUserName ?? null,
+        handoffRequested: conversation.handoffRequested,
+        botPaused: conversation.botPaused,
         lastMessageAt: conversation.lastMessageAt,
         lastMessagePreview: conversation.lastMessagePreview ?? null,
-        serviceWindowOpen: isServiceWindowOpen(conversation.serviceWindowExpiresAt, Date.now()),
+        serviceWindowOpen: isServiceWindowOpen(
+          conversation.serviceWindowExpiresAt,
+          Date.now(),
+        ),
       };
     }),
   );
 }
 
+async function buildSelectedConversationMessages(
+  ctx: Pick<QueryCtx, "db">,
+  {
+    conversationId,
+    focusMessageId,
+  }: {
+    conversationId: Id<"conversations">;
+    focusMessageId?: Id<"messages">;
+  },
+) {
+  const selectedMessages = await ctx.db
+    .query("messages")
+    .withIndex("by_conversation_created_at", (q) =>
+      q.eq("conversationId", conversationId),
+    )
+    .order("desc")
+    .take(120);
+  const orderedMessages = selectedMessages
+    .reverse()
+    .filter((message) => message.role !== "system");
+  const windowStartIndex = focusMessageId
+    ? Math.max(
+        0,
+        orderedMessages.findIndex((message) => message._id === focusMessageId) -
+          2,
+      )
+    : 0;
+  const visibleMessages =
+    focusMessageId && windowStartIndex >= 0
+      ? orderedMessages.slice(windowStartIndex)
+      : orderedMessages;
+  const mediaIds = visibleMessages
+    .map((message) => message.whatsappMediaId)
+    .filter(Boolean) as Id<"whatsappMedia">[];
+  const mediaRecords = await Promise.all(
+    mediaIds.map((mediaId) => ctx.db.get(mediaId)),
+  );
+  const mediaById = new Map<
+    Id<"whatsappMedia">,
+    NonNullable<(typeof mediaRecords)[number]>
+  >();
+
+  for (const media of mediaRecords) {
+    if (media) {
+      mediaById.set(media._id, media);
+    }
+  }
+
+  return {
+    focusedMessageId:
+      focusMessageId &&
+      visibleMessages.some((message) => message._id === focusMessageId)
+        ? focusMessageId
+        : null,
+    messages: visibleMessages.map((message) => {
+      const media = message.whatsappMediaId
+        ? mediaById.get(message.whatsappMediaId)
+        : null;
+
+      return {
+        id: message._id,
+        role: message.role,
+        content: message.content,
+        contentType: message.contentType,
+        deliveryState: message.deliveryState,
+        createdAt: message.createdAt,
+        whatsappMediaId: message.whatsappMediaId ?? null,
+        audioUrl:
+          message.contentType === "audio"
+            ? buildStoredMediaUrl(media?.storageObjectKey)
+            : null,
+        audioMimeType: media?.mimeType ?? null,
+        mediaFileName: media?.fileName ?? null,
+        mediaTranscript: media?.transcript ?? null,
+      };
+    }),
+  };
+}
+
 async function buildSelectedConversationCore(
   ctx: Pick<QueryCtx, "db">,
-  selectedConversation: Awaited<ReturnType<typeof listConversationsForOrganization>>[number] | null,
+  selectedConversation:
+    | Awaited<ReturnType<typeof listConversationsForOrganization>>[number]
+    | null,
+  focusMessageId?: Id<"messages">,
 ) {
   if (!selectedConversation) {
     return null;
   }
 
   const selectedContact =
-    selectedConversation.contactId != null ? await ctx.db.get(selectedConversation.contactId) : null;
-  const selectedMessages = await ctx.db
-    .query("messages")
-    .withIndex("by_conversation_created_at", (q) =>
-      q.eq("conversationId", selectedConversation._id),
-    )
-    .order("desc")
-    .take(50);
+    selectedConversation.contactId != null
+      ? await ctx.db.get(selectedConversation.contactId)
+      : null;
+  const selectedMessages = await buildSelectedConversationMessages(ctx, {
+    conversationId: selectedConversation._id,
+    focusMessageId,
+  });
 
   return {
     id: selectedConversation._id,
@@ -190,21 +309,14 @@ async function buildSelectedConversationCore(
     waId: selectedContact?.waId ?? null,
     profileName: selectedContact?.profileName ?? null,
     assignedUserName: selectedConversation.assignedUserName ?? null,
+    handoffRequested: selectedConversation.handoffRequested,
+    botPaused: selectedConversation.botPaused,
     serviceWindowOpen: isServiceWindowOpen(
       selectedConversation.serviceWindowExpiresAt,
       Date.now(),
     ),
-    messages: selectedMessages
-      .reverse()
-      .filter((message) => message.role !== "system")
-      .map((message) => ({
-        id: message._id,
-        role: message.role,
-        content: message.content,
-        contentType: message.contentType,
-        deliveryState: message.deliveryState,
-        createdAt: message.createdAt,
-      })),
+    focusedMessageId: selectedMessages.focusedMessageId,
+    messages: selectedMessages.messages,
   };
 }
 
@@ -215,7 +327,9 @@ async function buildSelectedConversationDetails(
     selectedConversation,
   }: {
     organizationId: Id<"organizations">;
-    selectedConversation: Awaited<ReturnType<typeof listConversationsForOrganization>>[number] | null;
+    selectedConversation:
+      | Awaited<ReturnType<typeof listConversationsForOrganization>>[number]
+      | null;
   },
 ) {
   if (!selectedConversation) {
@@ -233,7 +347,9 @@ async function buildSelectedConversationDetails(
   }
 
   const selectedContact =
-    selectedConversation.contactId != null ? await ctx.db.get(selectedConversation.contactId) : null;
+    selectedConversation.contactId != null
+      ? await ctx.db.get(selectedConversation.contactId)
+      : null;
   const selectedIntegration = selectedContact
     ? await ctx.db.get(selectedContact.integrationId)
     : null;
@@ -267,7 +383,9 @@ async function buildSelectedConversationDetails(
   const selectedQueue = (
     await ctx.db
       .query("outboundQueue")
-      .withIndex("by_org_created_at", (q) => q.eq("organizationId", organizationId))
+      .withIndex("by_org_created_at", (q) =>
+        q.eq("organizationId", organizationId),
+      )
       .order("desc")
       .take(20)
   ).filter((queueJob) => queueJob.conversationId === selectedConversation._id);
@@ -275,7 +393,8 @@ async function buildSelectedConversationDetails(
   return {
     teamMembers,
     wabaLifecycle: {
-      connectionStatus: selectedIntegration?.connectionStatus ?? "not_connected",
+      connectionStatus:
+        selectedIntegration?.connectionStatus ?? "not_connected",
       webhookStatus: selectedIntegration?.webhookStatus ?? "pending",
       phoneNumberId: selectedIntegration?.phoneNumberId ?? null,
       businessAccountId: selectedIntegration?.businessAccountId ?? null,
@@ -292,7 +411,8 @@ async function buildSelectedConversationDetails(
       handoffRequested: selectedConversation.handoffRequested,
       botReplyState: selectedConversation.botReplyState,
       botReplyError: selectedConversation.botReplyError ?? null,
-      serviceWindowExpiresAt: selectedConversation.serviceWindowExpiresAt ?? null,
+      serviceWindowExpiresAt:
+        selectedConversation.serviceWindowExpiresAt ?? null,
       serviceWindowExpiringSoon: selectedConversation.serviceWindowExpiringSoon,
       serviceWindowOpen: isServiceWindowOpen(
         selectedConversation.serviceWindowExpiresAt,
@@ -300,7 +420,10 @@ async function buildSelectedConversationDetails(
       ),
       lastInboundAt: selectedConversation.lastInboundAt,
       lastMessageAt: selectedConversation.lastMessageAt,
-      replyPolicy: isServiceWindowOpen(selectedConversation.serviceWindowExpiresAt, Date.now())
+      replyPolicy: isServiceWindowOpen(
+        selectedConversation.serviceWindowExpiresAt,
+        Date.now(),
+      )
         ? "freeform"
         : "template_only",
       notes: selectedNotes.reverse().map((note) => ({
@@ -413,7 +536,9 @@ export async function queueManualReply(
       .first()) ??
     (await ctx.db
       .query("outboundQueue")
-      .withIndex("by_idempotency_key", (q) => q.eq("idempotencyKey", idempotencyKey))
+      .withIndex("by_idempotency_key", (q) =>
+        q.eq("idempotencyKey", idempotencyKey),
+      )
       .first());
 
   const outboundQueueId =
@@ -470,9 +595,13 @@ export async function queueManualReply(
   }
 
   if (ctx.scheduler) {
-    await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {
-      queueJobId: outboundQueueId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.outboundAction.processOutboundQueueJob,
+      {
+        queueJobId: outboundQueueId,
+      },
+    );
   }
 
   return {
@@ -629,9 +758,13 @@ export async function queueTemplateReply(
   }
 
   if (ctx.scheduler) {
-    await ctx.scheduler.runAfter(0, internal.outboundAction.processOutboundQueueJob, {
-      queueJobId: outboundQueueId,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.outboundAction.processOutboundQueueJob,
+      {
+        queueJobId: outboundQueueId,
+      },
+    );
   }
 
   return {
@@ -657,10 +790,12 @@ export const getInboxWorkspace = query({
 
     const selectedConversation =
       (args.selectedConversationId
-        ? conversations.find(
+        ? (conversations.find(
             (conversation) => conversation._id === args.selectedConversationId,
-          ) ?? null
-        : null) ?? conversations[0] ?? null;
+          ) ?? null)
+        : null) ??
+      conversations[0] ??
+      null;
 
     const conversationSummaries = await Promise.all(
       conversations.map(async (conversation) => {
@@ -727,7 +862,8 @@ export const getInboxWorkspace = query({
     );
 
     const wabaLifecycle = {
-      connectionStatus: selectedIntegration?.connectionStatus ?? "not_connected",
+      connectionStatus:
+        selectedIntegration?.connectionStatus ?? "not_connected",
       webhookStatus: selectedIntegration?.webhookStatus ?? "pending",
       phoneNumberId: selectedIntegration?.phoneNumberId ?? null,
       businessAccountId: selectedIntegration?.businessAccountId ?? null,
@@ -753,14 +889,17 @@ export const getInboxWorkspace = query({
           .take(20)
       : [];
     const selectedQueue = selectedConversation
-      ? (await ctx.db
-          .query("outboundQueue")
-          .withIndex("by_org_created_at", (q) =>
-            q.eq("organizationId", access.organizationId),
-          )
-          .order("desc")
-          .take(20)
-        ).filter((queueJob) => queueJob.conversationId === selectedConversation._id)
+      ? (
+          await ctx.db
+            .query("outboundQueue")
+            .withIndex("by_org_created_at", (q) =>
+              q.eq("organizationId", access.organizationId),
+            )
+            .order("desc")
+            .take(20)
+        ).filter(
+          (queueJob) => queueJob.conversationId === selectedConversation._id,
+        )
       : [];
     const selectedNotifications = selectedConversation
       ? await ctx.db
@@ -774,7 +913,8 @@ export const getInboxWorkspace = query({
 
     return {
       role: access.role,
-      canManageInbox: access.role === "org:admin" || access.role === "org:member",
+      canManageInbox:
+        access.role === "org:admin" || access.role === "org:member",
       conversations: conversationSummaries,
       teamMembers,
       wabaLifecycle,
@@ -804,8 +944,10 @@ export const getInboxWorkspace = query({
             handoffRequested: selectedConversation.handoffRequested,
             botReplyState: selectedConversation.botReplyState,
             botReplyError: selectedConversation.botReplyError ?? null,
-            serviceWindowExpiresAt: selectedConversation.serviceWindowExpiresAt ?? null,
-            serviceWindowExpiringSoon: selectedConversation.serviceWindowExpiringSoon,
+            serviceWindowExpiresAt:
+              selectedConversation.serviceWindowExpiresAt ?? null,
+            serviceWindowExpiringSoon:
+              selectedConversation.serviceWindowExpiringSoon,
             serviceWindowOpen: isServiceWindowOpen(
               selectedConversation.serviceWindowExpiresAt,
               Date.now(),
@@ -858,10 +1000,14 @@ export const getInboxWorkspace = query({
 export const getInboxChatWorkspace = query({
   args: {
     selectedConversationId: v.optional(v.id("conversations")),
+    focusMessageId: v.optional(v.id("messages")),
   },
   handler: async (ctx, args) => {
     const access = await requireOrgContext(ctx);
-    const conversations = await listConversationsForOrganization(ctx, access.organizationId);
+    const conversations = await listConversationsForOrganization(
+      ctx,
+      access.organizationId,
+    );
     const selectedConversation = resolveSelectedConversation(
       conversations,
       args.selectedConversationId,
@@ -869,9 +1015,59 @@ export const getInboxChatWorkspace = query({
 
     return {
       role: access.role,
-      canManageInbox: access.role === "org:admin" || access.role === "org:member",
+      canManageInbox:
+        access.role === "org:admin" || access.role === "org:member",
       conversations: await buildConversationSummaries(ctx, conversations),
-      selectedConversation: await buildSelectedConversationCore(ctx, selectedConversation),
+      selectedConversation: await buildSelectedConversationCore(
+        ctx,
+        selectedConversation,
+        args.focusMessageId,
+      ),
+    };
+  },
+});
+
+export const getInboxContactsState = query({
+  args: {},
+  handler: async (ctx) => {
+    const access = await requireOrgContext(ctx);
+    const contacts = await ctx.db
+      .query("whatsappContacts")
+      .withIndex("by_org", (q) => q.eq("organizationId", access.organizationId))
+      .collect();
+
+    const mappedContacts = await Promise.all(
+      contacts.map(async (contact) => {
+        const activeConversation = contact.activeConversationId
+          ? await ctx.db.get(contact.activeConversationId)
+          : null;
+        const serviceWindowOpen = activeConversation
+          ? isServiceWindowOpen(
+              activeConversation.serviceWindowExpiresAt,
+              Date.now(),
+            )
+          : null;
+
+        return {
+          id: contact._id,
+          name: contact.profileName ?? contact.waId,
+          phone: contact.waId,
+          status:
+            serviceWindowOpen == null
+              ? null
+              : serviceWindowOpen
+                ? "Open window"
+                : "Closed window",
+          conversationId: activeConversation?._id ?? null,
+          lastInboundAt: contact.lastInboundAt,
+        };
+      }),
+    );
+
+    return {
+      contacts: mappedContacts.sort(
+        (left, right) => right.lastInboundAt - left.lastInboundAt,
+      ),
     };
   },
 });
@@ -882,7 +1078,10 @@ export const getInboxConversationDrawerState = query({
   },
   handler: async (ctx, args) => {
     const access = await requireOrgContext(ctx);
-    const conversations = await listConversationsForOrganization(ctx, access.organizationId);
+    const conversations = await listConversationsForOrganization(
+      ctx,
+      access.organizationId,
+    );
     const selectedConversation = resolveSelectedConversation(
       conversations,
       args.selectedConversationId,
@@ -971,7 +1170,10 @@ export const setConversationHandoff = mutation({
       createdAt: now,
     });
 
-    return { conversationId: conversation._id, handoffRequested: args.handoffRequested };
+    return {
+      conversationId: conversation._id,
+      handoffRequested: args.handoffRequested,
+    };
   },
 });
 
@@ -1016,12 +1218,16 @@ export const assignConversation = mutation({
       .query("orgMembers")
       .withIndex("by_org", (q) => q.eq("orgId", access.organizationId))
       .collect()
-      .then((memberships) =>
-        memberships.find((member) => member.userId === args.assignedUserId) ?? null,
+      .then(
+        (memberships) =>
+          memberships.find((member) => member.userId === args.assignedUserId) ??
+          null,
       );
 
     if (!membership) {
-      throw new Error("Selected assignee does not belong to the active organization.");
+      throw new Error(
+        "Selected assignee does not belong to the active organization.",
+      );
     }
 
     const assignedUser = await ctx.db.get(args.assignedUserId);

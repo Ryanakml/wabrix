@@ -18,13 +18,22 @@ function getNotificationAction(notification: Doc<"dashboardNotifications">) {
   switch (notification.type) {
     case "service_window_expiring":
     case "bot_reply_failed":
-    case "outbound_send_failed":
+    case "outbound_send_failed": {
+      const params = new URLSearchParams();
+      if (notification.conversationId) {
+        params.set("conversationId", notification.conversationId.toString());
+      }
+      if (notification.focusMessageId) {
+        params.set("focusMessageId", notification.focusMessageId.toString());
+      }
+      params.set("notificationId", notification._id.toString());
+
+      const query = params.toString();
       return {
         label: "Open chat",
-        url: notification.conversationId
-          ? `/chat?conversationId=${notification.conversationId}`
-          : "/chat",
+        url: query ? `/chat?${query}` : "/chat",
       };
+    }
     case "template_rejected":
       return {
         label: "Review templates",
@@ -70,13 +79,17 @@ export const getNotificationsState = query({
     const [notifications, feedState] = await Promise.all([
       ctx.db
         .query("dashboardNotifications")
-        .withIndex("by_org_created_at", (q) => q.eq("organizationId", access.organizationId))
+        .withIndex("by_org_created_at", (q) =>
+          q.eq("organizationId", access.organizationId),
+        )
         .order("desc")
         .take(limit),
       ctx.db
         .query("dashboardNotificationFeedStates")
         .withIndex("by_org_user", (q) =>
-          q.eq("organizationId", access.organizationId).eq("userId", access.userId),
+          q
+            .eq("organizationId", access.organizationId)
+            .eq("userId", access.userId),
         )
         .first(),
     ]);
@@ -95,9 +108,12 @@ export const getNotificationsState = query({
         description: notification.body,
         type: notification.type,
         severity: notification.severity,
+        recommendation: notification.recommendation ?? null,
         read,
         createdAt: notification.createdAt,
         updatedAt: notification.updatedAt,
+        conversationId: notification.conversationId ?? null,
+        focusMessageId: notification.focusMessageId ?? null,
         actionUrl: action?.url ?? null,
         actionLabel: action?.label ?? null,
       };
@@ -105,7 +121,9 @@ export const getNotificationsState = query({
 
     return {
       notifications: mappedNotifications,
-      unreadCount: mappedNotifications.filter((notification) => !notification.read).length,
+      unreadCount: mappedNotifications.filter(
+        (notification) => !notification.read,
+      ).length,
     };
   },
 });
@@ -118,7 +136,10 @@ export const markNotificationRead = mutation({
     const access = await requireOrgContext(ctx);
     const notification = await ctx.db.get(args.notificationId);
 
-    if (!notification || notification.organizationId !== access.organizationId) {
+    if (
+      !notification ||
+      notification.organizationId !== access.organizationId
+    ) {
       throw new Error("Notification not found for the active organization.");
     }
 
@@ -144,7 +165,9 @@ export const markAllNotificationsRead = mutation({
     const existingFeedState = await ctx.db
       .query("dashboardNotificationFeedStates")
       .withIndex("by_org_user", (q) =>
-        q.eq("organizationId", access.organizationId).eq("userId", access.userId),
+        q
+          .eq("organizationId", access.organizationId)
+          .eq("userId", access.userId),
       )
       .first();
 

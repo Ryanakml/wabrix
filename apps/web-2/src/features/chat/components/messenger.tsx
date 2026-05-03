@@ -1,32 +1,44 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
-import { api } from '@wabrix/backend/convex/_generated/api';
-import { useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
-import type { Attachment } from '../utils/types';
-import { mapConversationDetails, mapConversationSummary, mapSelectedConversation } from '../utils/mappers';
-import { ConversationList } from './conversation-list';
-import { ConversationSelect } from './conversation-select';
-import { ChatArea } from './chat-area';
-import { ConversationDetailsDrawer } from './conversation-details-drawer';
-import { MessengerSkeleton } from './messenger-skeleton';
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@wabrix/backend/convex/_generated/api";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import type { Attachment } from "../utils/types";
+import {
+  mapConversationDetails,
+  mapConversationSummary,
+  mapSelectedConversation,
+} from "../utils/mappers";
+import { ConversationList } from "./conversation-list";
+import { ConversationSelect } from "./conversation-select";
+import { ChatArea } from "./chat-area";
+import { ConversationDetailsDrawer } from "./conversation-details-drawer";
+import { MessengerSkeleton } from "./messenger-skeleton";
 
 export function Messenger() {
   const searchParams = useSearchParams();
-  const conversationIdFromQuery = searchParams.get('conversationId') ?? undefined;
-  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(undefined);
-  const [draft, setDraft] = useState('');
+  const conversationIdFromQuery =
+    searchParams.get("conversationId") ?? undefined;
+  const focusMessageIdFromQuery =
+    searchParams.get("focusMessageId") ?? undefined;
+  const highlightedConversationId =
+    searchParams.get("highlightConversationId") ?? undefined;
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | undefined
+  >(undefined);
+  const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isUpdatingConversation, setIsUpdatingConversation] = useState(false);
-  const [noteBody, setNoteBody] = useState('');
+  const [noteBody, setNoteBody] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
 
   const workspaceData = useQuery(api.inbox.getInboxChatWorkspace, {
-    selectedConversationId: selectedConversationId as never
+    selectedConversationId: selectedConversationId as never,
+    focusMessageId: focusMessageIdFromQuery as never,
   });
   const [cachedWorkspace, setCachedWorkspace] = useState(workspaceData);
 
@@ -42,7 +54,7 @@ export function Messenger() {
     api.inbox.getInboxConversationDrawerState,
     isDetailsOpen && selectedConversationId
       ? { selectedConversationId: selectedConversationId as never }
-      : 'skip'
+      : "skip",
   );
   const [cachedDrawerState, setCachedDrawerState] = useState(drawerStateData);
 
@@ -55,7 +67,9 @@ export function Messenger() {
   const drawerState = drawerStateData ?? cachedDrawerState;
 
   const sendManualReply = useMutation(api.inbox.sendManualReply);
-  const setConversationBotPause = useMutation(api.inbox.setConversationBotPause);
+  const setConversationBotPause = useMutation(
+    api.inbox.setConversationBotPause,
+  );
   const setConversationHandoff = useMutation(api.inbox.setConversationHandoff);
   const assignConversation = useMutation(api.inbox.assignConversation);
   const setConversationStatus = useMutation(api.inbox.setConversationStatus);
@@ -75,23 +89,29 @@ export function Messenger() {
 
   useEffect(() => {
     setAttachments([]);
-    setDraft('');
-    setNoteBody('');
+    setDraft("");
+    setNoteBody("");
   }, [selectedConversationId]);
 
   const conversations = useMemo(
-    () => (workspace?.conversations ?? []).map((conversation) => mapConversationSummary(conversation as never)),
-    [workspace?.conversations]
+    () =>
+      (workspace?.conversations ?? []).map((conversation: unknown) =>
+        mapConversationSummary(conversation as never),
+      ),
+    [workspace?.conversations],
   );
 
   const activeConversation = useMemo(
-    () => mapSelectedConversation((workspace?.selectedConversation ?? null) as never),
-    [workspace?.selectedConversation]
+    () =>
+      mapSelectedConversation(
+        (workspace?.selectedConversation ?? null) as never,
+      ),
+    [workspace?.selectedConversation],
   );
 
   const rawConversationDetails = useMemo(
     () => mapConversationDetails(drawerState as never),
-    [drawerState]
+    [drawerState],
   );
   const activeConversationId = selectedConversationId ?? activeConversation?.id;
   const conversationDetails =
@@ -100,11 +120,13 @@ export function Messenger() {
       : null;
 
   const handleAddAttachments = (_files: FileList) => {
-    toast.info('Attachments are not supported for inbox replies yet.');
+    toast.info("Attachments are not supported for inbox replies yet.");
   };
 
   const handleRemoveAttachment = (id: string) => {
-    setAttachments((current) => current.filter((attachment) => attachment.id !== id));
+    setAttachments((current) =>
+      current.filter((attachment) => attachment.id !== id),
+    );
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -118,12 +140,14 @@ export function Messenger() {
     try {
       await sendManualReply({
         conversationId: activeConversation.id as never,
-        body: draft.trim()
+        body: draft.trim(),
       });
-      setDraft('');
+      setDraft("");
       setAttachments([]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send reply.');
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send reply.",
+      );
     } finally {
       setIsSending(false);
     }
@@ -134,7 +158,11 @@ export function Messenger() {
     try {
       await operation();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update conversation.');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update conversation.",
+      );
     } finally {
       setIsUpdatingConversation(false);
     }
@@ -148,8 +176,8 @@ export function Messenger() {
     await runConversationMutation(() =>
       assignConversation({
         conversationId: selectedConversationId as never,
-        assignedUserId: value ? (value as never) : undefined
-      })
+        assignedUserId: value ? (value as never) : undefined,
+      }),
     );
   };
 
@@ -163,8 +191,8 @@ export function Messenger() {
     await runConversationMutation(() =>
       setConversationBotPause({
         conversationId: selectedConversation.id as never,
-        botPaused: !selectedConversation.botPaused
-      })
+        botPaused: !selectedConversation.botPaused,
+      }),
     );
   };
 
@@ -178,8 +206,8 @@ export function Messenger() {
     await runConversationMutation(() =>
       setConversationHandoff({
         conversationId: selectedConversation.id as never,
-        handoffRequested: !selectedConversation.handoffRequested
-      })
+        handoffRequested: !selectedConversation.handoffRequested,
+      }),
     );
   };
 
@@ -193,8 +221,8 @@ export function Messenger() {
     await runConversationMutation(() =>
       setConversationStatus({
         conversationId: selectedConversation.id as never,
-        status: selectedConversation.status === 'open' ? 'closed' : 'open'
-      })
+        status: selectedConversation.status === "open" ? "closed" : "open",
+      }),
     );
   };
 
@@ -207,12 +235,14 @@ export function Messenger() {
     try {
       await addConversationNote({
         conversationId: selectedConversationId as never,
-        body: noteBody.trim()
+        body: noteBody.trim(),
       });
-      setNoteBody('');
-      toast.success('Note saved.');
+      setNoteBody("");
+      toast.success("Note saved.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save note.');
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save note.",
+      );
     } finally {
       setIsSavingNote(false);
     }
@@ -224,7 +254,7 @@ export function Messenger() {
 
   if (!activeConversation) {
     return (
-      <div className='border-border/50 bg-background/70 flex h-[calc(100dvh-5.5rem)] w-full items-center justify-center rounded-2xl border p-6 text-sm backdrop-blur-xl lg:rounded-3xl'>
+      <div className="border-border/50 bg-background/70 flex h-[calc(100dvh-5.5rem)] w-full items-center justify-center rounded-2xl border p-6 text-sm backdrop-blur-xl lg:rounded-3xl">
         No conversations available.
       </div>
     );
@@ -232,7 +262,7 @@ export function Messenger() {
 
   return (
     <>
-      <div className='border-border/50 bg-background/70 relative grid h-[calc(100dvh-5.5rem)] w-full grid-rows-[auto,1fr] gap-3 overflow-hidden rounded-2xl border p-3 backdrop-blur-xl sm:gap-4 sm:p-4 lg:[grid-template-columns:30%_1fr] lg:grid-rows-[1fr] lg:gap-4 lg:rounded-3xl lg:p-5'>
+      <div className="border-border/50 bg-background/70 relative grid h-[calc(100dvh-5.5rem)] w-full grid-rows-[auto,1fr] gap-3 overflow-hidden rounded-2xl border p-3 backdrop-blur-xl sm:gap-4 sm:p-4 lg:[grid-template-columns:30%_1fr] lg:grid-rows-[1fr] lg:gap-4 lg:rounded-3xl lg:p-5">
         <ConversationSelect
           conversations={conversations}
           selectedId={selectedConversationId ?? activeConversation.id}
@@ -241,6 +271,7 @@ export function Messenger() {
         <ConversationList
           conversations={conversations}
           selectedId={selectedConversationId ?? activeConversation.id}
+          highlightedId={highlightedConversationId}
           onSelect={setSelectedConversationId}
         />
         <ChatArea
@@ -264,8 +295,9 @@ export function Messenger() {
         details={conversationDetails}
         isLoading={Boolean(
           isDetailsOpen &&
-            (drawerState === undefined ||
-              rawConversationDetails?.selectedConversation?.id !== activeConversationId)
+          (drawerState === undefined ||
+            rawConversationDetails?.selectedConversation?.id !==
+              activeConversationId),
         )}
         noteBody={noteBody}
         onNoteBodyChange={setNoteBody}

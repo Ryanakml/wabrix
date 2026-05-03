@@ -132,7 +132,9 @@ export function classifyMetaSendFailure(input: {
   };
 }
 
-function mapStatusToDeliveryState(status: "sent" | "delivered" | "read" | "failed") {
+function mapStatusToDeliveryState(
+  status: "sent" | "delivered" | "read" | "failed",
+) {
   switch (status) {
     case "sent":
       return "sent" as const;
@@ -150,11 +152,13 @@ async function upsertOutboundFailureNotification(
   {
     organizationId,
     conversationId,
+    focusMessageId,
     dedupeKey,
     body,
   }: {
     organizationId: Id<"organizations">;
     conversationId: Id<"conversations">;
+    focusMessageId?: Id<"messages">;
     dedupeKey: string;
     body: string;
   },
@@ -172,6 +176,7 @@ async function upsertOutboundFailureNotification(
       body,
       recommendation:
         "Review the WhatsApp integration token, queue row, and recent status webhook updates.",
+      focusMessageId,
       status: "open",
       updatedAt: now,
     });
@@ -181,6 +186,7 @@ async function upsertOutboundFailureNotification(
   return ctx.db.insert("dashboardNotifications", {
     organizationId,
     conversationId,
+    focusMessageId,
     type: "outbound_send_failed",
     severity: "error",
     title: "Outbound send failed",
@@ -237,13 +243,16 @@ export function normalizeWhatsappStatusWebhook({
           timestamp,
           recipientWaId: status.recipient_id,
           errorCode:
-            typeof firstError?.code === "number" || typeof firstError?.code === "string"
+            typeof firstError?.code === "number" ||
+            typeof firstError?.code === "string"
               ? String(firstError.code)
               : undefined,
           errorMessage:
             firstError?.message ??
             firstError?.title ??
-            (status.status === "failed" ? "Meta reported delivery failure" : undefined),
+            (status.status === "failed"
+              ? "Meta reported delivery failure"
+              : undefined),
         });
       }
     }
@@ -264,13 +273,15 @@ export async function claimDueOutboundQueueJob(
 ): Promise<ClaimOutboundQueueJobResult> {
   const queueJob = queueJobId
     ? await ctx.db.get(queueJobId)
-    : (
+    : ((
         await ctx.db
           .query("outboundQueue")
-          .withIndex("by_status_next_attempt_at", (q) => q.eq("status", "queued"))
+          .withIndex("by_status_next_attempt_at", (q) =>
+            q.eq("status", "queued"),
+          )
           .order("asc")
           .take(20)
-      ).find((candidate) => candidate.nextAttemptAt <= now) ?? null;
+      ).find((candidate) => candidate.nextAttemptAt <= now) ?? null);
 
   if (!queueJob) {
     return { status: "noop", reason: "no_due_queue_job" };
@@ -337,7 +348,8 @@ export async function claimDueOutboundQueueJob(
     await ctx.db.patch(queueJob._id, {
       status: "failed",
       failureCode: "missing_send_dependencies",
-      failureMessage: "Missing transcript message or WhatsApp contact for send.",
+      failureMessage:
+        "Missing transcript message or WhatsApp contact for send.",
       lastAttemptAt: now,
       updatedAt: now,
     });
@@ -569,6 +581,7 @@ export async function finalizeOutboundSendFailure(
   const notificationId = await upsertOutboundFailureNotification(ctx, {
     organizationId: queueJob.organizationId,
     conversationId: queueJob.conversationId,
+    focusMessageId: queueJob.messageId,
     dedupeKey: buildFailureDedupeKey(queueJobId, nextAttemptCount),
     body: errorMessage,
   });
@@ -633,7 +646,9 @@ export async function processWhatsappStatusWebhookEvent(
       updatedAt: Date.now(),
     });
 
-    const transcriptMessage = await ctx.db.get(whatsappMessage.transcriptMessageId);
+    const transcriptMessage = await ctx.db.get(
+      whatsappMessage.transcriptMessageId,
+    );
     if (transcriptMessage) {
       await ctx.db.patch(transcriptMessage._id, {
         deliveryState: mapStatusToDeliveryState(status.status),
@@ -662,7 +677,9 @@ export async function processWhatsappStatusWebhookEvent(
       await ctx.db.patch(conversation._id, {
         botReplyState: status.status === "failed" ? "failed" : "idle",
         botReplyError:
-          status.status === "failed" ? status.errorMessage ?? "Meta send failed" : undefined,
+          status.status === "failed"
+            ? (status.errorMessage ?? "Meta send failed")
+            : undefined,
         updatedAt: Date.now(),
       });
     }

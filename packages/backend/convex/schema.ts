@@ -49,7 +49,11 @@ export default defineSchema({
   botProfiles: defineTable({
     organizationId: v.id("organizations"),
     name: v.string(),
-    defaultLanguage: v.union(v.literal("auto"), v.literal("en"), v.literal("id")),
+    defaultLanguage: v.union(
+      v.literal("auto"),
+      v.literal("en"),
+      v.literal("id"),
+    ),
     systemPrompt: v.string(),
     localizedPromptTemplates: v.object({
       en: v.optional(v.string()),
@@ -238,11 +242,7 @@ export default defineSchema({
       ),
     ),
     businessProfileStatus: v.optional(
-      v.union(
-        v.literal("pending"),
-        v.literal("synced"),
-        v.literal("failed"),
-      ),
+      v.union(v.literal("pending"), v.literal("synced"), v.literal("failed")),
     ),
     displayNameReviewStatus: v.optional(
       v.union(
@@ -330,6 +330,7 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("by_org", ["organizationId"])
     .index("by_org_wa_id", ["organizationId", "waId"])
     .index("by_active_conversation", ["activeConversationId"]),
 
@@ -367,6 +368,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_org_last_message_at", ["organizationId", "lastMessageAt"])
+    .index("by_org_last_inbound_at", ["organizationId", "lastInboundAt"])
     .index("by_contact", ["contactId"]),
 
   conversationNotes: defineTable({
@@ -568,6 +570,7 @@ export default defineSchema({
   dashboardNotifications: defineTable({
     organizationId: v.id("organizations"),
     conversationId: v.optional(v.id("conversations")),
+    focusMessageId: v.optional(v.id("messages")),
     type: v.union(
       v.literal("service_window_expiring"),
       v.literal("bot_reply_failed"),

@@ -7,32 +7,46 @@ export type Attachment = {
 
 export type Message = {
   id: string;
-  sender: 'user' | 'contact';
+  sender: "user" | "contact";
   author: string;
   text: string;
   timestamp: string;
+  contentType?:
+    | "text"
+    | "audio"
+    | "image"
+    | "document"
+    | "template"
+    | "unsupported";
+  audioUrl?: string | null;
+  audioMimeType?: string | null;
+  mediaFileName?: string | null;
   attachments?: Attachment[];
 };
 
-export type ConversationStatus = 'online' | 'offline';
+export type ConversationStatus = "online" | "offline";
 
 export type Conversation = {
   id: string;
   name: string;
   title: string;
   status: ConversationStatus;
+  serviceWindowOpen: boolean;
+  handoffRequested: boolean;
+  botPaused: boolean;
   unread: number;
   initials: string;
   messages: Message[];
   quickReplies: string[];
   canReply: boolean;
+  focusedMessageId?: string | null;
   lastMessagePreview?: string | null;
   lastMessageTimestamp?: string | null;
 };
 
 export type ConversationMetadata = {
   id: string;
-  status: 'open' | 'closed';
+  status: "open" | "closed";
   profileName: string | null;
   waId: string | null;
   assignedUserId: string | null;
@@ -46,7 +60,7 @@ export type ConversationMetadata = {
   serviceWindowOpen: boolean;
   lastInboundAt: string;
   lastMessageAt: string;
-  replyPolicy: 'freeform' | 'template_only';
+  replyPolicy: "freeform" | "template_only";
   notes: Array<{
     id: string;
     authorDisplayName: string;
