@@ -1,12 +1,11 @@
-import { Metadata } from 'next';
 import { legalDocuments } from '@/features/auth/components/auth-legal-content';
+import { createPageMetadata } from '@/lib/metadata';
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy | Wabrix',
-  robots: {
-    index: false
-  }
-};
+export const metadata = createPageMetadata({
+  title: 'Privacy Policy',
+  description: legalDocuments.privacy.summary,
+  path: '/privacy-policy'
+});
 
 export default function PrivacyPolicyPage() {
   const privacyDocument = legalDocuments.privacy;

@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn Dashboard Starter',
-  description: 'Basic dashboard with Next.js and Shadcn',
+  title: 'Dashboard',
+  description: 'Manage your Wabrix workspace, billing, inbox, and WhatsApp operations.',
   robots: {
     index: false,
     follow: false
