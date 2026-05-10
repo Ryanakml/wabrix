@@ -18,6 +18,7 @@ import {
   buildObservabilityPayload,
   emitObservabilityEvent,
 } from "./lib/observability.js";
+import { estimateAiCostUsd } from "./lib/aiCost.js";
 
 type DraftHistoryEntry = {
   role: "user" | "assistant";
@@ -323,7 +324,11 @@ async function runBotReplyOrchestratorHandler(
       promptTokens: draft.usage.promptTokens,
       completionTokens: draft.usage.completionTokens,
       totalTokens: draft.usage.totalTokens,
-      estimatedCostUsd: undefined,
+      estimatedCostUsd: estimateAiCostUsd({
+        provider: draft.selectedProvider,
+        modelId: draft.selectedModel,
+        usage: draft.usage,
+      }),
       guardrailTriggered: draft.guardrail.flagged,
       guardrailCategory: draft.guardrail.flagged
         ? draft.guardrail.category
