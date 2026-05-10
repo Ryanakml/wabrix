@@ -11,6 +11,14 @@ interface MessageBubbleProps {
   isFocused?: boolean;
 }
 
+function resolveAudioSourceType(mimeType?: string | null) {
+  if (!mimeType) {
+    return "audio/ogg";
+  }
+
+  return mimeType === "audio/ogg" ? "audio/ogg; codecs=opus" : mimeType;
+}
+
 export function MessageBubble({
   message,
   isFocused = false,
@@ -48,6 +56,21 @@ export function MessageBubble({
         >
           {message.author}
         </p>
+        {message.contentType === "image" && message.imageUrl ? (
+          <a
+            href={message.imageUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 block overflow-hidden rounded-xl border bg-background/60"
+          >
+            <img
+              src={message.imageUrl}
+              alt={message.mediaFileName ?? "Customer image"}
+              loading="lazy"
+              className="max-h-80 w-full object-cover"
+            />
+          </a>
+        ) : null}
         {message.text && (
           <p
             className={cn(
@@ -70,12 +93,23 @@ export function MessageBubble({
             <div className="mb-2 flex items-center gap-2 text-[0.75rem]">
               <span>{message.mediaFileName ?? "Voice note"}</span>
             </div>
-            <audio controls preload="none" className="h-10 w-full">
+            <audio controls preload="metadata" className="h-10 w-full">
               <source
                 src={message.audioUrl}
-                type={message.audioMimeType ?? "audio/ogg"}
+                type={resolveAudioSourceType(message.audioMimeType)}
               />
             </audio>
+            <a
+              href={message.audioUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={cn(
+                "mt-2 inline-flex text-[0.75rem] underline underline-offset-2",
+                isUser ? "text-primary-foreground/85" : "text-foreground/75",
+              )}
+            >
+              Open audio file
+            </a>
           </div>
         ) : null}
         {message.attachments && message.attachments.length > 0 && (

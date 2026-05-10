@@ -274,6 +274,10 @@ async function buildSelectedConversationMessages(
           message.contentType === "audio"
             ? buildStoredMediaUrl(media?.storageObjectKey)
             : null,
+        imageUrl:
+          message.contentType === "image"
+            ? buildStoredMediaUrl(media?.storageObjectKey)
+            : null,
         audioMimeType: media?.mimeType ?? null,
         mediaFileName: media?.fileName ?? null,
         mediaTranscript: media?.transcript ?? null,
