@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { formatBotErrorText } from "@/lib/bot-error";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Conversation, ConversationDetails } from "../utils/types";
 
 interface ConversationDetailsDrawerProps {
@@ -50,7 +51,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
         {label}
       </span>
-      <span>{value}</span>
+      <span className="break-words min-w-0">{value}</span>
     </div>
   );
 }
@@ -72,9 +73,14 @@ export function ConversationDetailsDrawer({
   isUpdatingConversation,
 }: ConversationDetailsDrawerProps) {
   const selectedConversation = details?.selectedConversation ?? null;
+  const isMobile = useIsMobile();
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} direction="right">
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      direction={isMobile ? "bottom" : "right"}
+    >
       <DrawerContent className="data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:sm:max-w-md">
         <DrawerHeader className="border-border/50 border-b px-5 py-4">
           <DrawerTitle>
@@ -144,7 +150,7 @@ export function ConversationDetailsDrawer({
                   label="Bot Error"
                   value={
                     selectedConversation.botReplyError ? (
-                      <span className="whitespace-pre-wrap">
+                      <span className="break-words whitespace-pre-wrap">
                         {formatBotErrorText(selectedConversation.botReplyError)}
                       </span>
                     ) : (

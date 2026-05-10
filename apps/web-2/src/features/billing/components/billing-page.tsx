@@ -307,13 +307,13 @@ export default function BillingPage() {
                     ) : null}
                   </div>
                 </div>
-                <div className="w-full max-w-[220px] space-y-2">
+                <div className="w-full space-y-2 md:max-w-[220px]">
                   <CardDescription>Billing Country</CardDescription>
                   <Select
                     value={selectedCountry}
                     onValueChange={setSelectedCountry}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent>
@@ -325,21 +325,21 @@ export default function BillingPage() {
                   </Select>
                 </div>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-3">
+              <CardContent className="grid gap-6 md:grid-cols-3 md:gap-4">
                 <div className="space-y-1">
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">
                     Billing status
                   </p>
-                  <p className="font-medium">
+                  <p className="font-semibold">
                     {billingState?.currentSubscription?.status ??
                       "No subscription"}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">
                     Current period
                   </p>
-                  <p className="font-medium">
+                  <p className="font-semibold">
                     {formatDate(
                       billingState?.currentSubscription?.currentPeriodStart,
                     )}{" "}
@@ -350,8 +350,10 @@ export default function BillingPage() {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-muted-foreground text-sm">Current price</p>
-                  <p className="font-medium">
+                  <p className="text-muted-foreground text-xs uppercase tracking-wider">
+                    Current price
+                  </p>
+                  <p className="font-semibold">
                     {billingState?.currentSubscription?.amount != null &&
                     billingState.currentSubscription.currency
                       ? formatPrice(
@@ -394,52 +396,89 @@ export default function BillingPage() {
               </CardHeader>
               <CardContent>
                 {billingState?.recentEvents.length ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Event</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Gateway</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead className="text-right">Created</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {billingState.recentEvents.map(
-                        (event: {
-                          id: string;
-                          eventType: string;
-                          status: string;
-                          gateway: string;
-                          currency?: BillingCurrency | null;
-                          amount?: number | null;
-                          createdAt: number;
-                        }) => (
-                          <TableRow key={String(event.id)}>
-                            <TableCell className="font-medium">
-                              {event.eventType}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={getStatusVariant(event.status)}>
-                                {event.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="uppercase">
-                              {event.gateway}
-                            </TableCell>
-                            <TableCell>
-                              {event.amount != null && event.currency
-                                ? formatPrice(event.currency, event.amount)
-                                : "—"}
-                            </TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">
-                              {formatDate(event.createdAt)}
-                            </TableCell>
+                  <>
+                    {/* Desktop Table */}
+                    <div className="hidden md:block">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Event</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Gateway</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead className="text-right">Created</TableHead>
                           </TableRow>
-                        ),
-                      )}
-                    </TableBody>
-                  </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {billingState.recentEvents.map((event) => (
+                            <TableRow key={String(event.id)}>
+                              <TableCell className="font-medium">
+                                {event.eventType}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={getStatusVariant(event.status)}>
+                                  {event.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="uppercase">
+                                {event.gateway}
+                              </TableCell>
+                              <TableCell>
+                                {event.amount != null && event.currency
+                                  ? formatPrice(event.currency, event.amount)
+                                  : "—"}
+                              </TableCell>
+                              <TableCell className="text-right text-sm text-muted-foreground">
+                                {formatDate(event.createdAt)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="space-y-3 md:hidden">
+                      {billingState.recentEvents.map((event) => (
+                        <div
+                          key={String(event.id)}
+                          className="border-border/50 bg-muted/20 space-y-3 rounded-xl border p-4"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold">
+                              {event.eventType}
+                            </p>
+                            <Badge variant={getStatusVariant(event.status)}>
+                              {event.status}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="space-y-1">
+                              <p className="text-muted-foreground uppercase tracking-wider">
+                                Gateway
+                              </p>
+                              <p className="font-medium uppercase">
+                                {event.gateway}
+                              </p>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-muted-foreground uppercase tracking-wider">
+                                Amount
+                              </p>
+                              <p className="font-medium">
+                                {event.amount != null && event.currency
+                                  ? formatPrice(event.currency, event.amount)
+                                  : "—"}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-muted-foreground pt-1 text-[10px]">
+                            {formatDate(event.createdAt)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <p className="text-muted-foreground text-sm">
                     No billing events recorded yet.
@@ -478,24 +517,24 @@ export default function BillingPage() {
 
                   return (
                     <div key={plan.key} className="rounded-xl border p-4">
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{plan.name}</h3>
+                            <h3 className="font-bold">{plan.name}</h3>
                             {isCurrentPlan ? (
-                              <Badge variant="outline">Current Plan</Badge>
+                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Current Plan</Badge>
                             ) : null}
                           </div>
-                          <p className="text-muted-foreground text-sm">
+                          <p className="text-muted-foreground text-sm leading-relaxed">
                             {plan.tagline}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-lg font-semibold">
+                        <div className="flex items-baseline gap-1 sm:flex-col sm:items-end sm:gap-0">
+                          <p className="text-xl font-bold">
                             {formatPrice(presentation.currency, amount)}
                           </p>
                           <p className="text-muted-foreground text-xs">
-                            per month
+                            / month
                           </p>
                         </div>
                       </div>

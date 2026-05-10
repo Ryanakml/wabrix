@@ -74,7 +74,7 @@ export function MessageBubble({
         {message.text && (
           <p
             className={cn(
-              "mt-1 text-[0.875rem] sm:text-[0.95rem]",
+              "break-words whitespace-pre-wrap mt-1 text-[0.875rem] sm:text-[0.95rem]",
               isUser ? "text-primary-foreground/90" : "text-foreground/90",
             )}
           >
