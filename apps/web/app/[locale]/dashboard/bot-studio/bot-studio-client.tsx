@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@wabrix/backend/convex/_generated/api";
 import { Button } from "@wabrix/ui/button";
@@ -88,11 +88,48 @@ const emptyState: FormState = {
   escalationMessage: "",
 };
 
+type ComparableFormState = Omit<FormState, "apiKey">;
+
+function toComparableFormState(state: FormState): ComparableFormState {
+  return {
+    name: state.name,
+    defaultLanguage: state.defaultLanguage,
+    systemPrompt: state.systemPrompt,
+    templateEn: state.templateEn,
+    templateId: state.templateId,
+    providerType: state.providerType,
+    modelId: state.modelId,
+    endpointUrl: state.endpointUrl,
+    temperature: state.temperature,
+    maxTokens: state.maxTokens,
+    escalationEnabled: state.escalationEnabled,
+    escalationMessage: state.escalationMessage,
+  };
+}
+
+function comparableEquals(a: ComparableFormState, b: ComparableFormState) {
+  return (
+    a.name === b.name &&
+    a.defaultLanguage === b.defaultLanguage &&
+    a.systemPrompt === b.systemPrompt &&
+    a.templateEn === b.templateEn &&
+    a.templateId === b.templateId &&
+    a.providerType === b.providerType &&
+    a.modelId === b.modelId &&
+    a.endpointUrl === b.endpointUrl &&
+    a.temperature === b.temperature &&
+    a.maxTokens === b.maxTokens &&
+    a.escalationEnabled === b.escalationEnabled &&
+    a.escalationMessage === b.escalationMessage
+  );
+}
+
 export function BotStudioClient({ copy }: BotStudioClientProps) {
   const studioState = useQuery(api.configuration.getBotStudioState, {});
   const saveBotStudioState = useMutation(api.configuration.saveBotStudioState);
   const previewBotReply = useAction(api.ai.previewBotReply);
   const [form, setForm] = useState<FormState>(emptyState);
+  const lastServerSnapshot = useRef<ComparableFormState | null>(null);
   const [previewInput, setPreviewInput] = useState(copy.exampleMessage);
   const [previewOutput, setPreviewOutput] = useState("");
   const [previewMeta, setPreviewMeta] = useState({
@@ -109,7 +146,7 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
       return;
     }
 
-    setForm({
+    const serverForm: FormState = {
       name: studioState.state.name,
       defaultLanguage: studioState.state.defaultLanguage,
       systemPrompt: studioState.state.systemPrompt,
@@ -123,16 +160,40 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
       maxTokens: studioState.state.maxTokens,
       escalationEnabled: studioState.state.escalationEnabled,
       escalationMessage: studioState.state.escalationMessage ?? "",
+    };
+
+    const serverSnapshot = toComparableFormState(serverForm);
+
+    setForm((current) => {
+      const currentSnapshot = toComparableFormState(current);
+
+      if (!lastServerSnapshot.current) {
+        lastServerSnapshot.current = serverSnapshot;
+        return serverForm;
+      }
+
+      const isDirty = !comparableEquals(
+        currentSnapshot,
+        lastServerSnapshot.current,
+      );
+      const alreadyMatchesServer = comparableEquals(
+        currentSnapshot,
+        serverSnapshot,
+      );
+
+      if (!isDirty || alreadyMatchesServer) {
+        lastServerSnapshot.current = serverSnapshot;
+        return serverForm;
+      }
+
+      return current;
     });
   }, [studioState]);
 
   const saveDisabled = useMemo(() => {
     if (isSaving || !studioState?.canManage) return true;
     return false;
-  }, [
-    isSaving,
-    studioState?.canManage,
-  ]);
+  }, [isSaving, studioState?.canManage]);
 
   if (studioState === undefined) {
     return <p className="text-sm text-stone-600">{copy.loading}</p>;
@@ -166,7 +227,10 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
       return;
     }
 
-    if (form.providerType === "digitalocean_reference" && form.endpointUrl.trim().length === 0) {
+    if (
+      form.providerType === "digitalocean_reference" &&
+      form.endpointUrl.trim().length === 0
+    ) {
       setStatusMessage(copy.validationEndpointRequired);
       return;
     }
@@ -200,9 +264,10 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
         apiKey: "",
       }));
     } catch (error) {
-      const errorMsg = error instanceof Error
-        ? error.message.replace(/Uncaught Error: /gi, "").split("\n")[0]
-        : copy.unknownSaveFailure;
+      const errorMsg =
+        error instanceof Error
+          ? error.message.replace(/Uncaught Error: /gi, "").split("\n")[0]
+          : copy.unknownSaveFailure;
       setStatusMessage(`${copy.saveFailed}: ${errorMsg}`);
     } finally {
       setIsSaving(false);
@@ -225,9 +290,10 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
       });
       setStatusMessage(copy.previewSuccess);
     } catch (error) {
-      const errorMsg = error instanceof Error
-        ? error.message.replace(/Uncaught Error: /gi, "").split("\n")[0]
-        : copy.missingRuntime;
+      const errorMsg =
+        error instanceof Error
+          ? error.message.replace(/Uncaught Error: /gi, "").split("\n")[0]
+          : copy.missingRuntime;
       setPreviewOutput(`Error: ${errorMsg}`);
       setPreviewMeta({
         ragContextUsed: false,
@@ -296,7 +362,9 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
               <textarea
                 className="min-h-28 rounded-3xl border border-stone-300 px-4 py-3"
                 value={form.templateEn}
-                onChange={(event) => onFieldChange("templateEn", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("templateEn", event.target.value)
+                }
               />
             </label>
             <label className="grid gap-2">
@@ -306,7 +374,9 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
               <textarea
                 className="min-h-28 rounded-3xl border border-stone-300 px-4 py-3"
                 value={form.templateId}
-                onChange={(event) => onFieldChange("templateId", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("templateId", event.target.value)
+                }
               />
             </label>
           </div>
@@ -339,7 +409,9 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
               <input
                 className="rounded-2xl border border-stone-300 px-4 py-3"
                 value={form.modelId}
-                onChange={(event) => onFieldChange("modelId", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("modelId", event.target.value)
+                }
               />
             </label>
           </div>
@@ -477,13 +549,17 @@ export function BotStudioClient({ copy }: BotStudioClientProps) {
           </p>
           <div className="mt-5 grid gap-3 text-sm text-stone-300">
             <p>
-              <span className="font-medium text-stone-100">{copy.ragStatus}: </span>
+              <span className="font-medium text-stone-100">
+                {copy.ragStatus}:{" "}
+              </span>
               {previewMeta.ragContextUsed
                 ? `${copy.ragStatusOn} (${previewMeta.ragChunkCount})`
                 : copy.ragStatusOff}
             </p>
             <div>
-              <p className="font-medium text-stone-100">{copy.knowledgeSources}</p>
+              <p className="font-medium text-stone-100">
+                {copy.knowledgeSources}
+              </p>
               {previewMeta.knowledgeSourceTitles.length === 0 ? (
                 <p className="mt-1">{copy.knowledgeSourcesEmpty}</p>
               ) : (

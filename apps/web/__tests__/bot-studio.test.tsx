@@ -1,6 +1,12 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { BotStudioClient } from "../app/[locale]/dashboard/bot-studio/bot-studio-client";
 
 const saveBotStudioState = vi.fn(async () => ({ botId: "bot_123" }));
@@ -32,8 +38,10 @@ const botStudioState = {
   recentRuns: [],
 };
 
+let studioStateValue = botStudioState;
+
 vi.mock("convex/react", () => ({
-  useQuery: () => botStudioState,
+  useQuery: () => studioStateValue,
   useMutation: () => saveBotStudioState,
   useAction: () => previewBotReply,
 }));
@@ -50,8 +58,16 @@ vi.mock("@wabrix/backend/convex/_generated/api", () => ({
   },
 }));
 
+afterEach(() => {
+  cleanup();
+});
+
 describe("Bot Studio", () => {
   it("saves bot configuration and previews emulator output", async () => {
+    studioStateValue = botStudioState;
+    saveBotStudioState.mockClear();
+    previewBotReply.mockClear();
+
     render(
       <BotStudioClient
         copy={{
@@ -94,11 +110,13 @@ describe("Bot Studio", () => {
           ragStatusOn: "Knowledge matched",
           ragStatusOff: "No knowledge matched",
           knowledgeSources: "Knowledge sources used",
-          knowledgeSourcesEmpty: "No knowledge sources were used for this draft.",
+          knowledgeSourcesEmpty:
+            "No knowledge sources were used for this draft.",
           validationNameEmpty: "Bot name cannot be empty.",
           validationPromptEmpty: "System prompt cannot be empty.",
           validationModelEmpty: "Model ID cannot be empty.",
-          validationEndpointRequired: "Endpoint URL is required specifically for the DigitalOcean provider.",
+          validationEndpointRequired:
+            "Endpoint URL is required specifically for the DigitalOcean provider.",
           saveFailed: "Save failed",
           previewFailed: "Preview failed",
           previewSuccess: "Draft generated",
@@ -132,5 +150,99 @@ describe("Bot Studio", () => {
 
     expect(await screen.findByText("Preview response")).toBeDefined();
     expect(await screen.findByText("Shipping FAQ")).toBeDefined();
+  });
+
+  it("keeps latest edited values after save even if query returns defaults", async () => {
+    studioStateValue = botStudioState;
+    saveBotStudioState.mockImplementationOnce(async () => {
+      studioStateValue = {
+        ...botStudioState,
+        state: {
+          ...botStudioState.state,
+          systemPrompt: botStudioState.state.localizedPromptTemplates.id,
+          modelId: "gemini-2.5-flash",
+        },
+      };
+
+      return { botId: "bot_123" };
+    });
+
+    render(
+      <BotStudioClient
+        copy={{
+          loading: "Loading",
+          save: "Save configuration",
+          savePending: "Saving",
+          preview: "Run emulator",
+          previewPending: "Generating",
+          saveSuccess: "Saved bot configuration",
+          missingRuntime: "No preview yet",
+          exampleMessage: "Hello, is this business open on Sunday?",
+          botName: "Bot name",
+          defaultLanguage: "Default language",
+          autoDetect: "Auto-detect",
+          bahasaIndonesia: "Bahasa Indonesia",
+          english: "English",
+          systemPrompt: "System prompt",
+          englishTemplate: "English template",
+          bahasaTemplate: "Bahasa template",
+          provider: "Provider",
+          providerGoogle: "Google",
+          providerDigitalOceanReference: "DigitalOcean reference",
+          modelId: "Model ID",
+          temperature: "Temperature",
+          maxTokens: "Max tokens",
+          endpointUrl: "Endpoint URL",
+          endpointPlaceholder: "Optional DigitalOcean reference endpoint",
+          apiKey: "API key",
+          apiKeyKeepPlaceholder:
+            "Leave blank to keep the current encrypted key",
+          apiKeyPastePlaceholder: "Paste Google AI API key",
+          enableEscalation: "Enable escalation handoff guidance",
+          escalationMessage: "Escalation message",
+          emulatorTitle: "Bot emulator",
+          emulatorBody:
+            "Preview the current prompt, language policy, and model settings without creating transport messages.",
+          latestUserMessage: "Latest user message",
+          draftOutput: "Draft output",
+          ragStatus: "Knowledge retrieval",
+          ragStatusOn: "Knowledge matched",
+          ragStatusOff: "No knowledge matched",
+          knowledgeSources: "Knowledge sources used",
+          knowledgeSourcesEmpty:
+            "No knowledge sources were used for this draft.",
+          validationNameEmpty: "Bot name cannot be empty.",
+          validationPromptEmpty: "System prompt cannot be empty.",
+          validationModelEmpty: "Model ID cannot be empty.",
+          validationEndpointRequired:
+            "Endpoint URL is required specifically for the DigitalOcean provider.",
+          saveFailed: "Save failed",
+          previewFailed: "Preview failed",
+          previewSuccess: "Draft generated",
+          unknownSaveFailure: "Failed to save configuration",
+        }}
+      />,
+    );
+
+    fireEvent.change(screen.getByDisplayValue("System prompt"), {
+      target: { value: "My latest prompt" },
+    });
+    fireEvent.change(screen.getByDisplayValue("gemini-2.5-flash"), {
+      target: { value: "custom-model" },
+    });
+
+    fireEvent.click(screen.getByText("Save configuration"));
+
+    await waitFor(() => {
+      expect(saveBotStudioState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          systemPrompt: "My latest prompt",
+          modelId: "custom-model",
+        }),
+      );
+    });
+
+    expect(screen.getByDisplayValue("My latest prompt")).toBeDefined();
+    expect(screen.getByDisplayValue("custom-model")).toBeDefined();
   });
 });
