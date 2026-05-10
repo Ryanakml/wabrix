@@ -14,6 +14,7 @@ import { formatCurrency, formatSignedPercent, formatWholeNumber } from '@/featur
 import { api } from '@wabrix/backend/convex/_generated/api';
 import { fetchQuery } from 'convex/nextjs';
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 function TrendBadge({ changePercent }: { changePercent: number }) {
   const isPositive = changePercent >= 0;
@@ -31,22 +32,24 @@ function TrendFooter({
   changePercent,
   positiveLabel,
   negativeLabel,
-  comparisonLabel
+  comparisonLabel,
+  className
 }: {
   changePercent: number;
   positiveLabel: string;
   negativeLabel: string;
   comparisonLabel: string;
+  className?: string;
 }) {
   const isPositive = changePercent >= 0;
   const TrendIcon = isPositive ? Icons.trendingUp : Icons.trendingDown;
 
   return (
-    <CardFooter className='flex-col items-start gap-1.5 text-sm'>
+    <CardFooter className={cn('flex-col items-start gap-1 text-[10px] md:gap-1.5 md:text-sm', className)}>
       <div className='line-clamp-1 flex gap-2 font-medium'>
-        {isPositive ? positiveLabel : negativeLabel} <TrendIcon className='size-4' />
+        {isPositive ? positiveLabel : negativeLabel} <TrendIcon className='size-3 md:size-4' />
       </div>
-      <div className='text-muted-foreground'>Compared with {comparisonLabel}</div>
+      <div className='text-muted-foreground hidden md:block'>Compared with {comparisonLabel}</div>
     </CardFooter>
   );
 }
@@ -72,11 +75,11 @@ export default async function OverViewLayout({
           <h2 className='text-2xl font-bold tracking-tight'>Hi, Welcome back 👋</h2>
         </div>
 
-        <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs md:grid-cols-2 lg:grid-cols-4'>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>Active Conversations</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
+        <div className='*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-2 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:grid-cols-4'>
+          <Card className='@container/card gap-4 py-4 md:gap-6 md:py-6'>
+            <CardHeader className='px-4 md:px-6'>
+              <CardDescription className='text-xs md:text-sm'>Active Conversations</CardDescription>
+              <CardTitle className='text-xl font-semibold tabular-nums @[250px]/card:text-3xl md:text-2xl'>
                 {formatWholeNumber(summary.activeConversations.value)}
               </CardTitle>
               <CardAction>
@@ -85,15 +88,16 @@ export default async function OverViewLayout({
             </CardHeader>
             <TrendFooter
               changePercent={summary.activeConversations.changePercent}
-              positiveLabel='More active conversations'
-              negativeLabel='Fewer active conversations'
+              positiveLabel='More'
+              negativeLabel='Fewer'
               comparisonLabel={summary.comparisonPeriodLabel}
+              className='px-4 pb-0 md:px-6 md:pb-6'
             />
           </Card>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>Needs Attention</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl text-amber-500'>
+          <Card className='@container/card gap-4 py-4 md:gap-6 md:py-6'>
+            <CardHeader className='px-4 md:px-6'>
+              <CardDescription className='text-xs md:text-sm'>Needs Attention</CardDescription>
+              <CardTitle className='text-xl font-semibold tabular-nums @[250px]/card:text-3xl md:text-2xl text-amber-500'>
                 {formatWholeNumber(summary.needsAttention.value)}
               </CardTitle>
               <CardAction>
@@ -102,15 +106,16 @@ export default async function OverViewLayout({
             </CardHeader>
             <TrendFooter
               changePercent={summary.needsAttention.changePercent}
-              positiveLabel='More conversations need attention'
-              negativeLabel='Fewer conversations need attention'
+              positiveLabel='More'
+              negativeLabel='Fewer'
               comparisonLabel={summary.comparisonPeriodLabel}
+              className='px-4 pb-0 md:px-6 md:pb-6'
             />
           </Card>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>Messages Processed</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
+          <Card className='@container/card gap-4 py-4 md:gap-6 md:py-6'>
+            <CardHeader className='px-4 md:px-6'>
+              <CardDescription className='text-xs md:text-sm'>Messages Processed</CardDescription>
+              <CardTitle className='text-xl font-semibold tabular-nums @[250px]/card:text-3xl md:text-2xl'>
                 {formatWholeNumber(summary.messagesProcessed.value)}
               </CardTitle>
               <CardAction>
@@ -119,15 +124,16 @@ export default async function OverViewLayout({
             </CardHeader>
             <TrendFooter
               changePercent={summary.messagesProcessed.changePercent}
-              positiveLabel='More messages processed'
-              negativeLabel='Fewer messages processed'
+              positiveLabel='More'
+              negativeLabel='Fewer'
               comparisonLabel={summary.comparisonPeriodLabel}
+              className='px-4 pb-0 md:px-6 md:pb-6'
             />
           </Card>
-          <Card className='@container/card'>
-            <CardHeader>
-              <CardDescription>AI Cost Estimator</CardDescription>
-              <CardTitle className='text-2xl font-semibold tabular-nums @[250px]/card:text-3xl'>
+          <Card className='@container/card gap-4 py-4 md:gap-6 md:py-6'>
+            <CardHeader className='px-4 md:px-6'>
+              <CardDescription className='text-xs md:text-sm'>AI Cost Estimator</CardDescription>
+              <CardTitle className='text-xl font-semibold tabular-nums @[250px]/card:text-3xl md:text-2xl'>
                 {formatCurrency(summary.aiCostEstimator.value, summary.aiCostEstimator.currency as 'USD' | 'IDR')}
               </CardTitle>
               <CardAction>
@@ -136,9 +142,10 @@ export default async function OverViewLayout({
             </CardHeader>
             <TrendFooter
               changePercent={summary.aiCostEstimator.changePercent}
-              positiveLabel='Estimated AI cost increased'
-              negativeLabel='Estimated AI cost decreased'
+              positiveLabel='More'
+              negativeLabel='Fewer'
               comparisonLabel={summary.comparisonPeriodLabel}
+              className='px-4 pb-0 md:px-6 md:pb-6'
             />
           </Card>
         </div>
