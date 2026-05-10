@@ -60,6 +60,8 @@ type ChatWorkspaceSelectedConversationRecord = {
   assignedUserName: string | null;
   handoffRequested: boolean;
   botPaused: boolean;
+  botReplyState: string;
+  botReplyError: string | null;
   serviceWindowOpen: boolean;
   focusedMessageId?: string | null;
   messages: ChatWorkspaceMessageRecord[];
@@ -173,6 +175,8 @@ export function mapConversationSummary(
     serviceWindowOpen: summary.serviceWindowOpen,
     handoffRequested: summary.handoffRequested,
     botPaused: summary.botPaused,
+    botReplyState: "unknown",
+    botReplyError: null,
     unread: 0,
     initials: getInitials(name),
     messages: [],
@@ -205,6 +209,8 @@ export function mapSelectedConversation(
     serviceWindowOpen: selectedConversation.serviceWindowOpen,
     handoffRequested: selectedConversation.handoffRequested,
     botPaused: selectedConversation.botPaused,
+    botReplyState: selectedConversation.botReplyState,
+    botReplyError: selectedConversation.botReplyError,
     unread: 0,
     initials: getInitials(name),
     focusedMessageId: selectedConversation.focusedMessageId ?? null,

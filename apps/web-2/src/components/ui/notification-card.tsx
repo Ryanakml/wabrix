@@ -2,6 +2,7 @@
 
 import type { FC } from "react";
 import { Icons } from "@/components/icons";
+import { formatBotErrorForDisplay, formatBotErrorText } from "@/lib/bot-error";
 import { cn } from "@/lib/utils";
 
 export type NotificationStatus = "unread" | "read" | "archived";
@@ -92,6 +93,12 @@ export const NotificationCard: FC<NotificationCardProps> = ({
         ? "Warning"
         : "Info";
 
+  const parsedBotError = formatBotErrorForDisplay(body);
+  const formattedBody =
+    parsedBotError?.kind === "ai_tokens_exhausted"
+      ? formatBotErrorText(body)
+      : body;
+
   return (
     <div
       className={cn(
@@ -118,18 +125,18 @@ export const NotificationCard: FC<NotificationCardProps> = ({
                 {severityLabel}
               </span>
               {isUnread && (
-                <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-sky-500" />
+                <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />
               )}
             </div>
 
             {/* Description */}
             <p
               className={cn(
-                "mb-0 text-[13px]",
+                "mb-0 whitespace-pre-wrap wrap-break-word text-[13px]",
                 isUnread ? "text-muted-foreground" : "text-muted-foreground/60",
               )}
             >
-              {body}
+              {formattedBody}
             </p>
             {recommendation ? (
               <p className="text-muted-foreground/80 text-[12px]">

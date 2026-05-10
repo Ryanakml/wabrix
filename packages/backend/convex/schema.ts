@@ -359,6 +359,7 @@ export default defineSchema({
     lastAutoReplyAt: v.optional(v.number()),
     lastAutoReplyMessageId: v.optional(v.id("messages")),
     lastAutoReplyInboundAt: v.optional(v.number()),
+    lastAutoReplyInboundMessageId: v.optional(v.id("messages")),
     serviceWindowExpiresAt: v.optional(v.number()),
     serviceWindowExpiringSoon: v.boolean(),
     lastMessageAt: v.number(),

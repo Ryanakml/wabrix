@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { formatBotErrorForDisplay } from "@/lib/bot-error";
 import type { Attachment, Conversation } from "../utils/types";
 import { ChatHeader } from "./chat-header";
 import { MessageBubble } from "./message-bubble";
@@ -35,6 +36,7 @@ export function ChatArea({
   const shouldReduceMotion = useReducedMotion();
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const liveRegionRef = useRef<HTMLDivElement | null>(null);
+  const botError = formatBotErrorForDisplay(conversation.botReplyError);
 
   useEffect(() => {
     if (!messagesContainerRef.current) return;
@@ -94,6 +96,15 @@ export function ChatArea({
             conversation={conversation}
             onOpenDetails={onOpenDetails}
           />
+
+          {botError?.kind === "ai_tokens_exhausted" ? (
+            <div className="border-border/50 bg-background/60 rounded-2xl border px-4 py-3 text-sm">
+              <div className="font-semibold">{botError.title}</div>
+              <p className="text-muted-foreground mt-1 whitespace-pre-wrap">
+                {botError.message}
+              </p>
+            </div>
+          ) : null}
 
           <div
             ref={messagesContainerRef}

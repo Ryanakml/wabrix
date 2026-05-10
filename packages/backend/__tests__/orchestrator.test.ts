@@ -233,6 +233,56 @@ describe("phase 8 orchestrator", () => {
     }
   });
 
+  it("does not suppress a newer inbound that shares the same timestamp second", async () => {
+    const db = createFakeDb({
+      conversations: [
+        {
+          ...buildConversation(),
+          lastAutoReplyInboundAt: 1_710_000_000_000,
+          lastAutoReplyInboundMessageId: "message_1",
+        },
+      ],
+      whatsappContacts: [buildContact()],
+      messages: [
+        {
+          _id: "message_1",
+          organizationId: "org_1",
+          conversationId: "conversation_1",
+          role: "user",
+          source: "whatsapp_inbound",
+          content: "Halo bot",
+          contentType: "text",
+          deliveryState: "received",
+          createdAt: 1_710_000_000_000,
+          updatedAt: 1_710_000_000_000,
+        },
+        {
+          _id: "message_2",
+          organizationId: "org_1",
+          conversationId: "conversation_1",
+          role: "user",
+          source: "whatsapp_inbound",
+          content: "[Image summary]: thumbs up",
+          contentType: "image",
+          deliveryState: "received",
+          createdAt: 1_710_000_000_000,
+          updatedAt: 1_710_000_000_500,
+        },
+      ],
+    });
+
+    const result = await claimBotReplyWork({ db } as never, {
+      conversationId: "conversation_1" as never,
+      now: 1_710_000_000_000 + 5_000,
+    });
+
+    expect(result.status).toBe("ready");
+    if (result.status === "ready") {
+      expect(result.latestUserMessageId).toBe("message_2");
+      expect(result.latestUserMessage).toBe("[Image summary]: thumbs up");
+    }
+  });
+
   it("bot pause prevents reply generation", async () => {
     const db = createFakeDb({
       conversations: [buildConversation({ botPaused: true })],
@@ -399,6 +449,7 @@ describe("phase 8 orchestrator", () => {
         conversationId: "conversation_1" as never,
         generationToken: "token_1",
         claimedLastInboundAt: 1_710_000_000_000,
+        latestUserMessageId: "message_1" as never,
         content: "Halo, ada yang bisa saya bantu?",
       },
     );
@@ -407,6 +458,9 @@ describe("phase 8 orchestrator", () => {
     expect(db.tables.messages).toHaveLength(1);
     expect(db.tables.whatsappMessages).toHaveLength(1);
     expect(db.tables.outboundQueue).toHaveLength(1);
+    expect(db.tables.conversations[0]?.lastAutoReplyInboundMessageId).toBe(
+      "message_1",
+    );
   });
 
   it("concurrency-safe finalize does not duplicate the AI reply", async () => {
@@ -426,6 +480,7 @@ describe("phase 8 orchestrator", () => {
         conversationId: "conversation_1" as never,
         generationToken: "token_1",
         claimedLastInboundAt: 1_710_000_000_000,
+        latestUserMessageId: "message_1" as never,
         content: "First reply",
       },
     );
@@ -435,6 +490,7 @@ describe("phase 8 orchestrator", () => {
         conversationId: "conversation_1" as never,
         generationToken: "token_1",
         claimedLastInboundAt: 1_710_000_000_000,
+        latestUserMessageId: "message_1" as never,
         content: "Second reply",
       },
     );

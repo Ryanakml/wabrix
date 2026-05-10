@@ -315,6 +315,8 @@ async function buildSelectedConversationCore(
     assignedUserName: selectedConversation.assignedUserName ?? null,
     handoffRequested: selectedConversation.handoffRequested,
     botPaused: selectedConversation.botPaused,
+    botReplyState: selectedConversation.botReplyState,
+    botReplyError: selectedConversation.botReplyError ?? null,
     serviceWindowOpen: isServiceWindowOpen(
       selectedConversation.serviceWindowExpiresAt,
       Date.now(),

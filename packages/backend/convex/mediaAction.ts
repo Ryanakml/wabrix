@@ -118,9 +118,11 @@ async function uploadObjectStorage(args: {
   const canonicalHeaders =
     `content-type:${args.contentType}\n` +
     `host:${host}\n` +
+    `x-amz-acl:public-read\n` +
     `x-amz-content-sha256:${payloadHash}\n` +
     `x-amz-date:${amzDate}\n`;
-  const signedHeaders = "content-type;host;x-amz-content-sha256;x-amz-date";
+  const signedHeaders =
+    "content-type;host;x-amz-acl;x-amz-content-sha256;x-amz-date";
   const canonicalRequest = [
     "PUT",
     canonicalUri,
@@ -154,6 +156,7 @@ async function uploadObjectStorage(args: {
     headers: {
       Authorization: authorization,
       "Content-Type": args.contentType,
+      "X-Amz-Acl": "public-read",
       "X-Amz-Content-Sha256": payloadHash,
       "X-Amz-Date": amzDate,
     },

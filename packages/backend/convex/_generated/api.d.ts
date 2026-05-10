@@ -17,6 +17,7 @@ import type * as inbound from "../inbound.js";
 import type * as inbox from "../inbox.js";
 import type * as knowledge from "../knowledge.js";
 import type * as knowledgeActions from "../knowledgeActions.js";
+import type * as lib_aiCost from "../lib/aiCost.js";
 import type * as lib_billing from "../lib/billing.js";
 import type * as lib_crypto from "../lib/crypto.js";
 import type * as lib_defaults from "../lib/defaults.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   inbox: typeof inbox;
   knowledge: typeof knowledge;
   knowledgeActions: typeof knowledgeActions;
+  "lib/aiCost": typeof lib_aiCost;
   "lib/billing": typeof lib_billing;
   "lib/crypto": typeof lib_crypto;
   "lib/defaults": typeof lib_defaults;

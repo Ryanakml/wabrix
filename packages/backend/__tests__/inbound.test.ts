@@ -317,7 +317,7 @@ describe("phase 7 inbound processor", () => {
     expect(db.tables.whatsappMessages).toHaveLength(3);
   });
 
-  it("stores unsupported payloads safely without crashing", async () => {
+  it("creates a queued sticker media job so bots can interpret sticker intent", async () => {
     const db = createFakeDb();
     const rawPayload = JSON.stringify({
       object: "whatsapp_business_account",
@@ -335,6 +335,59 @@ describe("phase 7 inbound processor", () => {
                     from: "628111111111",
                     timestamp: "1710000000",
                     type: "sticker",
+                    sticker: { id: "media_sticker_1" },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    await processStoredWhatsappWebhookEvent(
+      { db } as never,
+      {
+        _id: "event_sticker",
+        rawPayload,
+        receivedAt: 1_710_000_000_000,
+        organizationId: "org_1",
+        integrationId: "integration_1",
+        botId: "bot_1",
+      } as never,
+    );
+
+    expect(db.tables.messages[0]?.content).toBe("[Sticker received]");
+    expect(db.tables.whatsappMedia).toHaveLength(1);
+    expect(db.tables.whatsappMedia[0]).toEqual(
+      expect.objectContaining({
+        providerMediaId: "media_sticker_1",
+        mediaType: "image",
+        downloadStatus: "queued",
+        summaryStatus: "queued",
+        storageStatus: "queued",
+      }),
+    );
+  });
+
+  it("stores unsupported payloads safely without crashing", async () => {
+    const db = createFakeDb();
+    const rawPayload = JSON.stringify({
+      object: "whatsapp_business_account",
+      entry: [
+        {
+          id: "waba_123",
+          changes: [
+            {
+              field: "messages",
+              value: {
+                contacts: [{ wa_id: "628111111111", profile: { name: "Ryan" } }],
+                messages: [
+                  {
+                    id: "wamid.location",
+                    from: "628111111111",
+                    timestamp: "1710000000",
+                    type: "location",
                   },
                 ],
               },
@@ -357,7 +410,7 @@ describe("phase 7 inbound processor", () => {
     );
 
     expect(db.tables.messages[0]?.content).toBe(
-      "[Unsupported WhatsApp payload: sticker]",
+      "[Unsupported WhatsApp payload: location]",
     );
     expect(db.tables.whatsappMedia).toHaveLength(0);
   });

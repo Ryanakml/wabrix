@@ -30,6 +30,7 @@ type ReadyClaim = {
   waId: string;
   generationToken: string;
   claimedLastInboundAt: number;
+  latestUserMessageId: Id<"messages">;
   latestUserMessage: string;
   history: ConversationHistoryEntry[];
 };
@@ -354,18 +355,6 @@ export async function claimBotReplyWork(
     return { status: "noop", reason: "already_generating" };
   }
 
-  if (
-    typeof conversation.lastAutoReplyInboundAt === "number" &&
-    conversation.lastAutoReplyInboundAt >= conversation.lastInboundAt
-  ) {
-    await ctx.db.patch(conversationId, {
-      botReplyState: "idle",
-      botReplyError: undefined,
-      updatedAt: now,
-    });
-    return { status: "noop", reason: "latest_inbound_already_processed" };
-  }
-
   if (isServiceWindowExpiringSoon(conversation.serviceWindowExpiresAt, now)) {
     await flagServiceWindowExpiringSoonInternal(ctx, conversation);
   }
@@ -419,6 +408,15 @@ export async function claimBotReplyWork(
     return { status: "noop", reason: "no_user_message_found" };
   }
 
+  if (conversation.lastAutoReplyInboundMessageId === latestUserMessage._id) {
+    await ctx.db.patch(conversationId, {
+      botReplyState: "idle",
+      botReplyError: undefined,
+      updatedAt: now,
+    });
+    return { status: "noop", reason: "latest_inbound_already_processed" };
+  }
+
   const generationToken = createGenerationToken();
   await ctx.db.patch(conversationId, {
     botReplyState: "generating",
@@ -438,6 +436,7 @@ export async function claimBotReplyWork(
     waId: contact.waId,
     generationToken,
     claimedLastInboundAt: conversation.lastInboundAt,
+    latestUserMessageId: latestUserMessage._id,
     latestUserMessage: latestUserMessage.content,
     history: buildReplyHistory(orderedMessages, latestUserMessage._id),
   };
@@ -449,11 +448,13 @@ export async function finalizeBotReplyDraft(
     conversationId,
     generationToken,
     claimedLastInboundAt,
+    latestUserMessageId,
     content,
   }: {
     conversationId: Id<"conversations">;
     generationToken: string;
     claimedLastInboundAt: number;
+    latestUserMessageId: Id<"messages">;
     content: string;
   },
 ) {
@@ -641,6 +642,7 @@ export async function finalizeBotReplyDraft(
     lastAutoReplyAt: now,
     lastAutoReplyMessageId: assistantMessageId,
     lastAutoReplyInboundAt: claimedLastInboundAt,
+    lastAutoReplyInboundMessageId: latestUserMessageId,
     lastMessageAt: now,
     lastMessagePreview: content,
     updatedAt: now,
@@ -785,6 +787,7 @@ export const finalizeBotReplyDraftMutation = internalMutation({
     conversationId: v.id("conversations"),
     generationToken: v.string(),
     claimedLastInboundAt: v.number(),
+    latestUserMessageId: v.id("messages"),
     content: v.string(),
   },
   handler: async (ctx, args) => finalizeBotReplyDraft(ctx, args),

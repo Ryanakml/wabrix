@@ -46,6 +46,9 @@ type RawWhatsappPayload = {
             id?: string;
             caption?: string;
           };
+          sticker?: {
+            id?: string;
+          };
           document?: {
             id?: string;
             filename?: string;
@@ -72,6 +75,9 @@ type RawWhatsappInboundMessage = {
   image?: {
     id?: string;
     caption?: string;
+  };
+  sticker?: {
+    id?: string;
   };
   document?: {
     id?: string;
@@ -140,6 +146,17 @@ function normalizeInboundMessageType(message: RawWhatsappInboundMessage) {
         contentType: "image" as const,
         content: message.image?.caption?.trim() || "[Image received]",
         providerMediaId: message.image?.id,
+        mediaType: "image" as const,
+        mediaRequiresTranscript: false,
+        mediaRequiresSummary: true,
+        mediaRequiresStorage: true,
+      };
+    case "sticker":
+      return {
+        messageType: "image" as const,
+        contentType: "image" as const,
+        content: "[Sticker received]",
+        providerMediaId: message.sticker?.id,
         mediaType: "image" as const,
         mediaRequiresTranscript: false,
         mediaRequiresSummary: true,

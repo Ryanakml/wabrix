@@ -352,6 +352,7 @@ async function runBotReplyOrchestratorHandler(
         conversationId: claim.conversationId,
         generationToken: claim.generationToken,
         claimedLastInboundAt: claim.claimedLastInboundAt,
+        latestUserMessageId: claim.latestUserMessageId,
         content: draft.content,
       },
     );
@@ -362,18 +363,23 @@ async function runBotReplyOrchestratorHandler(
         : "Unknown bot reply generation error";
 
     if (runtimeState) {
+      const failureOutputLanguage =
+        runtimeState.profile.defaultLanguage === "auto"
+          ? detectLanguage(claim.latestUserMessage)
+          : runtimeState.profile.defaultLanguage;
+
       await ctx.runMutation(internal.configuration.logAiRun, {
         botId: claim.botId,
         promptVersionId: runtimeState.promptVersionId,
-        selectedProvider: "google",
+        selectedProvider: runtimeState.provider.providerType,
         selectedModel: runtimeState.provider.modelId,
-        outputLanguage: "id",
+        outputLanguage: failureOutputLanguage,
         attempts: [
           {
-            provider: "google",
+            provider: runtimeState.provider.providerType,
             model: runtimeState.provider.modelId,
             status: "failed",
-            errorCode: "bot_reply_generation_failed",
+            errorCode: errorMessage.slice(0, 500),
           },
         ],
         ragContextUsed: false,

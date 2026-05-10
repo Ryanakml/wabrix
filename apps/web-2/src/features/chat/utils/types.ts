@@ -35,6 +35,8 @@ export type Conversation = {
   serviceWindowOpen: boolean;
   handoffRequested: boolean;
   botPaused: boolean;
+  botReplyState: string;
+  botReplyError: string | null;
   unread: number;
   initials: string;
   messages: Message[];
