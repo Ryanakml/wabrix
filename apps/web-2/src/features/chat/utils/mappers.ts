@@ -46,6 +46,7 @@ type ChatWorkspaceMessageRecord = {
   deliveryState: string;
   createdAt: number;
   audioUrl?: string | null;
+  imageUrl?: string | null;
   audioMimeType?: string | null;
   mediaFileName?: string | null;
 };
@@ -136,6 +137,7 @@ function mapMessageRecord(
       timestamp: formatTimestamp(message.createdAt),
       contentType: message.contentType as Message["contentType"],
       audioUrl: message.audioUrl ?? null,
+      imageUrl: message.imageUrl ?? null,
       audioMimeType: message.audioMimeType ?? null,
       mediaFileName: message.mediaFileName ?? null,
     };
@@ -149,6 +151,7 @@ function mapMessageRecord(
     timestamp: formatTimestamp(message.createdAt),
     contentType: message.contentType as Message["contentType"],
     audioUrl: message.audioUrl ?? null,
+    imageUrl: message.imageUrl ?? null,
     audioMimeType: message.audioMimeType ?? null,
     mediaFileName: message.mediaFileName ?? null,
   };

@@ -19,6 +19,7 @@ export type Message = {
     | "template"
     | "unsupported";
   audioUrl?: string | null;
+  imageUrl?: string | null;
   audioMimeType?: string | null;
   mediaFileName?: string | null;
   attachments?: Attachment[];
