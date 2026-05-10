@@ -1,6 +1,7 @@
 'use client';
 
 import { PostHogProvider } from '@/components/analytics/posthog-provider';
+import { NotificationRuntime } from '@/features/notifications/components/notification-runtime';
 import React from 'react';
 import { ActiveThemeProvider } from '../themes/active-theme';
 import { ConvexClientProvider } from './convex-client-provider';
@@ -16,6 +17,7 @@ export default function Providers({
     <ActiveThemeProvider initialTheme={activeThemeValue}>
       <ConvexClientProvider>
         <PostHogProvider>
+          <NotificationRuntime />
           {children}
         </PostHogProvider>
       </ConvexClientProvider>

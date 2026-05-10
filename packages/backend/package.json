@@ -29,6 +29,7 @@
     "@ai-sdk/openai": "^3.0.53",
     "@clerk/backend": "^3.2.13",
     "@google/genai": "^1.30.0",
+    "@types/web-push": "^3.6.4",
     "ai": "^6.0.168",
     "cheerio": "^1.1.2",
     "convex": "^1.35.1",
@@ -38,6 +39,7 @@
     "svix": "^1.90.0",
     "turndown": "^7.2.1",
     "undici": "^8.1.0",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5"
   }
 }

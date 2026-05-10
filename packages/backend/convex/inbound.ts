@@ -7,6 +7,7 @@ import {
 } from "./_generated/server.js";
 import { internal } from "./_generated/api.js";
 import { markConversationPendingBotReply } from "./orchestrator.js";
+import { upsertInboundMessageDashboardNotification } from "./notifications.js";
 import { requireOrgContext } from "./rbac.js";
 
 const SERVICE_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -633,6 +634,17 @@ export async function processStoredWhatsappWebhookEvent(
       serviceWindowExpiringSoon: false,
       lastMessagePreview: normalizedMessage.content,
       updatedAt: now,
+    });
+
+    await upsertInboundMessageDashboardNotification(ctx, {
+      organizationId: webhookEvent.organizationId,
+      conversationId: conversation._id,
+      focusMessageId: transcriptMessageId,
+      providerMessageId: normalizedMessage.providerMessageId,
+      profileName: normalizedMessage.profileName,
+      waId: normalizedMessage.waId,
+      messageType: normalizedMessage.messageType,
+      content: normalizedMessage.content,
     });
 
     if (normalizedMessage.providerMediaId && normalizedMessage.mediaType) {

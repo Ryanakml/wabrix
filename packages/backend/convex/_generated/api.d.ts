@@ -26,6 +26,7 @@ import type * as lib_knowledge from "../lib/knowledge.js";
 import type * as lib_observability from "../lib/observability.js";
 import type * as media from "../media.js";
 import type * as mediaAction from "../mediaAction.js";
+import type * as notificationAction from "../notificationAction.js";
 import type * as notifications from "../notifications.js";
 import type * as orchestrator from "../orchestrator.js";
 import type * as orchestratorAction from "../orchestratorAction.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   "lib/observability": typeof lib_observability;
   media: typeof media;
   mediaAction: typeof mediaAction;
+  notificationAction: typeof notificationAction;
   notifications: typeof notifications;
   orchestrator: typeof orchestrator;
   orchestratorAction: typeof orchestratorAction;

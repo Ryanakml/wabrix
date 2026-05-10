@@ -163,11 +163,9 @@ function resolveSelectedConversation<T extends { _id: Id<"conversations"> }>(
   selectedConversationId?: Id<"conversations">,
 ) {
   return (
-    (selectedConversationId
-      ? (conversations.find(
-          (conversation) => conversation._id === selectedConversationId,
-        ) ?? null)
-      : null) ??
+    conversations.find(
+      (conversation) => conversation._id === selectedConversationId,
+    ) ??
     conversations[0] ??
     null
   );
@@ -794,14 +792,13 @@ export const getInboxWorkspace = query({
       .order("desc")
       .take(50);
 
-    const selectedConversation =
-      (args.selectedConversationId
-        ? (conversations.find(
-            (conversation) => conversation._id === args.selectedConversationId,
-          ) ?? null)
-        : null) ??
-      conversations[0] ??
-      null;
+    const selectedConversation = args.selectedConversationId
+      ? (conversations.find(
+          (conversation) => conversation._id === args.selectedConversationId,
+        ) ??
+        conversations[0] ??
+        null)
+      : (conversations[0] ?? null);
 
     const conversationSummaries = await Promise.all(
       conversations.map(async (conversation) => {

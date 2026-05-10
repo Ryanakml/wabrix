@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { NotificationCard } from "@/components/ui/notification-card";
 import { useNotificationStore } from "../utils/store";
 import { useRouter } from "next/navigation";
+import { BrowserNotificationPrompt } from "./browser-notification-prompt";
 
 const MAX_VISIBLE = 5;
 
@@ -69,6 +70,7 @@ export function NotificationCenter() {
             )}
           </div>
         </div>
+        <BrowserNotificationPrompt />
         <Separator />
         <ScrollArea className="h-[400px]">
           {notifications.length === 0 ? (

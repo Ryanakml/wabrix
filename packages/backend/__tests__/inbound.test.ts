@@ -14,6 +14,8 @@ function createFakeDb(initial?: Partial<Record<string, FakeDoc[]>>) {
     messages: initial?.messages ?? [],
     whatsappMessages: initial?.whatsappMessages ?? [],
     whatsappMedia: initial?.whatsappMedia ?? [],
+    dashboardNotifications: initial?.dashboardNotifications ?? [],
+    webPushSubscriptions: initial?.webPushSubscriptions ?? [],
     whatsappWebhookEvents: initial?.whatsappWebhookEvents ?? [],
   };
 
@@ -222,6 +224,14 @@ describe("phase 7 inbound processor", () => {
     expect(db.tables.conversations).toHaveLength(1);
     expect(db.tables.messages).toHaveLength(1);
     expect(db.tables.whatsappMessages).toHaveLength(1);
+    expect(db.tables.dashboardNotifications).toHaveLength(1);
+    expect(db.tables.dashboardNotifications[0]).toEqual(
+      expect.objectContaining({
+        type: "inbound_message",
+        title: "New message from Ryan",
+        body: "Halo dari customer",
+      }),
+    );
     expect(db.tables.whatsappWebhookEvents).toHaveLength(0);
   });
 

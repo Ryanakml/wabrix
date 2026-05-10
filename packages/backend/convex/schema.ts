@@ -573,6 +573,7 @@ export default defineSchema({
     conversationId: v.optional(v.id("conversations")),
     focusMessageId: v.optional(v.id("messages")),
     type: v.union(
+      v.literal("inbound_message"),
       v.literal("service_window_expiring"),
       v.literal("bot_reply_failed"),
       v.literal("outbound_send_failed"),
@@ -604,6 +605,25 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_org_user", ["organizationId", "userId"]),
+
+  webPushSubscriptions: defineTable({
+    organizationId: v.id("organizations"),
+    userId: v.id("users"),
+    endpoint: v.string(),
+    expirationTime: v.optional(v.number()),
+    p256dhKey: v.string(),
+    authKey: v.string(),
+    userAgent: v.optional(v.string()),
+    lastSuccessAt: v.optional(v.number()),
+    lastFailureAt: v.optional(v.number()),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_org", ["organizationId"])
+    .index("by_org_user", ["organizationId", "userId"])
+    .index("by_org_endpoint", ["organizationId", "endpoint"])
+    .index("by_org_user_endpoint", ["organizationId", "userId", "endpoint"]),
 
   whatsappTemplates: defineTable({
     organizationId: v.id("organizations"),
