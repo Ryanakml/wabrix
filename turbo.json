@@ -31,7 +31,8 @@
     "HELICONE_API_KEY",
     "HELICONE_BASE_URL",
     "AXIOM_API_TOKEN",
-    "AXIOM_DATASET"
+    "AXIOM_DATASET",
+    "AI_MODEL_PRICING_USD_JSON"
   ],
   "tasks": {
     "build": {
