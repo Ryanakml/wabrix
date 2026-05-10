@@ -43,7 +43,7 @@ export function UserNav() {
             <DropdownMenuItem>New Team</DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut({ redirectUrl: '/auth/sign-in' })}>
+          <DropdownMenuItem onClick={() => signOut({ redirectUrl: '/' })}>
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>
