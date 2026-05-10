@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@wabrix/backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -14,9 +14,10 @@ import {
 } from "../utils/browser-push";
 
 export function BrowserNotificationPrompt() {
+  const { isAuthenticated } = useConvexAuth();
   const setupState = useQuery(
     api.notifications.getBrowserNotificationSetupState,
-    {},
+    isAuthenticated ? {} : "skip",
   );
   const saveWebPushSubscription = useMutation(
     api.notifications.saveWebPushSubscription,

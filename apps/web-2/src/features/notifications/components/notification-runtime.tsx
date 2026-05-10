@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@wabrix/backend/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -33,16 +33,18 @@ function shouldRaiseBrowserNotification(notification: LiveNotification) {
 
 export function NotificationRuntime() {
   const router = useRouter();
-  const notificationState = useQuery(api.notifications.getNotificationsState, {
-    limit: NOTIFICATION_LIMIT,
-  }) as
+  const { isAuthenticated } = useConvexAuth();
+  const notificationState = useQuery(
+    api.notifications.getNotificationsState,
+    isAuthenticated ? { limit: NOTIFICATION_LIMIT } : "skip",
+  ) as
     | {
         notifications: LiveNotification[];
       }
     | undefined;
   const setupState = useQuery(
     api.notifications.getBrowserNotificationSetupState,
-    {},
+    isAuthenticated ? {} : "skip",
   );
   const saveWebPushSubscription = useMutation(
     api.notifications.saveWebPushSubscription,
