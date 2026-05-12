@@ -45,4 +45,14 @@ describe("estimateAiCostUsd", () => {
       process.env.AI_MODEL_PRICING_USD_JSON = previous;
     }
   });
+
+  it("estimates DigitalOcean reference pricing for deepseek-3.2", () => {
+    const cost = estimateAiCostUsd({
+      provider: "digitalocean_reference",
+      modelId: "deepseek-3.2",
+      usage: { promptTokens: 1000, completionTokens: 500 },
+    });
+
+    expect(cost).toBe(0.0013);
+  });
 });

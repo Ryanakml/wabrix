@@ -51,6 +51,13 @@ type PlanRowLike = {
   active: boolean;
 };
 
+function getPeriodEndFromStart(periodStart: number) {
+  const date = new Date(periodStart);
+  return (
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1, 0, 0, 0, 0) - 1
+  );
+}
+
 async function listPlanCatalog(ctx: BillingCtx): Promise<PlanRowLike[]> {
   let rows: Doc<"plans">[] = [];
 
@@ -792,10 +799,11 @@ export const getBillingDashboardState = query({
   args: {},
   handler: async (ctx) => {
     const access = await assertHasRole(ctx, "org:admin");
+    const now = Date.now();
     const snapshot = await getEntitlementSnapshot(
       ctx,
       access.organizationId,
-      Date.now(),
+      now,
     );
     const plans = await listPlanCatalog(ctx);
     const recentEvents = await ctx.db
@@ -814,6 +822,8 @@ export const getBillingDashboardState = query({
       ? (plans.find((plan) => plan.key === fallbackSubscription.planKey) ??
         null)
       : null;
+    const usagePeriodStart = snapshot.period.periodStart;
+    const usagePeriodEnd = getPeriodEndFromStart(usagePeriodStart);
 
     return {
       planCatalog: plans.map((plan) => ({
@@ -835,8 +845,10 @@ export const getBillingDashboardState = query({
             billingCountry: fallbackSubscription.billingCountry,
             currency: fallbackSubscription.currency,
             amount: fallbackSubscription.amount,
-            currentPeriodStart: fallbackSubscription.currentPeriodStart,
-            currentPeriodEnd: fallbackSubscription.currentPeriodEnd,
+            currentPeriodStart:
+              fallbackSubscription.currentPeriodStart ?? usagePeriodStart,
+            currentPeriodEnd:
+              fallbackSubscription.currentPeriodEnd ?? usagePeriodEnd,
             cancelAtPeriodEnd: fallbackSubscription.cancelAtPeriodEnd,
           }
         : null,

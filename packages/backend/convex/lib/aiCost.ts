@@ -40,6 +40,11 @@ const DEFAULT_RULES: PricingRule[] = [
     modelPrefix: "gemini-2.0-flash",
     pricing: { inputUsdPer1MTokens: 0.35, outputUsdPer1MTokens: 1.05 },
   },
+  {
+    provider: "digitalocean_reference",
+    modelPrefix: "deepseek-3.2",
+    pricing: { inputUsdPer1MTokens: 0.5, outputUsdPer1MTokens: 1.6 },
+  },
 ];
 
 let cachedEnvJson: string | undefined;

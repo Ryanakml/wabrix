@@ -11,11 +11,21 @@ export function getTrendDirection(value: number) {
 }
 
 export function formatCurrency(amount: number, currency: 'USD' | 'IDR' = 'USD') {
+  const absoluteAmount = Math.abs(amount);
+  const maximumFractionDigits =
+    absoluteAmount > 0 && absoluteAmount < 0.01
+      ? 6
+      : absoluteAmount > 0 && absoluteAmount < 1
+        ? 4
+        : 2;
+  const minimumFractionDigits =
+    absoluteAmount > 0 && absoluteAmount < 1 ? Math.min(4, maximumFractionDigits) : 2;
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
+    minimumFractionDigits,
+    maximumFractionDigits
   }).format(amount);
 }
 

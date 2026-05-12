@@ -5,6 +5,7 @@ import {
   createMidtransCheckoutSession,
   createPolarCheckoutSession,
   detectBillingCountry,
+  forwardBillingEventToConvex,
   resolveCheckoutPresentation
 } from '@/lib/billing';
 
@@ -52,6 +53,26 @@ export async function POST(request: Request) {
         returnUrl
       });
 
+      try {
+        await forwardBillingEventToConvex({
+          gateway: checkout.gateway,
+          providerEventId:
+            checkout.providerCheckoutId ?? `checkout:${orgId}:${body.planKey}:${Date.now()}`,
+          eventType: 'checkout_session_created',
+          status: 'incomplete',
+          clerkOrgId: orgId,
+          planKey: body.planKey,
+          billingCountry,
+          currency: checkout.currency,
+          amount: plan.monthlyPriceUsdCents,
+          providerCheckoutId: checkout.providerCheckoutId,
+          externalReferenceId: orgId,
+          rawPayload: checkout.rawPayload
+        });
+      } catch (error) {
+        console.error('Failed to record Polar checkout session', error);
+      }
+
       return NextResponse.json({
         gateway: checkout.gateway,
         currency: checkout.currency,
@@ -73,6 +94,25 @@ export async function POST(request: Request) {
       clerkOrgId: orgId,
       appUrl
     });
+
+    try {
+      await forwardBillingEventToConvex({
+        gateway: checkout.gateway,
+        providerEventId: checkout.providerOrderId ?? `checkout:${orgId}:${body.planKey}:${Date.now()}`,
+        eventType: 'checkout_session_created',
+        status: 'pending',
+        clerkOrgId: orgId,
+        planKey: body.planKey,
+        billingCountry,
+        currency: checkout.currency,
+        amount: plan.monthlyPriceIdr,
+        providerOrderId: checkout.providerOrderId,
+        externalReferenceId: orgId,
+        rawPayload: checkout.rawPayload
+      });
+    } catch (error) {
+      console.error('Failed to record Midtrans checkout session', error);
+    }
 
     return NextResponse.json({
       gateway: checkout.gateway,

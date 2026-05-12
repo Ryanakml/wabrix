@@ -7,13 +7,6 @@ import { api } from "@wabrix/backend/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   InputOTP,
@@ -33,12 +26,6 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Icons } from "@/components/icons";
 
 type WhatsAppIntegrationSettingsProps = {
   webhookUrl: string;
@@ -245,7 +232,6 @@ export function WhatsAppIntegrationSettings({
   const [otpCode, setOtpCode] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  const [helpModal, setHelpModal] = useState<"lifecycle" | "otp" | null>(null);
   const [activeAction, setActiveAction] = useState<
     "refresh" | "request-otp" | "verify-otp" | "sync-templates" | null
   >(null);
@@ -821,21 +807,7 @@ export function WhatsAppIntegrationSettings({
         <div className="space-y-6 xl:sticky xl:top-16 xl:self-start">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle>Status</CardTitle>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      onClick={() => setHelpModal("lifecycle")}
-                    >
-                      <Icons.help className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Learn more</TooltipContent>
-                </Tooltip>
-              </div>
+              <CardTitle>Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {isLoadingState ? (
@@ -910,21 +882,7 @@ export function WhatsAppIntegrationSettings({
 
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle>Lifecycle</CardTitle>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      onClick={() => setHelpModal("otp")}
-                    >
-                      <Icons.help className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>Learn more</TooltipContent>
-                </Tooltip>
-              </div>
+              <CardTitle>Lifecycle</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {isLoadingState ? (
@@ -936,6 +894,20 @@ export function WhatsAppIntegrationSettings({
                 </>
               ) : (
                 <>
+                  <div className="bg-muted/40 space-y-2 rounded-lg border px-4 py-3 text-sm">
+                    <p className="font-medium">Lifecycle and OTP notes</p>
+                    <p className="text-muted-foreground">
+                      Panel ini nunjukin apakah bot, credential, webhook, dan setup Meta
+                      business lo sudah siap. OTP dipakai buat verifikasi bahwa nomor ini
+                      memang bisa menerima kode dari Meta via SMS atau voice.
+                    </p>
+                    <p className="text-muted-foreground">
+                      Request kode dulu, verify 6 digitnya di sini, lalu refresh lifecycle
+                      supaya status approval, verification, profile sync, dan messaging tier
+                      kebaca paling baru.
+                    </p>
+                  </div>
+
                   <div className="grid gap-3">
                     <Row
                       label="Approval"
@@ -1084,37 +1056,6 @@ export function WhatsAppIntegrationSettings({
           </Card>
         </div>
       </div>
-      <Dialog
-        open={helpModal === "lifecycle"}
-        onOpenChange={(open) => !open && setHelpModal(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>WhatsApp lifecycle</DialogTitle>
-            <DialogDescription>
-              This panel shows whether your bot, credentials, webhook, and Meta
-              business setup are ready. Start by saving credentials, verify the
-              webhook, then refresh lifecycle so the latest approval, profile
-              sync, and messaging tier states are pulled from Meta.
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={helpModal === "otp"}
-        onOpenChange={(open) => !open && setHelpModal(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>OTP verification</DialogTitle>
-            <DialogDescription>
-              OTP verifies that the phone number can receive Meta verification
-              codes. Request a code using SMS or voice, enter the 6-digit code
-              here, then refresh lifecycle to confirm the verified status.
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
