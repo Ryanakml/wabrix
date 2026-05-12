@@ -559,6 +559,9 @@ export const getWhatsAppSenderRuntime = internalQuery({
       appSecretEncrypted: integration.appSecretEncrypted,
       enabled: integration.enabled,
       connectionStatus: integration.connectionStatus,
+      approvalStatus: integration.approvalStatus ?? "pending",
+      phoneVerificationStatus:
+        integration.phoneVerificationStatus ?? "missing",
     };
   },
 });

@@ -44,6 +44,8 @@ type ChatWorkspaceMessageRecord = {
   content: string;
   contentType: string;
   deliveryState: string;
+  failureCode?: string | null;
+  failureMessage?: string | null;
   createdAt: number;
   audioUrl?: string | null;
   imageUrl?: string | null;
@@ -137,6 +139,9 @@ function mapMessageRecord(
       author: contactName,
       text: message.content,
       timestamp: formatTimestamp(message.createdAt),
+      deliveryState: message.deliveryState,
+      failureCode: message.failureCode ?? null,
+      failureMessage: message.failureMessage ?? null,
       contentType: message.contentType as Message["contentType"],
       audioUrl: message.audioUrl ?? null,
       imageUrl: message.imageUrl ?? null,
@@ -151,6 +156,9 @@ function mapMessageRecord(
     author: message.role === "assistant" ? "Bot" : (assignedUserName ?? "You"),
     text: message.content,
     timestamp: formatTimestamp(message.createdAt),
+    deliveryState: message.deliveryState,
+    failureCode: message.failureCode ?? null,
+    failureMessage: message.failureMessage ?? null,
     contentType: message.contentType as Message["contentType"],
     audioUrl: message.audioUrl ?? null,
     imageUrl: message.imageUrl ?? null,

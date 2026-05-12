@@ -25,6 +25,13 @@ type MetaSendResponse = {
   };
 };
 
+type MetaTemplateSendComponent = {
+  type: string;
+  parameters: unknown[];
+  sub_type?: string;
+  index?: string;
+};
+
 function getGraphApiBaseUrl() {
   return (
     process.env.WHATSAPP_GRAPH_API_BASE_URL?.replace(/\/$/, "") ??
@@ -116,6 +123,7 @@ export async function sendWhatsAppTemplateMessage({
   fetchImpl?: typeof fetch;
 }) {
   const url = `${getGraphApiBaseUrl()}/${phoneNumberId}/messages`;
+  const sanitizedComponents = sanitizeTemplateSendComponents(components);
   const response = await fetchImpl(url, {
     method: "POST",
     headers: {
@@ -133,7 +141,9 @@ export async function sendWhatsAppTemplateMessage({
         language: {
           code: languageCode,
         },
-        components: components ?? [],
+        ...(sanitizedComponents.length > 0
+          ? { components: sanitizedComponents }
+          : {}),
       },
     }),
   });
@@ -164,6 +174,53 @@ export async function sendWhatsAppTemplateMessage({
     acceptedAt: Date.now(),
     rawResponse: parsed,
   };
+}
+
+export function sanitizeTemplateSendComponents(
+  components?: unknown[],
+): MetaTemplateSendComponent[] {
+  if (!components?.length) {
+    return [];
+  }
+
+  return components.flatMap((component) => {
+    if (!component || typeof component !== "object") {
+      return [];
+    }
+
+    const candidate = component as {
+      type?: unknown;
+      sub_type?: unknown;
+      index?: unknown;
+      parameters?: unknown;
+    };
+
+    if (
+      typeof candidate.type !== "string" ||
+      !Array.isArray(candidate.parameters) ||
+      candidate.parameters.length === 0
+    ) {
+      return [];
+    }
+
+    const normalized: MetaTemplateSendComponent = {
+      type: candidate.type.toLowerCase(),
+      parameters: candidate.parameters,
+    };
+
+    if (typeof candidate.sub_type === "string" && candidate.sub_type.trim()) {
+      normalized.sub_type = candidate.sub_type.toLowerCase();
+    }
+
+    if (
+      typeof candidate.index === "string" ||
+      typeof candidate.index === "number"
+    ) {
+      normalized.index = String(candidate.index);
+    }
+
+    return [normalized];
+  });
 }
 
 async function processOutboundQueueJobHandler(
@@ -214,6 +271,12 @@ async function processOutboundQueueJobHandler(
       | Awaited<ReturnType<typeof sendWhatsAppTemplateMessage>>;
 
     if (claim.payloadType === "template") {
+      if (runtime.approvalStatus !== "approved") {
+        throw new Error(
+          "Meta approval is still pending. Finish the WhatsApp Integration setup first before sending template messages.",
+        );
+      }
+
       if (!claim.templateId || !claim.templateName || !claim.templateLanguageCode) {
         throw new Error("Template queue job is missing template metadata.");
       }

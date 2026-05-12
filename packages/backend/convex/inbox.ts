@@ -264,14 +264,35 @@ async function buildSelectedConversationMessages(
   const mediaRecords = await Promise.all(
     mediaIds.map((mediaId) => ctx.db.get(mediaId)),
   );
+  const outboundMessageIds = visibleMessages
+    .filter((message) => message.role !== "user")
+    .map((message) => message._id);
+  const outboundQueueRecords = await Promise.all(
+    outboundMessageIds.map((messageId) =>
+      ctx.db
+        .query("outboundQueue")
+        .withIndex("by_message_id", (q) => q.eq("messageId", messageId))
+        .first(),
+    ),
+  );
   const mediaById = new Map<
     Id<"whatsappMedia">,
     NonNullable<(typeof mediaRecords)[number]>
+  >();
+  const outboundQueueByMessageId = new Map<
+    Id<"messages">,
+    NonNullable<(typeof outboundQueueRecords)[number]>
   >();
 
   for (const media of mediaRecords) {
     if (media) {
       mediaById.set(media._id, media);
+    }
+  }
+
+  for (const queueJob of outboundQueueRecords) {
+    if (queueJob) {
+      outboundQueueByMessageId.set(queueJob.messageId, queueJob);
     }
   }
 
@@ -285,6 +306,8 @@ async function buildSelectedConversationMessages(
       const media = message.whatsappMediaId
         ? mediaById.get(message.whatsappMediaId)
         : null;
+      const queueJob =
+        message.role !== "user" ? outboundQueueByMessageId.get(message._id) : null;
 
       return {
         id: message._id,
@@ -292,6 +315,8 @@ async function buildSelectedConversationMessages(
         content: message.content,
         contentType: message.contentType,
         deliveryState: message.deliveryState,
+        failureCode: queueJob?.failureCode ?? null,
+        failureMessage: queueJob?.failureMessage ?? null,
         createdAt: message.createdAt,
         whatsappMediaId: message.whatsappMediaId ?? null,
         audioUrl:
@@ -677,6 +702,12 @@ export async function queueTemplateReply(
     throw new Error("Conversation contact could not be loaded.");
   }
 
+  const integration = await ctx.db.get(contact.integrationId);
+
+  if (!integration) {
+    throw new Error("WhatsApp integration could not be loaded for this conversation.");
+  }
+
   if (!template || template.organizationId !== organizationId) {
     throw new Error("Template not found for the active organization.");
   }
@@ -687,6 +718,12 @@ export async function queueTemplateReply(
 
   if (template.status !== "approved") {
     throw new Error("Only approved WhatsApp templates can be sent.");
+  }
+
+  if (integration.approvalStatus && integration.approvalStatus !== "approved") {
+    throw new Error(
+      "Meta approval is still pending. Finish the WhatsApp Integration setup first before sending template messages.",
+    );
   }
 
   await assertUsageAllowed(ctx, {

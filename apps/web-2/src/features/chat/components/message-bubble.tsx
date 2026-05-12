@@ -4,6 +4,11 @@ import { Icons } from "@/components/icons";
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { FilePreview } from "@/components/ui/file-preview";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { Message } from "../utils/types";
 
 interface MessageBubbleProps {
@@ -25,6 +30,9 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const shouldReduceMotion = useReducedMotion();
   const isUser = message.sender === "user";
+  const isFailedOutbound = isUser && message.deliveryState === "failed";
+  const failureReason =
+    message.failureMessage ?? message.failureCode ?? "Message failed to send.";
 
   return (
     <motion.div
@@ -45,13 +53,22 @@ export function MessageBubble({
           isUser
             ? "border-primary/40 bg-primary text-primary-foreground ml-auto"
             : "bg-muted border-transparent",
+          isFailedOutbound &&
+            "border-destructive/70 bg-destructive/10 text-foreground",
           isFocused && "ring-primary/40 shadow-primary/20 ring-2 shadow-xl",
         )}
       >
+        {isFailedOutbound ? (
+          <div className="bg-destructive absolute inset-x-4 top-0 h-0.5 rounded-full" />
+        ) : null}
         <p
           className={cn(
             "font-medium sm:text-sm",
-            isUser ? "text-primary-foreground/80" : "text-foreground/80",
+            isFailedOutbound
+              ? "text-foreground/80"
+              : isUser
+                ? "text-primary-foreground/80"
+                : "text-foreground/80",
           )}
         >
           {message.author}
@@ -75,7 +92,11 @@ export function MessageBubble({
           <p
             className={cn(
               "break-words whitespace-pre-wrap mt-1 text-[0.875rem] sm:text-[0.95rem]",
-              isUser ? "text-primary-foreground/90" : "text-foreground/90",
+              isFailedOutbound
+                ? "text-foreground"
+                : isUser
+                  ? "text-primary-foreground/90"
+                  : "text-foreground/90",
             )}
           >
             {message.text}
@@ -88,6 +109,8 @@ export function MessageBubble({
               isUser
                 ? "border-primary-foreground/20 bg-primary-foreground/10"
                 : "bg-background/60",
+              isFailedOutbound &&
+                "border-destructive/20 bg-background/80",
             )}
           >
             <div className="mb-2 flex items-center gap-2 text-[0.75rem]">
@@ -105,7 +128,11 @@ export function MessageBubble({
               rel="noreferrer"
               className={cn(
                 "mt-2 inline-flex text-[0.75rem] underline underline-offset-2",
-                isUser ? "text-primary-foreground/85" : "text-foreground/75",
+                isFailedOutbound
+                  ? "text-foreground/75"
+                  : isUser
+                    ? "text-primary-foreground/85"
+                    : "text-foreground/75",
               )}
             >
               Open audio file
@@ -127,17 +154,32 @@ export function MessageBubble({
           <span
             className={cn(
               "text-muted-foreground",
-              isUser && "text-primary-foreground/80",
+              !isFailedOutbound && isUser && "text-primary-foreground/80",
             )}
           >
             {message.timestamp}
           </span>
-          {isUser && (
+          {isFailedOutbound ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-destructive inline-flex items-center justify-center"
+                  aria-label="Why the message failed"
+                >
+                  <Icons.info className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={8} className="max-w-64 whitespace-pre-wrap">
+                {failureReason}
+              </TooltipContent>
+            </Tooltip>
+          ) : isUser ? (
             <Icons.checks
               className="text-primary-foreground/80 h-3 w-3 sm:h-3.5 sm:w-3.5"
               aria-hidden="true"
             />
-          )}
+          ) : null}
         </div>
       </div>
     </motion.div>

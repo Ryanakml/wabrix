@@ -9,7 +9,11 @@ import {
   processWhatsappStatusWebhookEvent,
 } from "../convex/outbound";
 import { finalizeBotReplyDraft } from "../convex/orchestrator";
-import { sendWhatsAppTextMessage } from "../convex/outboundAction";
+import {
+  sanitizeTemplateSendComponents,
+  sendWhatsAppTemplateMessage,
+  sendWhatsAppTextMessage,
+} from "../convex/outboundAction";
 
 type FakeDoc = Record<string, unknown> & { _id: string };
 
@@ -798,6 +802,20 @@ describe("phase 9 status reconciliation", () => {
       errorCode: "131000",
       errorMessage: "bad request",
     });
+
+    expect(
+      classifyMetaSendFailure({
+        status: 400,
+        body: { error: { code: 132000, message: "template params invalid" } },
+        error: Object.assign(new Error("Meta send failed"), {
+          responseStatus: 400,
+        }),
+      }),
+    ).toEqual({
+      retryable: false,
+      errorCode: "132000",
+      errorMessage: "template params invalid",
+    });
   });
 
   it("builds the Meta sender request and stores the provider message id", async () => {
@@ -831,5 +849,75 @@ describe("phase 9 status reconciliation", () => {
       }),
     );
     expect(result.providerMessageId).toBe("wamid.real.123");
+  });
+
+  it("drops template definition components before sending to Meta", () => {
+    expect(
+      sanitizeTemplateSendComponents([
+        { type: "BODY", text: "Hi {{1}}" },
+        {
+          type: "body",
+          parameters: [{ type: "text", text: "Ryan" }],
+        },
+        {
+          type: "BUTTON",
+          sub_type: "URL",
+          index: 0,
+          parameters: [{ type: "text", text: "track-123" }],
+        },
+      ]),
+    ).toEqual([
+      {
+        type: "body",
+        parameters: [{ type: "text", text: "Ryan" }],
+      },
+      {
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [{ type: "text", text: "track-123" }],
+      },
+    ]);
+  });
+
+  it("omits invalid template definition components from the Meta request", async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          messaging_product: "whatsapp",
+          messages: [{ id: "wamid.template.123" }],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+
+    await sendWhatsAppTemplateMessage({
+      phoneNumberId: "12345",
+      accessToken: "token",
+      to: "628111111111",
+      idempotencyKey: "whatsapp:template_1",
+      templateName: "shipping_update",
+      languageCode: "en_US",
+      components: [{ type: "BODY", text: "Hi {{1}}" }],
+      fetchImpl: fetchImpl as never,
+    });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.stringContaining("/12345/messages"),
+      expect.objectContaining({
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: "628111111111",
+          type: "template",
+          template: {
+            name: "shipping_update",
+            language: {
+              code: "en_US",
+            },
+          },
+        }),
+      }),
+    );
   });
 });

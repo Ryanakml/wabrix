@@ -94,14 +94,6 @@ export function classifyMetaSendFailure(input: {
   body?: unknown;
   error?: unknown;
 }): MetaSendFailure {
-  if (input.error instanceof Error) {
-    return {
-      retryable: true,
-      errorCode: "network_error",
-      errorMessage: input.error.message,
-    };
-  }
-
   const parsedBody =
     input.body && typeof input.body === "object"
       ? (input.body as {
@@ -113,22 +105,44 @@ export function classifyMetaSendFailure(input: {
           };
         })
       : null;
-  const status = input.status ?? 500;
+  const status = input.status;
   const code = parsedBody?.error?.code;
   const message = parsedBody?.error?.message;
+
+  if (typeof status !== "number") {
+    if (input.error instanceof Error) {
+      return {
+        retryable: true,
+        errorCode: "network_error",
+        errorMessage: input.error.message,
+      };
+    }
+
+    return {
+      retryable: true,
+      errorCode: "unknown_error",
+      errorMessage: "Meta send failed before an HTTP response was received.",
+    };
+  }
 
   if (status === 429 || status >= 500) {
     return {
       retryable: true,
       errorCode: String(code ?? status),
-      errorMessage: message ?? `Meta send failed with status ${status}`,
+      errorMessage:
+        message ??
+        (input.error instanceof Error ? input.error.message : undefined) ??
+        `Meta send failed with status ${status}`,
     };
   }
 
   return {
     retryable: false,
     errorCode: String(code ?? status),
-    errorMessage: message ?? `Meta send failed with status ${status}`,
+    errorMessage:
+      message ??
+      (input.error instanceof Error ? input.error.message : undefined) ??
+      `Meta send failed with status ${status}`,
   };
 }
 

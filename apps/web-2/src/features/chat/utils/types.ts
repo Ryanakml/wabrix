@@ -18,6 +18,9 @@ export type Message = {
   author: string;
   text: string;
   timestamp: string;
+  deliveryState?: string;
+  failureCode?: string | null;
+  failureMessage?: string | null;
   contentType?:
     | "text"
     | "audio"
