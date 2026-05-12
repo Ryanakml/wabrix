@@ -614,7 +614,7 @@ export function WhatsAppIntegrationSettings({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card id="manage-templates">
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

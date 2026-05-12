@@ -68,6 +68,32 @@ function extractTemplatePreview(components: unknown[], fallbackName: string) {
   return bodyComponent?.text?.trim() || fallbackName;
 }
 
+async function buildApprovedTemplateSuggestions(
+  ctx: Pick<QueryCtx, "db">,
+  integrationId?: Id<"whatsappIntegrations"> | null,
+) {
+  if (!integrationId) {
+    return buildConversationTemplateSuggestions();
+  }
+
+  const templates = await ctx.db
+    .query("whatsappTemplates")
+    .withIndex("by_integration", (q) => q.eq("integrationId", integrationId))
+    .collect();
+
+  return (
+    templates
+      .filter((template) => template.status === "approved")
+      .sort((left, right) => right.updatedAt - left.updatedAt)
+      .map((template) => ({
+        id: template._id,
+        language: template.languageCode,
+        title: template.name,
+        body: extractTemplatePreview(template.components, template.name),
+      })) || buildConversationTemplateSuggestions()
+  );
+}
+
 function deriveWabaLifecycleState(
   integration:
     | {
@@ -835,14 +861,10 @@ export const getInboxWorkspace = query({
     const selectedIntegration = selectedContact
       ? await ctx.db.get(selectedContact.integrationId)
       : null;
-    const selectedTemplates = selectedIntegration
-      ? await ctx.db
-          .query("whatsappTemplates")
-          .withIndex("by_integration", (q) =>
-            q.eq("integrationId", selectedIntegration._id),
-          )
-          .collect()
-      : [];
+    const templateSuggestions = await buildApprovedTemplateSuggestions(
+      ctx,
+      selectedIntegration?._id,
+    );
 
     const teamMemberships = await ctx.db
       .query("orgMembers")
@@ -921,16 +943,7 @@ export const getInboxWorkspace = query({
       conversations: conversationSummaries,
       teamMembers,
       wabaLifecycle,
-      templateSuggestions:
-        selectedTemplates
-          .filter((template) => template.status === "approved")
-          .sort((left, right) => right.updatedAt - left.updatedAt)
-          .map((template) => ({
-            id: template._id,
-            language: template.languageCode,
-            title: template.name,
-            body: extractTemplatePreview(template.components, template.name),
-          })) || buildConversationTemplateSuggestions(),
+      templateSuggestions,
       selectedConversation: selectedConversation
         ? {
             id: selectedConversation._id,
@@ -1015,12 +1028,23 @@ export const getInboxChatWorkspace = query({
       conversations,
       args.selectedConversationId,
     );
+    const selectedContact =
+      selectedConversation?.contactId != null
+        ? await ctx.db.get(selectedConversation.contactId)
+        : null;
+    const selectedIntegration = selectedContact
+      ? await ctx.db.get(selectedContact.integrationId)
+      : null;
 
     return {
       role: access.role,
       canManageInbox:
         access.role === "org:admin" || access.role === "org:member",
       conversations: await buildConversationSummaries(ctx, conversations),
+      templateSuggestions: await buildApprovedTemplateSuggestions(
+        ctx,
+        selectedIntegration?._id,
+      ),
       selectedConversation: await buildSelectedConversationCore(
         ctx,
         selectedConversation,

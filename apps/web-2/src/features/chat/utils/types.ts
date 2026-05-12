@@ -5,6 +5,13 @@ export type Attachment = {
   type: string;
 };
 
+export type TemplateSuggestion = {
+  id: string;
+  title: string;
+  body: string;
+  language: string;
+};
+
 export type Message = {
   id: string;
   sender: "user" | "contact";

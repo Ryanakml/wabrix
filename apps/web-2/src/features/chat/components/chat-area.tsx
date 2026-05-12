@@ -3,7 +3,11 @@
 import { FormEvent, useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { formatBotErrorForDisplay } from "@/lib/bot-error";
-import type { Attachment, Conversation } from "../utils/types";
+import type {
+  Attachment,
+  Conversation,
+  TemplateSuggestion,
+} from "../utils/types";
 import { ChatHeader } from "./chat-header";
 import { MessageBubble } from "./message-bubble";
 import { MessageComposer } from "./message-composer";
@@ -13,7 +17,10 @@ interface ChatAreaProps {
   draft: string;
   onDraftChange: (text: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  onSendTemplate: (templateId: string) => Promise<void>;
+  onManageTemplates: () => void;
   attachments: Attachment[];
+  templateSuggestions: TemplateSuggestion[];
   onAddAttachments: (files: FileList) => void;
   onRemoveAttachment: (id: string) => void;
   onOpenDetails: () => void;
@@ -26,7 +33,10 @@ export function ChatArea({
   draft,
   onDraftChange,
   onSubmit,
+  onSendTemplate,
+  onManageTemplates,
   attachments,
+  templateSuggestions,
   onAddAttachments,
   onRemoveAttachment,
   onOpenDetails,
@@ -127,13 +137,19 @@ export function ChatArea({
             draft={draft}
             onDraftChange={onDraftChange}
             onSubmit={onSubmit}
+            onSendTemplate={onSendTemplate}
+            onManageTemplates={onManageTemplates}
             contactName={conversation.name}
             quickReplies={conversation.quickReplies}
             attachments={attachments}
+            templateSuggestions={templateSuggestions}
             onAddAttachments={onAddAttachments}
             onRemoveAttachment={onRemoveAttachment}
             disabled={composerDisabled}
             isSending={isSending}
+            templateOnlyMode={
+              conversation.canReply && !conversation.serviceWindowOpen
+            }
           />
         </motion.div>
       </AnimatePresence>

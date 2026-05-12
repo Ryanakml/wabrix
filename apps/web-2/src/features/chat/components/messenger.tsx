@@ -3,9 +3,10 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@wabrix/backend/convex/_generated/api";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import type { Attachment } from "../utils/types";
+import type { Attachment, TemplateSuggestion } from "../utils/types";
 import {
   mapConversationDetails,
   mapConversationSummary,
@@ -18,6 +19,7 @@ import { ConversationDetailsDrawer } from "./conversation-details-drawer";
 import { MessengerSkeleton } from "./messenger-skeleton";
 
 export function Messenger() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const conversationIdFromQuery =
     searchParams.get("conversationId") ?? undefined;
@@ -67,6 +69,7 @@ export function Messenger() {
   const drawerState = drawerStateData ?? cachedDrawerState;
 
   const sendManualReply = useMutation(api.inbox.sendManualReply);
+  const sendTemplateReply = useMutation(api.inbox.sendTemplateReply);
   const setConversationBotPause = useMutation(
     api.inbox.setConversationBotPause,
   );
@@ -118,6 +121,21 @@ export function Messenger() {
     rawConversationDetails?.selectedConversation?.id === activeConversationId
       ? rawConversationDetails
       : null;
+  const templateSuggestions = useMemo(
+    () =>
+      ((workspace?.templateSuggestions ?? []) as Array<{
+        id: string;
+        title: string;
+        body: string;
+        language: string;
+      }>).map((template) => ({
+        id: String(template.id),
+        title: template.title,
+        body: template.body,
+        language: template.language,
+      })) satisfies TemplateSuggestion[],
+    [workspace?.templateSuggestions],
+  );
 
   const handleAddAttachments = (_files: FileList) => {
     toast.info("Attachments are not supported for inbox replies yet.");
@@ -151,6 +169,28 @@ export function Messenger() {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleSendTemplate = async (templateId: string) => {
+    if (!activeConversation) {
+      return;
+    }
+
+    try {
+      await sendTemplateReply({
+        conversationId: activeConversation.id as never,
+        templateId: templateId as never,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to send template.";
+      toast.error(message);
+      throw error instanceof Error ? error : new Error(message);
+    }
+  };
+
+  const handleManageTemplates = () => {
+    router.push("/whatsapp-integration#manage-templates");
   };
 
   const runConversationMutation = async (operation: () => Promise<unknown>) => {
@@ -279,7 +319,10 @@ export function Messenger() {
           draft={draft}
           onDraftChange={setDraft}
           onSubmit={handleSubmit}
+          onSendTemplate={handleSendTemplate}
+          onManageTemplates={handleManageTemplates}
           attachments={attachments}
+          templateSuggestions={templateSuggestions}
           onAddAttachments={handleAddAttachments}
           onRemoveAttachment={handleRemoveAttachment}
           onOpenDetails={() => setIsDetailsOpen(true)}
