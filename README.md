@@ -11,7 +11,7 @@
 <p align="left">
    <img alt="Cloudflare Workers" src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" />
    <img alt="Hono" src="https://img.shields.io/badge/Hono-Edge%20API-E36002?style=for-the-badge" />
-   <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind%20CSS-4-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=0B1220" />
+   <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind%20CSS-4-38BDF8?style=for-the-badge&logo=tailwindcss&logoCo2lor=0B1220" />
 </p>
 
 ![Wabrix banner](apps/web-2/public/banner.png)
