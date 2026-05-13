@@ -1,86 +1,156 @@
 # Wabrix
 
-Wabrix is a production-oriented WhatsApp AI SaaS designed to streamline customer communication with intelligent automated bots, comprehensive analytics, and a seamless operator workspace.
+<p align="left">
+   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
+   <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=0B1220" />
+   <img alt="Convex" src="https://img.shields.io/badge/Convex-Realtime-EF4444?style=for-the-badge" />
+   <img alt="Clerk" src="https://img.shields.io/badge/Auth-Clerk-7C3AED?style=for-the-badge&logo=clerk&logoColor=white" />
+   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+</p>
 
----
+<p align="left">
+   <img alt="Cloudflare Workers" src="https://img.shields.io/badge/Cloudflare-Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" />
+   <img alt="Hono" src="https://img.shields.io/badge/Hono-Edge%20API-E36002?style=for-the-badge" />
+   <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind%20CSS-4-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=0B1220" />
+</p>
 
-## 👥 For Users: What is Wabrix?
+![Wabrix banner](apps/web-2/public/banner.png)
 
-Wabrix helps businesses scale their WhatsApp operations by integrating powerful AI with an intuitive human-in-the-loop dashboard. 
+Wabrix is a WhatsApp-first AI customer communication platform that combines an automated, knowledge-grounded bot with a real-time operator inbox.
 
-### Key Features
-- **AI Bot Studio**: Configure bots with specific instructions, languages, and custom AI models. Test interactions directly in the dashboard before going live.
-- **Knowledge Base Integration**: Upload documents or provide website URLs. Wabrix parses them automatically so your AI bot can answer questions accurately based on your proprietary business data.
-- **Unified Inbox & Agent Handoff**: A multi-panel operator workspace where human agents can monitor conversations and take over seamlessly when the bot needs help. Includes real-time translation toggles, internal notes, and assignment tools.
-- **Analytics & Billing**: Comprehensive dashboards to track AI token usage, messaging volume, and user subscriptions transparently.
-- **WhatsApp Native**: Full support for WhatsApp message templates, rich media handling (images, voice notes), contact opt-in/opt-out flows, and strict compliance with the Meta 24-hour service window.
+Wabrix helps teams handle more WhatsApp conversations without losing quality.
 
----
+- Reduce response time with AI-drafted replies grounded in your business knowledge.
+- Keep full control with human handoff, assignments, internal notes, and delivery visibility.
+- Stay compliant with WhatsApp rules (service window, templates, opt-in/opt-out behavior).
 
-## 💻 For Developers: Technical Overview
+## What Wabrix is
 
-Wabrix is built as a `pnpm` monorepo using Turborepo, optimizing for scalability, robust type safety, and a distinct separation of concerns.
+Wabrix is a multi-tenant SaaS for businesses that run support and sales on WhatsApp:
 
-### Architecture & Tech Stack
-- **`apps/web`**: Next.js App Router shell with Tailwind CSS and `next-intl` for localized routing (English & Bahasa Indonesia).
-- **`apps/ingress`**: Hono Cloudflare Worker shell optimized for fast, edge-based webhook ingestion directly from Meta.
-- **`packages/backend`**: Convex backend powering real-time data, synchronization, authentication (via Clerk), RBAC, and the core Bot Studio runtime.
-- **`packages/config`**: Shared product and locale configurations.
-- **`packages/ui`**: Shared UI primitives based on modern React design patterns.
+- **Bot Studio** to configure bot behavior (instructions, language, safety/guardrails) per organization.
+- **Knowledge Base** to ingest inline text, websites, and files, then retrieve relevant chunks at reply time.
+- **Inbox** for operators: conversation list + thread view + actions (assign, pause/resume bot, handoff, manual replies, template sends).
+- **Billing & usage**: subscription state plus metered usage signals (AI and messaging activity) surfaced in the dashboard.
 
-### Quick Setup
+## How it works (system flow)
+
+1. **Connect WhatsApp Business**
+   - You configure your Meta webhook to point to Wabrix ingress.
+2. **Edge ingestion (fast + durable)**
+   - A Cloudflare Worker verifies Meta signatures, rate-limits per phone number, and persists raw webhook events immediately.
+3. **Normalization + processing (Convex)**
+   - Stored events are normalized into tenant-scoped entities (contacts, conversations, messages, delivery statuses).
+   - Media events can enqueue download/processing work.
+4. **Bot orchestration (human-in-the-loop)**
+   - New inbound messages schedule bot work with debounce, service-window checks, and usage gating.
+   - If eligible, the bot drafts a reply (optionally grounded via Knowledge Base retrieval).
+5. **Outbound delivery + reconciliation**
+   - Outbound sends are tracked with idempotency, retries, and delivery state updates from status webhooks.
+6. **Operator workspace**
+   - The dashboard (Next.js) stays in sync in real-time via Convex queries/mutations for a “live inbox” experience.
+
+```mermaid
+sequenceDiagram
+   participant Meta as Meta (WhatsApp)
+   participant Ingress as Ingress Worker (Hono)
+   participant Convex as Convex Backend
+   participant AI as AI Providers
+   participant Web as Web Dashboard (Next.js)
+
+   Meta->>Ingress: Webhook (messages/statuses)
+   Ingress->>Ingress: Verify signature + rate limit
+   Ingress->>Convex: Persist raw event (shared secret)
+   Convex->>Convex: Normalize + schedule processing
+   Convex->>AI: Draft reply (optionally grounded)
+   Convex->>Meta: Send outbound / reconcile statuses
+   Web->>Convex: Realtime queries + mutations
+   Convex-->>Web: Live updates (inbox, analytics)
+```
+
+## What makes it different
+
+- **Edge-first webhook reliability**: signature verification + rate limiting + durable event storage before acknowledgement.
+- **Grounded responses, not generic chat**: knowledge ingestion → chunking → embeddings → retrieval at generation time.
+- **Built for operations**: assignments, handoff, bot pause/resume, internal notes, delivery states, and service-window visibility.
+- **Multi-tenant by design**: organization scoping, RBAC, and audit-friendly workflows.
+
+## Tech stack
+
+- **Frontend**: Next.js (App Router), React, TypeScript, Tailwind CSS, Radix UI/shadcn-style primitives, `next-intl` (i18n), `next-themes`.
+- **Auth**: Clerk (with webhook-driven user/org sync).
+- **Backend**: Convex (database, real-time queries, server functions, scheduling/queues, file storage).
+- **Ingress**: Cloudflare Workers + Hono + Wrangler.
+- **AI**: Vercel AI SDK + provider SDKs (Google Gemini and OpenAI adapters in backend).
+- **Payments**: Polar + Midtrans (webhook forwarding into Convex).
+- **Testing**: Vitest (and Playwright where applicable).
+- **Monorepo tooling**: pnpm workspaces + Turborepo.
+
+## Repository layout
+
+- `apps/web`: Next.js dashboard (Bot Studio, Inbox, Knowledge Base, Billing, Analytics).
+- `apps/ingress`: Cloudflare Worker for Meta webhooks and event durability.
+- `packages/backend`: Convex functions (auth sync, WhatsApp processing, orchestration, knowledge ingestion, outbound delivery, billing).
+- `packages/ui`: shared UI components.
+- `packages/config`: shared configuration and constants.
+
+## Local development
+
+### Prerequisites
+
+- Node.js `>= 22`
+- `pnpm` (the repo pins a specific pnpm version via `packageManager`)
+
+### 1) Install dependencies
 
 ```bash
 pnpm install
+```
+
+### 2) Start the Convex backend
+
+From the backend package directory:
+
+```bash
+cd packages/backend
+npx convex dev
+```
+
+This runs Convex locally, generates the `_generated` client artifacts, and prints the URLs you’ll use for `NEXT_PUBLIC_CONVEX_URL` and `CONVEX_HTTP_URL`.
+
+### 3) Configure environment variables
+
+At minimum, you’ll typically need:
+
+- `NEXT_PUBLIC_CONVEX_URL` and `CONVEX_HTTP_URL`
+- `CONVEX_SHARED_SECRET` (used to authenticate internal webhook forwarding)
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `CLERK_ISSUER_URL`, `CLERK_WEBHOOK_SECRET`
+- `NEXT_PUBLIC_INGRESS_URL` (where your Worker is reachable)
+
+For end-to-end WhatsApp + AI + media handling, you’ll also configure:
+
+- Meta: `META_APP_SECRET`, `META_VERIFY_TOKEN`
+- AI: `GOOGLE_AI_API_KEY` and/or `GOOGLE_GENERATIVE_AI_API_KEY`
+- Media storage: `MEDIA_STORAGE_ENDPOINT`, `MEDIA_STORAGE_BUCKET`, `MEDIA_STORAGE_ACCESS_KEY_ID`, `MEDIA_STORAGE_SECRET_ACCESS_KEY`, `MEDIA_STORAGE_REGION`
+- Billing: `POLAR_*` and/or `MIDTRANS_*`
+
+### 4) Run the apps
+
+From the repo root:
+
+```bash
 pnpm dev
 ```
 
-**Core Commands:**
-- `pnpm lint` — Run linters across the workspace
-- `pnpm typecheck` — Run TypeScript compiler checks
-- `pnpm test` — Execute test suites
-- `pnpm build` — Build all applications and packages
+This starts the Next.js app and the Cloudflare Worker dev server (via Turborepo).
 
-### Documentation & Guides
-- [Environment And Deployment Guide](./environment-and-deployment-guide.md)
-- [Local Setup Guide](./docs/local-setup.md)
-- [Contributing](./CONTRIBUTING.md)
+- Web: `http://localhost:3000`
+- Ingress (Wrangler): typically `http://localhost:8787`
 
-*Detailed phase-by-phase project summaries are available in the `./docs/` directory.*
+## Useful commands
 
-### Current Implementation State
-
-Wabrix is built via a phased development approach. The current production state includes:
-
-**Core Infrastructure & Auth**
-- Clerk auth, organization sync, RBAC, and audit logging are in place.
-- Pricing routes Indonesia to Midtrans (IDR) and non-Indonesia countries to Polar (USD).
-- Web and ingress health/build surfaces are in place.
-
-**Bot & AI Engine**
-- Bot Studio exists in the dashboard with tenant-scoped prompt, language, provider, and emulator configuration.
-- Knowledge Base handles inline and website ingestion, markdown normalization, embeddings, and scoped retrieval.
-- Gemini 2.5 Flash is wired as the default draft-generation model, and `gemini-embedding-001` is wired for knowledge embeddings.
-- Usage counters track AI tokens, messaging, queue failures, delivery state, and processed media (with hard backend limits).
-
-**WhatsApp Ingress & Routing**
-- Secure tenant-scoped WhatsApp setup with encrypted token storage, hashed verify token storage, and audit-ready connection state.
-- Ingress verifies Meta GET and POST requests, rate limits per phone number, and durably stores raw webhook events before returning `200`.
-- Inbound events normalize into contacts, conversations, transcript rows, transport rows, and media-debug records.
-- Inbound WhatsApp media downloads asynchronously and is stored in S3-compatible object storage.
-
-**Orchestration & Outbound queues**
-- Bot orchestration claims eligible inbound conversations, debounces bursts, drafts AI replies, and manages durable outbound queue rows.
-- Outbound queue workers send WhatsApp text replies to Meta with idempotency, retry backoff, and strict service-window rechecks.
-- Status webhooks reconcile transcript/transport delivery states and update visibility for sent, delivered, read, and failed outcomes.
-- Contact opt-out/opt-in keywords affect bot orchestration to maintain compliance.
-
-**Operator & Admin Tools**
-- The inbox provides a multi-panel operator workspace with assignment, handoff, bot pause, internal notes, lifecycle visibility, and manual replies.
-- WhatsApp admin ops include lifecycle refresh, template sync/CRUD, rejection visibility, and OTP verification directly from the dashboard.
-- Approved WhatsApp templates can be queued from the inbox when the standard 24-hour service window is closed.
-- Dashboard notifications alert operators of service-window warnings, bot-reply failures, and outbound send failures.
-
-### Future Roadmap
-- Landing page, SEO, public documentation, and growth surfaces.
-- CI/CD pipelines, advanced monitoring, and production hardening.
+- `pnpm lint` — lint across the monorepo
+- `pnpm typecheck` — typecheck across the monorepo
+- `pnpm test` — run tests across the monorepo
+- `pnpm build` — build all apps/packages
+- `pnpm format` — format with Prettier
